@@ -61,7 +61,8 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 ## Laravel Cloud
 
 1. Create an application in [Laravel Cloud](https://cloud.laravel.com) from this GitHub repository (`liumis/futura`), branch `main`.
-2. Attach a MySQL database. Cloud injects `DB_*` — do not set `DB_CONNECTION=sqlite` in production.
+2. Set the environment PHP runtime to **8.4** (General settings). Laravel 12 / Filament 5 will not build on 8.1.
+3. Attach a MySQL database. Cloud injects `DB_*` — do not set `DB_CONNECTION=sqlite` in production.
 3. Deploy command: `php artisan app:cloud-deploy-database`  
    This runs migrations, then imports `database/snapshots/prod-bootstrap.sql.gz` (current data as a MySQL dump) if that dump has not been imported yet. To reload a newer dump, set `PROD_BOOTSTRAP_FORCE=true` for one deploy, then remove it.
 4. Environment variables:
