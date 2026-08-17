@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('legacy_data_imports', 'checksum')) {
+            return;
+        }
+
         Schema::table('legacy_data_imports', function (Blueprint $table): void {
             $table->string('checksum', 64)->nullable()->after('source');
         });

@@ -9,6 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('lt_holidays', 'recurrence_key')) {
+            return;
+        }
+
         Schema::dropIfExists('lt_holidays');
 
         Schema::create('lt_holidays', function (Blueprint $table): void {

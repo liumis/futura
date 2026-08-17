@@ -8,35 +8,41 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('employee_payment_reports', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name');
-            $table->string('status', 40)->default('created');
-            $table->foreignId('document_id')->nullable()->constrained('documents')->nullOnDelete();
-            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
-            $table->timestamps();
+        if (! Schema::hasTable('employee_payment_reports')) {
+            Schema::create('employee_payment_reports', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->string('status', 40)->default('created');
+                $table->foreignId('document_id')->nullable()->constrained('documents')->nullOnDelete();
+                $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
+                $table->timestamps();
 
-            $table->index('status');
-        });
+                $table->index('status');
+            });
+        }
 
-        Schema::create('employee_payment_report_approvers', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('employee_payment_report_id')->constrained('employee_payment_reports')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->timestamp('approved_at')->nullable();
-            $table->boolean('is_auto_approved')->default(false);
-            $table->timestamps();
+        if (! Schema::hasTable('employee_payment_report_approvers')) {
+            Schema::create('employee_payment_report_approvers', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('employee_payment_report_id')->constrained('employee_payment_reports')->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->timestamp('approved_at')->nullable();
+                $table->boolean('is_auto_approved')->default(false);
+                $table->timestamps();
 
-            $table->unique(['employee_payment_report_id', 'user_id'], 'payment_report_user_unique');
-        });
+                $table->unique(['employee_payment_report_id', 'user_id'], 'payment_report_user_unique');
+            });
+        }
 
-        Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-            $table->foreignId('employee_payment_report_id')
-                ->nullable()
-                ->after('status')
-                ->constrained('employee_payment_reports')
-                ->nullOnDelete();
-        });
+        if (! Schema::hasColumn('employee_monthly_payments', 'employee_payment_report_id')) {
+            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+                $table->foreignId('employee_payment_report_id')
+                    ->nullable()
+                    ->after('status')
+                    ->constrained('employee_payment_reports')
+                    ->nullOnDelete();
+            });
+        }
     }
 
     public function down(): void

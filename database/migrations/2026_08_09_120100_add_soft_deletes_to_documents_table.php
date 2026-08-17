@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('documents', 'deleted_at')) {
+            return;
+        }
+
         Schema::table('documents', function (Blueprint $table): void {
             $table->softDeletes()->after('updated_at');
         });

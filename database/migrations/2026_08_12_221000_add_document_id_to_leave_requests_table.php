@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('leave_requests', 'document_id')) {
+            return;
+        }
+
         Schema::table('leave_requests', function (Blueprint $table) {
             $table->foreignId('document_id')
                 ->nullable()

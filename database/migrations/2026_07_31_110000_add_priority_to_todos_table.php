@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('todos', 'priority')) {
+            return;
+        }
+
         Schema::table('todos', function (Blueprint $table): void {
             $table->string('priority', 20)->default('regular')->after('status');
             $table->index('priority');

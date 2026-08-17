@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('legacy_data_imports')) {
+            return;
+        }
+
         Schema::create('legacy_data_imports', function (Blueprint $table): void {
             $table->id();
             $table->string('source');

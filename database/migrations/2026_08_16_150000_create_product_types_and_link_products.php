@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\SchemaForeignKeys;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -9,42 +10,44 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('product_types', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('key')->unique();
-            $table->boolean('requires_color')->default(true);
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('product_types')) {
+            Schema::create('product_types', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name')->unique();
+                $table->string('key')->unique();
+                $table->boolean('requires_color')->default(true);
+                $table->timestamps();
+            });
+        }
 
         $now = now();
 
-        DB::table('product_types')->insert([
-            [
-                'name' => 'Artificial leather',
-                'key' => 'artificial_leather',
-                'requires_color' => true,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'name' => 'Catalog',
-                'key' => 'catalog',
-                'requires_color' => false,
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-        ]);
+        foreach ([
+            ['name' => 'Artificial leather', 'key' => 'artificial_leather', 'requires_color' => true],
+            ['name' => 'Catalog', 'key' => 'catalog', 'requires_color' => false],
+        ] as $type) {
+            DB::table('product_types')->updateOrInsert(
+                ['key' => $type['key']],
+                [
+                    'name' => $type['name'],
+                    'requires_color' => $type['requires_color'],
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ],
+            );
+        }
 
         $leatherId = (int) DB::table('product_types')->where('key', 'artificial_leather')->value('id');
 
-        Schema::table('products', function (Blueprint $table) use ($leatherId): void {
-            $table->foreignId('product_type_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('product_types')
-                ->restrictOnDelete();
-        });
+        if (! Schema::hasColumn('products', 'product_type_id')) {
+            Schema::table('products', function (Blueprint $table): void {
+                $table->foreignId('product_type_id')
+                    ->nullable()
+                    ->after('id')
+                    ->constrained('product_types')
+                    ->restrictOnDelete();
+            });
+        }
 
         if ($leatherId > 0) {
             DB::table('products')->whereNull('product_type_id')->update([
@@ -53,60 +56,63 @@ return new class extends Migration
         }
 
         $driver = Schema::getConnection()->getDriverName();
+        $color = collect(Schema::getColumns('products'))->firstWhere('name', 'color_id');
+        $colorIsNullable = (bool) ($color['nullable'] ?? false);
 
-        if ($driver === 'sqlite') {
-            // Rebuild products so color_id can be nullable (SQLite).
-            Schema::disableForeignKeyConstraints();
+        if (! $colorIsNullable && Schema::hasColumn('products', 'color_id')) {
+            if ($driver === 'sqlite') {
+                Schema::disableForeignKeyConstraints();
 
-            Schema::create('products_tmp', function (Blueprint $table): void {
-                $table->id();
-                $table->foreignId('product_type_id')->constrained('product_types')->restrictOnDelete();
-                $table->string('name')->default('20');
-                $table->foreignId('color_id')->nullable()->constrained('colors')->nullOnDelete();
-                $table->string('product_code');
-                $table->string('alternative_code')->nullable();
-                $table->string('dsv_code')->nullable();
-                $table->decimal('default_cost', 12, 2)->default(0);
-                $table->unsignedInteger('current_amount')->default(0);
-                $table->timestamps();
-            });
+                Schema::dropIfExists('products_tmp');
 
-            $columns = [
-                'id',
-                'product_type_id',
-                'name',
-                'color_id',
-                'product_code',
-                'alternative_code',
-                'dsv_code',
-                'default_cost',
-                'current_amount',
-                'created_at',
-                'updated_at',
-            ];
+                Schema::create('products_tmp', function (Blueprint $table): void {
+                    $table->id();
+                    $table->foreignId('product_type_id')->constrained('product_types')->restrictOnDelete();
+                    $table->string('name')->default('20');
+                    $table->foreignId('color_id')->nullable()->constrained('colors')->nullOnDelete();
+                    $table->string('product_code');
+                    $table->string('alternative_code')->nullable();
+                    $table->string('dsv_code')->nullable();
+                    $table->decimal('default_cost', 12, 2)->default(0);
+                    $table->unsignedInteger('current_amount')->default(0);
+                    $table->timestamps();
+                });
 
-            $existing = array_intersect($columns, Schema::getColumnListing('products'));
-            $select = implode(', ', $existing);
+                $columns = [
+                    'id',
+                    'product_type_id',
+                    'name',
+                    'color_id',
+                    'product_code',
+                    'alternative_code',
+                    'dsv_code',
+                    'default_cost',
+                    'current_amount',
+                    'created_at',
+                    'updated_at',
+                ];
 
-            DB::statement("INSERT INTO products_tmp ({$select}) SELECT {$select} FROM products");
+                $existing = array_intersect($columns, Schema::getColumnListing('products'));
+                $select = implode(', ', $existing);
 
-            Schema::drop('products');
-            Schema::rename('products_tmp', 'products');
-            Schema::enableForeignKeyConstraints();
-        } else {
-            Schema::table('products', function (Blueprint $table): void {
-                $table->dropForeign(['color_id']);
-            });
+                DB::statement("INSERT INTO products_tmp ({$select}) SELECT {$select} FROM products");
 
-            Schema::table('products', function (Blueprint $table): void {
-                $table->unsignedBigInteger('color_id')->nullable()->change();
-                $table->foreign('color_id')->references('id')->on('colors')->nullOnDelete();
-            });
+                Schema::drop('products');
+                Schema::rename('products_tmp', 'products');
+                Schema::enableForeignKeyConstraints();
+            } else {
+                SchemaForeignKeys::dropOnColumn('products', 'color_id');
+
+                Schema::table('products', function (Blueprint $table): void {
+                    $table->unsignedBigInteger('color_id')->nullable()->change();
+                    $table->foreign('color_id')->references('id')->on('colors')->nullOnDelete();
+                });
+            }
         }
 
-        if ($driver === 'mysql') {
+        if ($driver === 'mysql' && Schema::hasColumn('products', 'product_type_id')) {
             DB::statement('ALTER TABLE products MODIFY product_type_id BIGINT UNSIGNED NOT NULL');
-        } elseif ($driver === 'pgsql') {
+        } elseif ($driver === 'pgsql' && Schema::hasColumn('products', 'product_type_id')) {
             DB::statement('ALTER TABLE products ALTER COLUMN product_type_id SET NOT NULL');
         }
     }
@@ -125,12 +131,7 @@ return new class extends Migration
             DB::table('products')->whereNull('color_id')->delete();
         }
 
-        Schema::table('products', function (Blueprint $table): void {
-            if (Schema::hasColumn('products', 'product_type_id')) {
-                $table->dropConstrainedForeignId('product_type_id');
-            }
-        });
-
+        SchemaForeignKeys::dropColumnIfExists('products', 'product_type_id');
         Schema::dropIfExists('product_types');
     }
 };

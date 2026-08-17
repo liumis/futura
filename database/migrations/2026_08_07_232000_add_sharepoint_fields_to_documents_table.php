@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('documents', 'sharepoint_web_url')) {
+            return;
+        }
+
         Schema::table('documents', function (Blueprint $table): void {
             $table->string('sharepoint_web_url', 1000)->nullable()->after('approved_file_path');
             $table->string('sharepoint_item_id')->nullable()->after('sharepoint_web_url');

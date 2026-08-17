@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('leave_request_approvers')) {
+            return;
+        }
+
         Schema::create('leave_request_approvers', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('leave_request_id')->constrained()->cascadeOnDelete();

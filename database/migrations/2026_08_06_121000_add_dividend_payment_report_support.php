@@ -9,46 +9,52 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('dividend_payment_reports', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name');
-            $table->string('status', 40)->default(DividendPaymentReportStatus::Created->value);
-            $table->foreignId('document_id')->nullable()->constrained('documents')->nullOnDelete();
-            $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
-            $table->timestamps();
+        if (! Schema::hasTable('dividend_payment_reports')) {
+            Schema::create('dividend_payment_reports', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name');
+                $table->string('status', 40)->default(DividendPaymentReportStatus::Created->value);
+                $table->foreignId('document_id')->nullable()->constrained('documents')->nullOnDelete();
+                $table->foreignId('created_by')->constrained('users')->cascadeOnDelete();
+                $table->timestamps();
 
-            $table->index('status');
-        });
+                $table->index('status');
+            });
+        }
 
-        Schema::create('dividend_payment_report_approvers', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('dividend_payment_report_id')
-                ->constrained('dividend_payment_reports')
-                ->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->timestamp('approved_at')->nullable();
-            $table->boolean('is_auto_approved')->default(false);
-            $table->timestamps();
+        if (! Schema::hasTable('dividend_payment_report_approvers')) {
+            Schema::create('dividend_payment_report_approvers', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('dividend_payment_report_id')
+                    ->constrained('dividend_payment_reports')
+                    ->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->timestamp('approved_at')->nullable();
+                $table->boolean('is_auto_approved')->default(false);
+                $table->timestamps();
 
-            $table->unique(['dividend_payment_report_id', 'user_id'], 'dividend_report_user_unique');
-        });
+                $table->unique(['dividend_payment_report_id', 'user_id'], 'dividend_report_user_unique');
+            });
+        }
 
-        Schema::table('dividends', function (Blueprint $table): void {
-            $table->decimal('gpm_amount', 12, 2)->nullable()->after('amount');
-            $table->decimal('net_amount', 12, 2)->nullable()->after('gpm_amount');
-            $table->string('status', 40)->default('open')->after('net_amount');
-            $table->string('comment')->nullable()->after('status');
-            $table->boolean('is_paid')->default(false)->after('comment');
-            $table->timestamp('paid_at')->nullable()->after('is_paid');
+        if (! Schema::hasColumn('dividends', 'gpm_amount')) {
+            Schema::table('dividends', function (Blueprint $table): void {
+                $table->decimal('gpm_amount', 12, 2)->nullable()->after('amount');
+                $table->decimal('net_amount', 12, 2)->nullable()->after('gpm_amount');
+                $table->string('status', 40)->default('open')->after('net_amount');
+                $table->string('comment')->nullable()->after('status');
+                $table->boolean('is_paid')->default(false)->after('comment');
+                $table->timestamp('paid_at')->nullable()->after('is_paid');
 
-            $table->foreignId('dividend_payment_report_id')
-                ->nullable()
-                ->after('paid_at')
-                ->constrained('dividend_payment_reports')
-                ->nullOnDelete();
+                $table->foreignId('dividend_payment_report_id')
+                    ->nullable()
+                    ->after('paid_at')
+                    ->constrained('dividend_payment_reports')
+                    ->nullOnDelete();
 
-            $table->index(['status', 'employee_id', 'date']);
-        });
+                $table->index(['status', 'employee_id', 'date']);
+            });
+        }
     }
 
     public function down(): void
@@ -62,4 +68,3 @@ return new class extends Migration
         Schema::dropIfExists('dividend_payment_reports');
     }
 };
-

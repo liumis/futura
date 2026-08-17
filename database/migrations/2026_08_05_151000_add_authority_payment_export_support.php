@@ -9,26 +9,32 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('payroll_tax_settings', function (Blueprint $table): void {
-            $table->decimal('employer_sodra_permanent_rate', 8, 4)->default(0.0177)->after('gpm_rate');
-            $table->decimal('employer_sodra_fixed_term_rate', 8, 4)->default(0.0249)->after('employer_sodra_permanent_rate');
-        });
+        if (! Schema::hasColumn('payroll_tax_settings', 'employer_sodra_permanent_rate')) {
+            Schema::table('payroll_tax_settings', function (Blueprint $table): void {
+                $table->decimal('employer_sodra_permanent_rate', 8, 4)->default(0.0177)->after('gpm_rate');
+                $table->decimal('employer_sodra_fixed_term_rate', 8, 4)->default(0.0249)->after('employer_sodra_permanent_rate');
+            });
+        }
 
         DB::table('payroll_tax_settings')->update([
             'employer_sodra_permanent_rate' => 0.0177,
             'employer_sodra_fixed_term_rate' => 0.0249,
         ]);
 
-        Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-            $table->decimal('sodra_employer_amount', 12, 2)->nullable()->after('sodra_employee_amount');
-        });
+        if (! Schema::hasColumn('employee_monthly_payments', 'sodra_employer_amount')) {
+            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+                $table->decimal('sodra_employer_amount', 12, 2)->nullable()->after('sodra_employee_amount');
+            });
+        }
 
-        Schema::table('company_settings', function (Blueprint $table): void {
-            $table->string('vmi_iban', 34)->nullable()->after('company_bic');
-            $table->string('vmi_bic', 11)->nullable()->after('vmi_iban');
-            $table->string('sodra_iban', 34)->nullable()->after('vmi_bic');
-            $table->string('sodra_bic', 11)->nullable()->after('sodra_iban');
-        });
+        if (! Schema::hasColumn('company_settings', 'vmi_iban')) {
+            Schema::table('company_settings', function (Blueprint $table): void {
+                $table->string('vmi_iban', 34)->nullable()->after('company_bic');
+                $table->string('vmi_bic', 11)->nullable()->after('vmi_iban');
+                $table->string('sodra_iban', 34)->nullable()->after('vmi_bic');
+                $table->string('sodra_bic', 11)->nullable()->after('sodra_iban');
+            });
+        }
     }
 
     public function down(): void

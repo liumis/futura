@@ -9,13 +9,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('todos', function (Blueprint $table): void {
-            $table->foreignId('responsable_id')
-                ->nullable()
-                ->after('user_id')
-                ->constrained('users')
-                ->nullOnDelete();
-        });
+        if (! Schema::hasColumn('todos', 'responsable_id')) {
+            Schema::table('todos', function (Blueprint $table): void {
+                $table->foreignId('responsable_id')
+                    ->nullable()
+                    ->after('user_id')
+                    ->constrained('users')
+                    ->nullOnDelete();
+            });
+        }
 
         DB::table('todos')
             ->whereNull('responsable_id')

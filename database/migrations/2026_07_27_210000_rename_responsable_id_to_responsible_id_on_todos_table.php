@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasColumn('todos', 'responsable_id') || Schema::hasColumn('todos', 'responsible_id')) {
+            return;
+        }
+
         Schema::table('todos', function (Blueprint $table): void {
             $table->renameColumn('responsable_id', 'responsible_id');
         });

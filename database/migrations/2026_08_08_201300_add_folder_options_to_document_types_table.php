@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('document_types', 'group_by_year')) {
+            return;
+        }
+
         Schema::table('document_types', function (Blueprint $table): void {
             $table->boolean('new_folder_per_document')->default(false)->after('name');
             $table->boolean('group_by_year')->default(false)->after('new_folder_per_document');

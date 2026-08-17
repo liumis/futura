@@ -8,10 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('company_settings', function (Blueprint $table): void {
-            $table->string('company_iban', 34)->nullable()->after('company_phone');
-            $table->string('company_bic', 11)->nullable()->after('company_iban');
-        });
+        if (! Schema::hasColumn('company_settings', 'company_iban')
+            || ! Schema::hasColumn('company_settings', 'company_bic')) {
+            Schema::table('company_settings', function (Blueprint $table): void {
+                if (! Schema::hasColumn('company_settings', 'company_iban')) {
+                    $table->string('company_iban', 34)->nullable()->after('company_phone');
+                }
+                if (! Schema::hasColumn('company_settings', 'company_bic')) {
+                    $table->string('company_bic', 11)->nullable()->after('company_iban');
+                }
+            });
+        }
     }
 
     public function down(): void

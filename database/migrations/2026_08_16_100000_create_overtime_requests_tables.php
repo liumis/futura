@@ -9,38 +9,44 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('overtime_request_types', function (Blueprint $table): void {
-            $table->id();
-            $table->string('name')->unique();
-            $table->string('color', 20)->default('#0ea5e9');
-            $table->timestamps();
-        });
+        if (! Schema::hasTable('overtime_request_types')) {
+            Schema::create('overtime_request_types', function (Blueprint $table): void {
+                $table->id();
+                $table->string('name')->unique();
+                $table->string('color', 20)->default('#0ea5e9');
+                $table->timestamps();
+            });
+        }
 
-        Schema::create('overtime_requests', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
-            $table->date('date_from');
-            $table->date('date_to');
-            $table->foreignId('overtime_request_type_id')->constrained('overtime_request_types')->restrictOnDelete();
-            $table->text('comment')->nullable();
-            $table->string('status')->default('new');
-            $table->foreignId('confirmed_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->timestamp('confirmed_at')->nullable();
-            $table->timestamps();
+        if (! Schema::hasTable('overtime_requests')) {
+            Schema::create('overtime_requests', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
+                $table->date('date_from');
+                $table->date('date_to');
+                $table->foreignId('overtime_request_type_id')->constrained('overtime_request_types')->restrictOnDelete();
+                $table->text('comment')->nullable();
+                $table->string('status')->default('new');
+                $table->foreignId('confirmed_by')->nullable()->constrained('users')->nullOnDelete();
+                $table->timestamp('confirmed_at')->nullable();
+                $table->timestamps();
 
-            $table->index(['date_from', 'date_to']);
-            $table->index('status');
-        });
+                $table->index(['date_from', 'date_to']);
+                $table->index('status');
+            });
+        }
 
-        Schema::create('overtime_request_approvers', function (Blueprint $table): void {
-            $table->id();
-            $table->foreignId('overtime_request_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
-            $table->timestamp('approved_at')->nullable();
-            $table->timestamps();
+        if (! Schema::hasTable('overtime_request_approvers')) {
+            Schema::create('overtime_request_approvers', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('overtime_request_id')->constrained()->cascadeOnDelete();
+                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->timestamp('approved_at')->nullable();
+                $table->timestamps();
 
-            $table->unique(['overtime_request_id', 'user_id'], 'overtime_request_approver_user_unique');
-        });
+                $table->unique(['overtime_request_id', 'user_id'], 'overtime_request_approver_user_unique');
+            });
+        }
 
         $now = now();
 

@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('leave_requests', 'status')) {
+            return;
+        }
+
         Schema::table('leave_requests', function (Blueprint $table) {
             $table->string('status', 20)->default('new')->after('comment');
             $table->foreignId('confirmed_by')->nullable()->after('status')->constrained('users')->nullOnDelete();

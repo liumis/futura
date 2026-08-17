@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('employee_contracts', 'default_bonus')) {
+            return;
+        }
+
         Schema::table('employee_contracts', function (Blueprint $table): void {
             $table->decimal('default_bonus', 12, 2)
                 ->nullable()

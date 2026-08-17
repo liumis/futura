@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('sharepoint_settings')) {
+            return;
+        }
+
         Schema::create('sharepoint_settings', function (Blueprint $table): void {
             $table->id();
             $table->boolean('is_enabled')->default(false);

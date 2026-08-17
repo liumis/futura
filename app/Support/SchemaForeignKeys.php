@@ -43,4 +43,29 @@ class SchemaForeignKeys
             });
         }
     }
+
+    public static function dropColumnIfExists(string $table, string ...$columns): void
+    {
+        $existing = array_values(array_filter(
+            $columns,
+            fn (string $column): bool => Schema::hasTable($table) && Schema::hasColumn($table, $column),
+        ));
+
+        if ($existing === []) {
+            return;
+        }
+
+        foreach ($existing as $column) {
+            self::dropOnColumn($table, $column);
+        }
+
+        Schema::table($table, function (Blueprint $blueprint) use ($existing): void {
+            $blueprint->dropColumn($existing);
+        });
+    }
+
+    public static function hasOnColumn(string $table, string $column): bool
+    {
+        return self::namesOnColumn($table, $column) !== [];
+    }
 }

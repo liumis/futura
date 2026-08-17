@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (! Schema::hasColumn('document_types', 'new_folder_per_document')) {
+            return;
+        }
+
         Schema::table('document_types', function (Blueprint $table) {
             $table->dropColumn('new_folder_per_document');
         });

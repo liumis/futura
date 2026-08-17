@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('employees', 'shareholder_percentage')) {
+            return;
+        }
+
         Schema::table('employees', function (Blueprint $table): void {
             $table->decimal('shareholder_percentage', 5, 2)->nullable()->after('working_time_percentage');
         });

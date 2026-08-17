@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\SchemaForeignKeys;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -27,13 +28,19 @@ return new class extends Migration
             ]);
         }
 
-        Schema::table('destinations', function (Blueprint $table): void {
-            $table->unsignedBigInteger('shipping_setting_id')->nullable()->after('id');
-        });
+        if (! Schema::hasColumn('destinations', 'shipping_setting_id')) {
+            Schema::table('destinations', function (Blueprint $table): void {
+                $table->unsignedBigInteger('shipping_setting_id')->nullable()->after('id');
+            });
+        }
 
         DB::table('destinations')
             ->whereNull('shipping_setting_id')
             ->update(['shipping_setting_id' => $defaultProviderId]);
+
+        if (SchemaForeignKeys::hasOnColumn('destinations', 'shipping_setting_id')) {
+            return;
+        }
 
         Schema::table('destinations', function (Blueprint $table): void {
             $table->foreign('shipping_setting_id')

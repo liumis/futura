@@ -11,42 +11,48 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->string('name')->default('')->after('id');
-            $table->string('surname')->default('')->after('name');
-        });
+        if (! Schema::hasColumn('employees', 'name') || ! Schema::hasColumn('employees', 'surname')) {
+            Schema::table('employees', function (Blueprint $table) {
+                if (! Schema::hasColumn('employees', 'name')) {
+                    $table->string('name')->default('')->after('id');
+                }
 
-        Employee::query()->orderBy('id')->each(function (Employee $employee): void {
-            $user = filled($employee->user_id)
-                ? User::query()->find($employee->user_id)
-                : null;
+                if (! Schema::hasColumn('employees', 'surname')) {
+                    $after = Schema::hasColumn('employees', 'name') ? 'name' : 'id';
+                    $table->string('surname')->default('')->after($after);
+                }
+            });
+        }
 
-            $employee->forceFill([
-                'name' => filled($user?->name) ? (string) $user->name : 'Employee',
-                'surname' => (string) ($user?->surname ?? ''),
-            ])->save();
-        });
+        if (Schema::hasColumn('employees', 'user_id')) {
+            Employee::query()->orderBy('id')->each(function (Employee $employee): void {
+                $user = filled($employee->user_id)
+                    ? User::query()->find($employee->user_id)
+                    : null;
 
-        SchemaForeignKeys::dropOnColumn('employees', 'user_id');
+                $employee->forceFill([
+                    'name' => filled($user?->name) ? (string) $user->name : 'Employee',
+                    'surname' => (string) ($user?->surname ?? ''),
+                ])->save();
+            });
+        }
 
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropColumn('user_id');
-        });
+        SchemaForeignKeys::dropColumnIfExists('employees', 'user_id');
     }
 
     public function down(): void
     {
-        Schema::table('employees', function (Blueprint $table) {
-            $table->foreignId('user_id')
-                ->nullable()
-                ->after('id')
-                ->constrained('users')
-                ->cascadeOnDelete();
-            $table->unique('user_id');
-        });
+        if (! Schema::hasColumn('employees', 'user_id')) {
+            Schema::table('employees', function (Blueprint $table) {
+                $table->foreignId('user_id')
+                    ->nullable()
+                    ->after('id')
+                    ->constrained('users')
+                    ->cascadeOnDelete();
+                $table->unique('user_id');
+            });
+        }
 
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropColumn(['name', 'surname']);
-        });
+        SchemaForeignKeys::dropColumnIfExists('employees', 'name', 'surname');
     }
 };

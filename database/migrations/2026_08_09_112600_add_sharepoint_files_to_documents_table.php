@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasColumn('documents', 'sharepoint_files')) {
+            return;
+        }
+
         Schema::table('documents', function (Blueprint $table): void {
             $table->json('sharepoint_files')->nullable()->after('sharepoint_path');
         });

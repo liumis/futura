@@ -12,11 +12,11 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('leave_requests', function (Blueprint $table): void {
-            if (! Schema::hasColumn('leave_requests', 'payment_gross')) {
+        if (! Schema::hasColumn('leave_requests', 'payment_gross')) {
+            Schema::table('leave_requests', function (Blueprint $table): void {
                 $table->decimal('payment_gross', 12, 2)->nullable()->after('comment');
-            }
-        });
+            });
+        }
     }
 
     public function down(): void

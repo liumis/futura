@@ -9,11 +9,18 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('shipping_settings', function (Blueprint $table): void {
-            $table->string('name')->default('Default')->after('id');
-            $table->boolean('is_default')->default(false)->after('name');
-            $table->index('is_default');
-        });
+        if (! Schema::hasColumn('shipping_settings', 'name')) {
+            Schema::table('shipping_settings', function (Blueprint $table): void {
+                $table->string('name')->default('Default')->after('id');
+            });
+        }
+
+        if (! Schema::hasColumn('shipping_settings', 'is_default')) {
+            Schema::table('shipping_settings', function (Blueprint $table): void {
+                $table->boolean('is_default')->default(false)->after('name');
+                $table->index('is_default');
+            });
+        }
 
         $rows = DB::table('shipping_settings')->orderBy('id')->get();
 

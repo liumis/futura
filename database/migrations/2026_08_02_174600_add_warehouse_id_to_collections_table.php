@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\SchemaForeignKeys;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -15,14 +16,20 @@ return new class extends Migration
             ->value('id')
             ?? DB::table('warehouses')->orderBy('id')->value('id');
 
-        Schema::table('collections', function (Blueprint $table): void {
-            $table->unsignedBigInteger('warehouse_id')->nullable()->after('supplier_id');
-        });
+        if (! Schema::hasColumn('collections', 'warehouse_id')) {
+            Schema::table('collections', function (Blueprint $table): void {
+                $table->unsignedBigInteger('warehouse_id')->nullable()->after('supplier_id');
+            });
+        }
 
         if ($warehouseId !== null) {
             DB::table('collections')
                 ->whereNull('warehouse_id')
                 ->update(['warehouse_id' => $warehouseId]);
+        }
+
+        if (SchemaForeignKeys::hasOnColumn('collections', 'warehouse_id')) {
+            return;
         }
 
         Schema::table('collections', function (Blueprint $table): void {
