@@ -53,7 +53,7 @@ return new class extends Migration
                 $table->timestamps();
 
                 $table->unique(['todo_id', 'calendar_connection_id']);
-                $table->unique(['calendar_connection_id', 'external_event_id']);
+                $table->unique(['calendar_connection_id', 'external_event_id'], 'tce_connection_event_unique');
                 $table->index(['external_status', 'deleted_externally_at']);
             });
         }

@@ -1,6 +1,7 @@
 <?php
 
 use App\Enums\DividendPaymentReportStatus;
+use App\Support\SchemaForeignKeys;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -25,10 +26,8 @@ return new class extends Migration
         if (! Schema::hasTable('dividend_payment_report_approvers')) {
             Schema::create('dividend_payment_report_approvers', function (Blueprint $table): void {
                 $table->id();
-                $table->foreignId('dividend_payment_report_id')
-                    ->constrained('dividend_payment_reports')
-                    ->cascadeOnDelete();
-                $table->foreignId('user_id')->constrained('users')->cascadeOnDelete();
+                $table->unsignedBigInteger('dividend_payment_report_id');
+                $table->unsignedBigInteger('user_id');
                 $table->timestamp('approved_at')->nullable();
                 $table->boolean('is_auto_approved')->default(false);
                 $table->timestamps();
@@ -36,6 +35,19 @@ return new class extends Migration
                 $table->unique(['dividend_payment_report_id', 'user_id'], 'dividend_report_user_unique');
             });
         }
+
+        SchemaForeignKeys::ensure(
+            'dividend_payment_report_approvers',
+            'dividend_payment_report_id',
+            'dividend_payment_reports',
+            'dpr_approvers_report_fk',
+        );
+        SchemaForeignKeys::ensure(
+            'dividend_payment_report_approvers',
+            'user_id',
+            'users',
+            'dpr_approvers_user_fk',
+        );
 
         if (! Schema::hasColumn('dividends', 'gpm_amount')) {
             Schema::table('dividends', function (Blueprint $table): void {

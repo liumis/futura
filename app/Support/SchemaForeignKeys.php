@@ -68,4 +68,29 @@ class SchemaForeignKeys
     {
         return self::namesOnColumn($table, $column) !== [];
     }
+
+    public static function ensure(
+        string $table,
+        string $column,
+        string $onTable,
+        string $name,
+        string $onDelete = 'cascade',
+        string $onColumn = 'id',
+    ): void {
+        if (! Schema::hasTable($table) || ! Schema::hasColumn($table, $column) || self::hasOnColumn($table, $column)) {
+            return;
+        }
+
+        Schema::table($table, function (Blueprint $blueprint) use ($column, $onTable, $name, $onDelete, $onColumn): void {
+            $foreign = $blueprint->foreign($column, $name)->references($onColumn)->on($onTable);
+
+            if ($onDelete === 'cascade') {
+                $foreign->cascadeOnDelete();
+            } elseif ($onDelete === 'null') {
+                $foreign->nullOnDelete();
+            } elseif ($onDelete === 'restrict') {
+                $foreign->restrictOnDelete();
+            }
+        });
+    }
 }

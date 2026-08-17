@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\SchemaForeignKeys;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -39,9 +40,7 @@ return new class extends Migration
         if (! Schema::hasTable('employee_contract_signing_signers')) {
             Schema::create('employee_contract_signing_signers', function (Blueprint $table): void {
                 $table->id();
-                $table->foreignId('employee_contract_signing_id')
-                    ->constrained('employee_contract_signings')
-                    ->cascadeOnDelete();
+                $table->unsignedBigInteger('employee_contract_signing_id');
                 $table->string('signer_key');
                 $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
                 $table->foreignId('employee_id')->nullable()->constrained('employees')->nullOnDelete();
@@ -56,6 +55,13 @@ return new class extends Migration
                 $table->unique(['employee_contract_signing_id', 'signer_key'], 'contract_signing_signer_key_unique');
             });
         }
+
+        SchemaForeignKeys::ensure(
+            'employee_contract_signing_signers',
+            'employee_contract_signing_id',
+            'employee_contract_signings',
+            'ecs_signers_signing_fk',
+        );
     }
 
     public function down(): void
