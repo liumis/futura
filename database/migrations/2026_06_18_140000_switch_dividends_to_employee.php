@@ -9,9 +9,18 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('dividends', function (Blueprint $table) {
-            $table->dropIndex(['user_id', 'date']);
-            $table->dropConstrainedForeignId('user_id');
+            $table->dropForeign(['user_id']);
+        });
 
+        Schema::table('dividends', function (Blueprint $table) {
+            if (Schema::hasIndex('dividends', 'dividends_user_id_date_index')) {
+                $table->dropIndex('dividends_user_id_date_index');
+            }
+
+            $table->dropColumn('user_id');
+        });
+
+        Schema::table('dividends', function (Blueprint $table) {
             $table->foreignId('employee_id')
                 ->nullable()
                 ->after('id')
@@ -25,9 +34,18 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('dividends', function (Blueprint $table) {
-            $table->dropIndex(['employee_id', 'date']);
-            $table->dropConstrainedForeignId('employee_id');
+            $table->dropForeign(['employee_id']);
+        });
 
+        Schema::table('dividends', function (Blueprint $table) {
+            if (Schema::hasIndex('dividends', 'dividends_employee_id_date_index')) {
+                $table->dropIndex('dividends_employee_id_date_index');
+            }
+
+            $table->dropColumn('employee_id');
+        });
+
+        Schema::table('dividends', function (Blueprint $table) {
             $table->foreignId('user_id')
                 ->nullable()
                 ->after('id')
