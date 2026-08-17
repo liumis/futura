@@ -8,7 +8,7 @@ class CloudDeployDatabase extends Command
 {
     protected $signature = 'app:cloud-deploy-database';
 
-    protected $description = 'Production deploy: run migrations then import the current SQLite snapshot once';
+    protected $description = 'Production deploy: run migrations then import the MySQL dump if it is new';
 
     public function handle(): int
     {
@@ -18,6 +18,8 @@ class CloudDeployDatabase extends Command
             return $migrate;
         }
 
-        return $this->call('app:import-prod-bootstrap');
+        $force = filter_var(env('PROD_BOOTSTRAP_FORCE', false), FILTER_VALIDATE_BOOLEAN);
+
+        return $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
     }
 }

@@ -9,7 +9,7 @@ class ExportSqliteSnapshot extends Command
 {
     protected $signature = 'app:export-sqlite-snapshot {--path= : Optional SQLite file path}';
 
-    protected $description = 'Export the current SQLite database into database/snapshots/prod-bootstrap.json.gz for MySQL first deploy';
+    protected $description = 'Export the current SQLite database as a MySQL dump for production first deploy';
 
     public function handle(): int
     {
@@ -18,7 +18,7 @@ class ExportSqliteSnapshot extends Command
         );
 
         $this->info(sprintf(
-            'Snapshot written (%d tables, %d rows): %s',
+            'MySQL dump written (%d tables, %d rows): %s',
             $result['tables'],
             $result['rows'],
             $result['path'],

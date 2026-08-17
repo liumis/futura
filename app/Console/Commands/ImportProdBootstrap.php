@@ -10,18 +10,18 @@ class ImportProdBootstrap extends Command
 {
     protected $signature = 'app:import-prod-bootstrap {--force : Replace existing imported data}';
 
-    protected $description = 'Import the committed SQLite snapshot into MySQL (first production deploy)';
+    protected $description = 'Import the committed MySQL dump into production (first deploy, or when the dump changes)';
 
     public function handle(): int
     {
         if (ProdDatabaseBootstrap::alreadyImported() && ! $this->option('force')) {
-            $this->info('Legacy SQLite data already imported; skipping.');
+            $this->info('This MySQL dump was already imported; skipping.');
 
             return self::SUCCESS;
         }
 
         if (! ProdDatabaseBootstrap::hasSnapshot()) {
-            $this->warn('No SQLite snapshot found; skipping data import.');
+            $this->warn('No MySQL dump found; skipping data import.');
 
             return self::SUCCESS;
         }
@@ -35,9 +35,8 @@ class ImportProdBootstrap extends Command
         }
 
         $this->info(sprintf(
-            'Imported %d tables (%d rows) from SQLite snapshot.',
+            'Imported MySQL dump (%d statements).',
             $result['tables'],
-            $result['rows'],
         ));
 
         return self::SUCCESS;

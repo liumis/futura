@@ -63,7 +63,7 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 1. Create an application in [Laravel Cloud](https://cloud.laravel.com) from this GitHub repository (`liumis/futura`), branch `main`.
 2. Attach a MySQL database. Cloud injects `DB_*` — do not set `DB_CONNECTION=sqlite` in production.
 3. Deploy command: `php artisan app:cloud-deploy-database`  
-   This runs migrations, then imports `database/snapshots/prod-bootstrap.json.gz` (current SQLite data) **once**. Later deploys skip the import.
+   This runs migrations, then imports `database/snapshots/prod-bootstrap.sql.gz` (current data as a MySQL dump) if that dump has not been imported yet. To reload a newer dump, set `PROD_BOOTSTRAP_FORCE=true` for one deploy, then remove it.
 4. Environment variables:
    - `APP_KEY` — `php artisan key:generate --show`
    - `APP_ENV=production`
