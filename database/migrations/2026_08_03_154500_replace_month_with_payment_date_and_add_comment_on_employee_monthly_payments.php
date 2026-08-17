@@ -31,9 +31,26 @@ return new class extends Migration
             }
 
             Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-                $table->dropUnique(['employee_id', 'year', 'month']);
-                $table->dropIndex(['year', 'month']);
+                $table->dropForeign(['employee_id']);
+            });
+
+            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+                if ($this->hasIndexNamed('employee_monthly_payments_employee_id_year_month_unique')) {
+                    $table->dropUnique(['employee_id', 'year', 'month']);
+                }
+
+                if ($this->hasIndexNamed('employee_monthly_payments_year_month_index')) {
+                    $table->dropIndex(['year', 'month']);
+                }
+
                 $table->dropColumn(['year', 'month']);
+            });
+
+            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+                $table->foreign('employee_id')
+                    ->references('id')
+                    ->on('employees')
+                    ->cascadeOnDelete();
             });
         }
 
@@ -61,6 +78,10 @@ return new class extends Migration
         }
 
         Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+            $table->dropForeign(['employee_id']);
+        });
+
+        Schema::table('employee_monthly_payments', function (Blueprint $table): void {
             if ($this->hasIndexNamed('employee_monthly_payments_employee_id_payment_date_unique')) {
                 $table->dropUnique(['employee_id', 'payment_date']);
             }
@@ -79,6 +100,10 @@ return new class extends Migration
         });
 
         Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+            $table->foreign('employee_id')
+                ->references('id')
+                ->on('employees')
+                ->cascadeOnDelete();
             $table->unique(['employee_id', 'year', 'month']);
             $table->index(['year', 'month']);
         });

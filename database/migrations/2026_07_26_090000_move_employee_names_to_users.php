@@ -66,7 +66,14 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('employees', function (Blueprint $table) {
-            $table->dropUnique(['user_id']);
+            $table->dropForeign(['user_id']);
+        });
+
+        Schema::table('employees', function (Blueprint $table) {
+            if (Schema::hasIndex('employees', 'employees_user_id_unique')) {
+                $table->dropUnique(['user_id']);
+            }
+
             $table->string('name')->nullable()->after('user_id');
             $table->string('surname')->nullable()->after('name');
         });
@@ -81,7 +88,7 @@ return new class extends Migration
         });
 
         Schema::table('employees', function (Blueprint $table) {
-            $table->dropConstrainedForeignId('user_id');
+            $table->dropColumn('user_id');
         });
     }
 };

@@ -54,9 +54,19 @@ return new class extends Migration
                 ->after('id')
                 ->constrained()
                 ->restrictOnDelete();
+        });
 
+        // MySQL will not drop an index that still backs a foreign key, even in the
+        // same ALTER as DROP FOREIGN KEY. Drop the constraint first, then columns.
+        Schema::table('products', function (Blueprint $table) {
             $table->dropForeign(['collection_id']);
-            $table->dropIndex(['collection_id']);
+        });
+
+        Schema::table('products', function (Blueprint $table) {
+            if (Schema::hasIndex('products', 'products_collection_id_index')) {
+                $table->dropIndex(['collection_id']);
+            }
+
             $table->dropColumn(['collection_id', 'color_code', 'color_name']);
         });
     }
