@@ -1,0 +1,33 @@
+
+
+:root {
+    --primary: #2b3a67;
+    --accent: #f37a1f;
+}
+
+/* Primary override */
+.fi-btn-primary {
+    background-color: #2b3a67 !important;
+    border-color: #2b3a67 !important;
+}
+
+/* Hover */
+.fi-btn-primary:hover {
+    background-color: #1f2a4d !important;
+}
+
+/* Accent buttons (optional) */
+.fi-btn-accent {
+    background-color: #f37a1f !important;
+    border-color: #f37a1f !important;
+}
+
+/* Links */
+a {
+    color: #2b3a67;
+}
+
+/* Active sidebar */
+.fi-sidebar-item-active {
+    background-color: rgba(43, 58, 103, 0.1);
+}

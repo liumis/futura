@@ -1,0 +1,572 @@
+1 ILGALAIKIS TURTAS
+
+11 Nematerialusis turtas
+
+111 Plėtros darbai
+1110 Plėtros darbų atlikimo savikaina
+1118 Plėtros darbų vertės amortizacija (−)
+1119 Plėtros darbų vertės sumažėjimas (−)
+112 Prestižas
+1120 Prestižo įsigijimo savikaina
+1128 Prestižo vertės amortizacija (−)
+1129 Prestižo vertės sumažėjimas (−)
+113 Programinė įranga
+1130 Programinės įrangos įsigijimo savikaina
+1138 Programinės įrangos vertės amortizacija (−)
+1139 Programinės įrangos vertės sumažėjimas (−)
+114 Koncesijos, patentai, licencijos, prekių ženklai ir panašios teisės
+1140 Koncesijų, patentų, licencijų, prekių ženklų ir panašių teisių įsigijimo savikaina
+1148 Koncesijų, patentų, licencijų, prekių ženklų ir panašių teisių vertės amortizacija (−)
+1149 Koncesijų, patentų, licencijų, prekių ženklų ir panašių teisių vertės sumažėjimas (−)
+115 Kitas nematerialusis turtas
+1150 Kito nematerialiojo turto įsigijimo savikaina
+1158 Kito nematerialiojo turto vertės amortizacija (−)
+1159 Kito nematerialiojo turto vertės sumažėjimas (−)
+116 Sumokėti avansai už nematerialųjį turtą
+
+12 Materialusis turtas
+
+120 Žemė
+1200 Žemės įsigijimo savikaina
+1201 Žemės vertės pokytis dėl perkainojimo
+1209 Žemės vertės sumažėjimas (−)
+121 Pastatai ir statiniai
+1210 Pastatų ir statinių įsigijimo savikaina
+1211 Pastatų ir statinių vertės pokytis dėl perkainojimo
+1212 Ruošiami naudoti pastatai ir statiniai
+1217 Pastatų ir statinių įsigijimo savikainos nusidėvėjimas (−)
+1218 Pastatų ir statinių vertės pokyčio dėl perkainojimo nusidėvėjimas (−)
+1219 Pastatų ir statinių vertės sumažėjimas (−)
+122 Mašinos ir įranga
+1220 Mašinų ir įrangos įsigijimo savikaina
+1221 Mašinų ir įrangos vertės pokytis dėl perkainojimo
+1222 Ruošiamos naudoti mašinos ir įranga
+1227 Mašinų ir įrangos įsigijimo savikainos nusidėvėjimas (−)
+1228 Mašinų ir įrangos vertės pokyčio dėl perkainojimo nusidėvėjimas (−)
+1229 Mašinų ir įrangos vertės sumažėjimas (−)
+123 Transporto priemonės
+1230 Transporto priemonių įsigijimo savikaina
+1231 Transporto priemonių vertės pokytis dėl perkainojimo
+1232 Ruošiamos naudoti transporto priemonės
+1237 Transporto priemonių įsigijimo savikainos nusidėvėjimas (−)
+1238 Transporto priemonių vertės pokyčio dėl perkainojimo nusidėvėjimas (−)
+1239 Transporto priemonių vertės sumažėjimas (−)
+124 Kiti įrenginiai, prietaisai ir įrankiai
+1240 Kitų įrenginių, prietaisų ir įrankių įsigijimo savikaina
+1241 Kitų įrenginių, prietaisų ir įrankių vertės pokytis dėl perkainojimo
+1242 Ruošiami naudoti kiti įrenginiai, prietaisai ir įrankiai
+1247 Kitų įrenginių, prietaisų ir įrankių įsigijimo savikainos nusidėvėjimas (−)
+1248 Kitų įrenginių, prietaisų ir įrankių vertės pokyčio dėl perkainojimo nusidėvėjimas (–)
+1249 Kitų įrenginių, prietaisų ir įrankių vertės sumažėjimas (−)
+125 Investicinis turtas
+1250 Žemė, kaip investicinis turtas
+12500 Žemės, kaip investicinio turto, įsigijimo savikaina
+12503 Žemės, kaip investicinio turto, tikrosios vertės pokytis (+ / −)
+12509 Žemės, kaip investicinio turto, vertės sumažėjimas (−)
+1251 Pastatai, kaip investicinis turtas
+12510 Pastatų, kaip investicinio turto, įsigijimo savikaina
+12513 Pastatų, kaip investicinio turto, tikrosios vertės pokytis (+ / −)
+12517 Pastatų, kaip investicinio turto, įsigijimo savikainos nusidėvėjimas (−)
+12519 Pastatų, kaip investicinio turto, vertės sumažėjimas (−)
+126 Sumokėti avansai ir vykdomi materialiojo turto statybos (gamybos) darbai
+1260 Sumokėti avansai už ilgalaikį materialųjį turtą
+1261 Vykdomi materialiojo turto statybos (gamybos) darbai
+12610 Statomas (gaminamas) ar rekonstruojamas ilgalaikis materialusis turtas
+12611 Statomo (gaminamo) ar rekonstruojamo ilgalaikio materialiojo turto vertės pokytis
+dėl perkainojimo
+12619 Statomo ar rekonstruojamo ilgalaikio materialiojo turto vertės sumažėjimas (−)
+127 Turtas, kuris pagal įstatymus gali būti tik valstybės nuosavybė
+1270 Turto, kuris pagal įstatymus gali būti tik valstybės nuosavybė, įsigijimo savikaina
+1271 Turto, kuris pagal įstatymus gali būti tik valstybės nuosavybė, vertės pokytis dėl perkainojimo
+1272 Ruošiamas naudoti turtas, kuris pagal įstatymus gali būti tik valstybės nuosavybė
+1277 Turto, kuris pagal įstatymus gali būti tik valstybės nuosavybė, įsigijimo savikainos
+nusidėvėjimas (−)
+1278 Turto, kuris pagal įstatymus gali būti tik valstybės nuosavybė, vertės pokyčio dėl
+perkainojimo nusidėvėjimas (−)
+1279 Turto, kuris pagal įstatymus gali būti tik valstybės nuosavybė, vertės sumažėjimas (−)
+128 Centralizuotai valdomas valstybės turtas
+1280 Centralizuotai valdomo valstybės turto įsigijimo savikaina
+1281 Centralizuotai valdomo valstybės turto vertės pokytis dėl perkainojimo
+1282 Ruošiamas naudoti centralizuotai valdomas valstybės turtas
+1287 Centralizuotai valdomo valstybės turto įsigijimo savikainos nusidėvėjimas (−)
+1288 Centralizuotai valdomo valstybės turto vertės pokyčio dėl perkainojimo nusidėvėjimas (−)
+1289 Centralizuotai valdomo valstybės turto vertės sumažėjimas (−)
+
+16 Finansinis turtas
+
+160 Įmonių grupės įmonių akcijos
+1600 Patronuojančiosios įmonės akcijų vertė
+16000 Patronuojančiosios įmonės akcijų įsigijimo savikaina
+16009 Patronuojančiosios įmonės akcijų vertės sumažėjimas (−)
+1601 Patronuojamųjų įmonių akcijų vertė
+16010 Patronuojamųjų įmonių akcijų įsigijimo savikaina
+16019 Patronuojamųjų įmonių akcijų vertės sumažėjimas (−)
+161 Paskolos įmonių grupės įmonėms
+1610 Paskolos patronuojančiajai įmonei
+16100 Patronuojančiajai įmonei suteiktų paskolų vertė
+16109 Patronuojančiajai įmonei suteiktų paskolų vertės sumažėjimas (−)
+1611 Paskolos patronuojamosioms įmonėms
+16110 Patronuojamosioms įmonėms suteiktų paskolų vertė
+16119 Patronuojamosioms įmonėms suteiktų paskolų vertės sumažėjimas (−)
+162 Iš įmonių grupės įmonių gautinos sumos
+1620 Iš patronuojančiosios įmonės gautinos sumos
+16200 Iš patronuojančiosios įmonės gautinų sumų vertė
+16209 Iš patronuojančiosios įmonės gautinų sumų vertės sumažėjimas (−)
+1621 Iš patronuojamųjų įmonių gautinos sumos
+16210 Iš patronuojamųjų įmonių gautinų sumų vertė
+16219 Iš patronuojamųjų įmonių gautinų sumų vertės sumažėjimas (−)
+163 Asocijuotųjų įmonių akcijos
+1630 Asocijuotųjų įmonių akcijų įsigijimo savikaina
+1639 Asocijuotųjų įmonių akcijų vertės sumažėjimas (−)
+164 Paskolos asocijuotosioms įmonėms
+1640 Asocijuotosioms įmonėms suteiktų paskolų vertė
+1649 Asocijuotosioms įmonėms suteiktų paskolų vertės sumažėjimas (−)
+165 Iš asocijuotųjų įmonių gautinos sumos
+1650 Iš asocijuotųjų įmonių gautinų sumų vertė
+1651 Iš asocijuotųjų įmonių gautinų sumų vertės sumažėjimas (−)
+166 Ilgalaikės investicijos
+1660 Kitų įmonių nuosavybės vertybiniai popieriai
+16600 Kitų įmonių nuosavybės vertybinių popierių įsigijimo savikaina
+16601 Kitų įmonių nuosavybės vertybinių popierių tikrosios vertės pokytis (+ / −)
+16609 Kitų įmonių nuosavybės vertybinių popierių vertės sumažėjimas (−)
+1661 Ne nuosavybės vertybiniai popieriai
+16610 Iki išpirkimo laikomi ne nuosavybės vertybiniai popieriai
+166100 Iki išpirkimo laikomų ne nuosavybės vertybinių popierių įsigijimo
+savikaina
+166101 Iki išpirkimo laikomų ne nuosavybės vertybinių popierių amortizuotos
+savikainos pokytis (+ / −)
+166109 Iki išpirkimo laikomų ne nuosavybės vertybinių popierių vertės
+sumažėjimas (−)
+16611 Kiti ne nuosavybės vertybiniai popieriai
+166110 Kitų ne nuosavybės vertybinių popierių įsigijimo savikaina
+166111 Kitų ne nuosavybės vertybinių popierių tikrosios vertės pokytis (+ / −)
+166119 Kitų ne nuosavybės vertybinių popierių vertės sumažėjimas (−)
+1664 Kiti vertybiniai popieriai
+16640 Kitų vertybinių popierių įsigijimo savikaina
+16641 Kitų vertybinių popierių tikrosios vertės pokytis (+ / −)
+16649 Kitų vertybinių popierių vertės sumažėjimas (−)
+1665 Terminuotieji indėliai
+167 Po vienų metų gautinos sumos
+1670 Po vienų metų gautinos pirkėjų skolos
+16700 Gautinų pirkėjų skolų vertė
+16709 Gautinų pirkėjų skolų vertės sumažėjimas (−)
+1671 Suteiktos paskolos
+16710 Suteiktų paskolų vertė
+16719 Suteiktų paskolų sumų vertės sumažėjimas (−)
+1672 Po vienų metų gautinos lizingo (finansinės nuomos) sumos
+1674 Kitos po vienų metų gautinos sumos
+16740 Gautinų sumų vertė
+16749 Gautinų sumų vertės sumažėjimas (−)
+168 Kitas finansinis turtas
+1680 Sumokėti avansai už finansinį turtą
+1681 Iš išvestinių finansinių priemonių atsiradęs finansinis turtas
+1682 Kitas ilgalaikis finansinis turtas
+16820 Kito ilgalaikio finansinio turto įsigijimo savikaina
+16821 Kito ilgalaikio finansinio turto tikrosios vertės pokytis (+ / −)
+16829 Kito ilgalaikio finansinio turto vertės sumažėjimas (−)
+
+17 Kitas ilgalaikis turtas
+
+171 Atidėtojo pelno mokesčio turtas
+172 Biologinis turtas
+1720 Daugiamečiai sodiniai
+17200 Daugiamečių sodinių įsigijimo savikaina
+17201 Daugiamečių sodinių tikrosios vertės pokytis (+ / −)
+17209 Daugiamečių sodinių vertės sumažėjimas (−)
+1725 Gyvuliai ir kiti gyvūnai
+17250 Produktyvieji ir darbiniai gyvuliai
+172500 Produktyviųjų ir darbinių gyvulių įsigijimo savikaina
+172501 Produktyviųjų ir darbinių gyvulių tikrosios vertės pokytis (+ / −)
+172509 Produktyviųjų ir darbinių gyvulių vertės sumažėjimas (−)
+17251 Auginami ir penimi gyvuliai ir kiti gyvūnai
+172510 Auginamų ir penimų gyvulių ir kitų gyvūnų įsigijimo savikaina
+172511 Auginamų ir penimų gyvulių ir kitų gyvūnų tikrosios vertės pokytis (+ / −)
+172519 Auginamų ir penimų gyvulių ir kitų gyvūnų vertės sumažėjimas (−)
+173 Kitas turtas
+1730 Kito turto įsigijimo savikaina
+1731 Kito turto tikrosios vertės pokytis (+ / −)
+1739 Kito turto vertės sumažėjimas (−)
+
+2 TRUMPALAIKIS TURTAS
+
+20 Atsargos
+
+201 Žaliavos, medžiagos ir komplektavimo detalės
+2010 Žaliavų, medžiagų ir komplektavimo detalių įsigijimo savikaina
+2011 Žaliavos, medžiagos ir komplektavimo detalės kelyje
+2012 Žaliavos, medžiagos ir komplektavimo detalės pas trečiuosius asmenis
+2019 Žaliavų, medžiagų ir komplektavimo detalių vertės sumažėjimas (−)
+202 Nebaigta produkcija ir vykdomi darbai
+2020 Nebaigta produkcija
+20200 Nebaigtos produkcijos savikaina
+20209 Nebaigtos produkcijos vertės sumažėjimas (−)
+2021 Vykdomi darbai
+20210 Vykdomų darbų savikaina
+20219 Vykdomų darbų vertės sumažėjimas (−)
+203 Produkcija
+2030 Produkcijos savikaina
+2035 Produkcija kelyje
+2036 Produkcija pas trečiuosius asmenis
+2039 Produkcijos vertės sumažėjimas (−)
+204 Pirktos prekės, skirtos perparduoti
+2040 Pirktų prekių, skirtų perparduoti, įsigijimo savikaina
+2045 Pirktos prekės, skirtos perparduoti, kelyje
+2046 Pirktos prekės, skirtos perparduoti, pas trečiuosius asmenis
+2049 Pirktų prekių, skirtų perparduoti, vertės sumažėjimas (−)
+205 Biologinis turtas
+2050 Gyvuliai ir kiti gyvūnai
+20500 Produktyvieji ir darbiniai gyvuliai
+205000 Produktyviųjų ir darbinių gyvulių įsigijimo savikaina
+205001 Produktyviųjų ir darbinių gyvulių tikrosios vertės pokytis (+ / −)
+205009 Produktyviųjų ir darbinių gyvulių vertės sumažėjimas (−)
+20501 Auginami ir penimi gyvuliai ir kiti gyvūnai
+205010 Auginamų ir penimų gyvulių ir kitų gyvūnų įsigijimo savikaina
+205011 Auginamų ir penimų gyvulių ir kitų gyvūnų tikrosios vertės pokytis (+ / −)
+205019 Auginamų ir penimų gyvulių ir kitų gyvūnų vertės sumažėjimas (−)
+2051 Pasėliai
+20510 Pasėlių savikaina
+20511 Pasėlių tikrosios vertės pokytis (+ / −)
+20519 Pasėlių vertės sumažėjimas (−)
+206 Ilgalaikis materialusis turtas, skirtas parduoti
+2060 Ilgalaikio materialiojo turto, skirto parduoti, savikaina
+2069 Ilgalaikio materialiojo turto, skirto parduoti, vertės sumažėjimas (−)
+207 Nematerialusis turtas, skirtas parduoti
+2070 Nematerialiojo turto, skirto parduoti, savikaina
+2079 Nematerialiojo turto, skirto parduoti, vertės sumažėjimas (−)
+208 Sumokėti avansai
+2080 Sumokėti avansai tiekėjams
+2084 Užstatas
+2089 Sumokėtų avansų vertės sumažėjimas (−)
+
+24 Per vienus metus gautinos sumos
+
+241 Pirkėjų skolos
+2410 Pirkėjų skolų vertė
+2419 Pirkėjų skolų vertės sumažėjimas (−)
+242 Įmonių grupės įmonių skolos
+2420 Patronuojančiosios įmonės skolos
+24200 Patronuojančiosios įmonės skolų vertė
+24209 Patronuojančiosios įmonės skolų vertės sumažėjimas (−)
+2421 Patronuojamųjų įmonių skolos
+24210 Patronuojamųjų įmonių skolų vertė
+24219 Patronuojamųjų įmonių skolų vertės sumažėjimas (−)
+243 Asocijuotųjų įmonių skolos
+2430 Asocijuotųjų įmonių skolų vertė
+2439 Asocijuotųjų įmonių skolų vertės sumažėjimas (−)
+244 Kitos gautinos sumos
+2440 Suteiktos paskolos
+24400 Suteiktų paskolų vertė
+24409 Suteiktų paskolų vertės sumažėjimas (−)
+2441 Gautinas pridėtinės vertės mokestis
+2442 Iš anksto sumokėtas pelno mokestis
+2443 Mokesčių permokos
+2444 VSDF skola įmonei
+2445 Iš atskaitingų asmenų gautinos sumos
+24450 Iš atskaitingų asmenų gautinų sumų vertė
+24459 Iš atskaitingų asmenų gautinų sumų vertės sumažėjimas (−)
+2446 Kitos gautinos skolos
+24460 Kitų gautinos skolų vertė
+24469 Kitų gautinų skolų vertės sumažėjimas (−)
+2447 Su įmonės savininkais susijusios sumos
+24471 Įmonės savininkams avansu išmokėtas pelnas
+24472 Įmonės savininkų asmeniniams poreikiams išmokėtos lėšos
+2449 Kitos abejotinos skolos (−)
+
+26 Trumpalaikės investicijos
+
+261 Įmonių grupės įmonių akcijos
+2610 Patronuojančiosios įmonės akcijų vertė
+26100 Patronuojančiosios įmonės akcijų įsigijimo savikaina
+26101 Patronuojančiosios įmonės akcijų tikrosios vertės pokytis (+ / −)
+26103 Patronuojančiosios įmonės akcijų vertės sumažėjimas (−)
+2611 Patronuojamųjų įmonių akcijų vertė
+26110 Patronuojamųjų įmonių akcijų įsigijimo savikaina
+26111 Patronuojamųjų įmonių akcijų tikrosios vertės pokytis (+ / −)
+26112 Patronuojamųjų įmonių akcijų vertės sumažėjimas (−)
+262 Kitos investicijos
+2620 Kitų įmonių nuosavybės vertybiniai popieriai
+26200 Kitų įmonių nuosavybės vertybinių popierių įsigijimo savikaina
+26201 Kitų įmonių nuosavybės vertybinių popierių tikrosios vertės pokytis (+ / −)
+26209 Kitų įmonių nuosavybės vertybinių popierių vertės sumažėjimas (−)
+2621 Ne nuosavybės vertybiniai popieriai
+26210 Iki išpirkimo laikomi ne nuosavybės vertybiniai popieriai
+262100 Iki išpirkimo laikomų ne nuosavybės vertybinių popierių įsigijimo
+savikaina
+262101 Iki išpirkimo laikomų ne nuosavybės vertybinių popierių amortizuotos
+savikainos pokytis (+ / −)
+262109 Iki išpirkimo laikomų ne nuosavybės vertybinių popierių vertės
+sumažėjimas (−)
+26211 Kiti ne nuosavybės vertybiniai popieriai
+262110 Kitų ne nuosavybės vertybinių popierių įsigijimo savikaina
+262111 Kitų ne nuosavybės vertybinių popierių tikrosios vertės pokytis (+ / −)
+262119 Kitų ne nuosavybės vertybinių popierių vertės sumažėjimas (−)
+2622 Kiti vertybiniai popieriai
+26220 Kitų vertybinių popierių įsigijimo savikaina
+26221 Kitų vertybinių popierių tikrosios vertės pokytis (+ / −)
+26229 Kitų vertybinių popierių vertės sumažėjimas (−)
+2623 Terminuotieji indėliai
+2624 Iš išvestinių finansinių priemonių atsiradęs finansinis turtas
+26240 Iš išvestinių finansinių priemonių atsiradusio finansinio turto įsigijimo savikaina
+26241 Iš išvestinių finansinių priemonių atsiradusio finansinio turto tikrosios vertės pokytis (+ / −)
+26249 Iš išvestinių finansinių priemonių atsiradusio finansinio turto vertės sumažėjimas (−)
+2625 Kriptoturtas
+26250 Kriptoturto įsigijimo savikaina 
+26251 Kriptoturto tikrosios vertės pokytis (+ / −) 
+26259 Kriptoturto vertės sumažėjimas (−)
+
+27 Pinigai ir pinigų ekvivalentai
+
+271 Sąskaitos bankuose
+272 Kasa
+273 Pinigai kelyje
+274 Pinigų ekvivalentai
+279 Įšaldytos lėšos (−)
+
+29 Ateinančių laikotarpių sąnaudos ir sukauptos pajamos
+
+291 Ateinančių laikotarpių sąnaudos
+292 Sukauptos pajamos
+
+3 NUOSAVAS KAPITALAS
+
+30 Kapitalas
+
+301 Įstatinis pasirašytasis kapitalas (pagrindinis kapitalas)
+3011 Paprastosios akcijos
+3012 Privilegijuotosios akcijos
+3013 Darbuotojų akcijos
+3014 Pajai
+302 Pasirašytasis neapmokėtas kapitalas (−)
+303 Savos akcijos (pajai) (−)
+305 Įmonės savininko kapitalas
+306 Turtą, kuris pagal įstatymus gali būti tik valstybės nuosavybė, atitinkantis kapitalas
+307 Centralizuotai valdomą valstybės turtą atitinkantis kapitalas
+308 Savininkų įnašai
+309 Nesumokėti savininkų įnašai (−)
+
+31 Akcijų priedai
+
+32 Perkainojimo rezervas
+
+321 Ilgalaikio materialiojo turto perkainojimo rezervas
+322 Finansinio turto perkainojimo rezervas
+
+33 Rezervai
+
+331 Privalomasis arba atsargos (rezervinis) kapitalas
+332 Savoms akcijoms įsigyti
+333 Kiti rezervai
+
+34 Nepaskirstytasis pelnas (nuostoliai)
+
+341 Ataskaitinių metų nepaskirstytasis pelnas (nuostoliai)
+3411 Pelno (nuostolių) ataskaitoje pripažintas ataskaitinių metų grynasis pelnas (nuostoliai)
+3412 Pelno (nuostolių) ataskaitoje nepripažintas ataskaitinių metų pelnas (nuostoliai)
+342 Ankstesnių metų nepaskirstytasis pelnas (nuostoliai)
+3421 Pelno (nuostolių) ataskaitoje pripažintas ankstesnių metų pelnas (nuostoliai)
+3422 Pelno (nuostolių) ataskaitoje nepripažintas ankstesnių metų pelnas (nuostoliai)
+3423 Ankstesnių metų pelnas (nuostoliai) dėl apskaitos politikos keitimo
+3424 Ankstesnių metų esminių klaidų taisymo pelnas (nuostoliai)
+390 Bendra sąskaitų suvestinė
+
+4 ĮSIPAREIGOJIMAI
+
+40 Dotacijos, subsidijos
+
+401 Su turtu susijusios dotacijos
+402 Su pajamomis susijusios dotacijos
+
+41 Atidėjiniai
+
+411 Pensijų ir panašių įsipareigojimų atidėjiniai
+412 Mokesčių atidėjiniai
+413 Kiti atidėjiniai
+
+42 Po vienų metų mokėtinos sumos ir kiti ilgalaikiai įsipareigojimai
+
+421 Skoliniai įsipareigojimai
+4210 Skolos pagal ne nuosavybės vertybinius popierius
+4211 Lizingo (finansinės nuomos) ar panašūs įsipareigojimai
+4213 Iš išvestinių finansinių priemonių atsiradę įsipareigojimai
+4214 Kiti skoliniai įsipareigojimai
+422 Skolos kredito įstaigoms
+4220 Ilgalaikiai įsipareigojimai pagal paskolų sutartis
+4221 Kiti įsipareigojimai
+423 Gauti avansai
+4230 Iš pirkėjų gauti avansai
+4231 Iš paslaugų gavėjų gauti avansai
+424 Skolos tiekėjams
+425 Pagal vekselius ir čekius mokėtinos sumos
+426 Įmonių grupės įmonėms mokėtinos sumos
+4260 Patronuojančiajai įmonei mokėtinos sumos
+4261 Patronuojamosioms įmonėms mokėtinos sumos
+427 Asocijuotosioms įmonėms mokėtinos sumos
+428 Kitos mokėtinos sumos ir ilgalaikiai įsipareigojimai
+
+44 Per vienus metus mokėtinos sumos ir kiti trumpalaikiai įsipareigojimai
+
+440 Skoliniai įsipareigojimai
+4400 Skolos pagal ne nuosavybės vertybinius popierius
+4401 Lizingo (finansinės nuomos) ar panašių įsipareigojimų einamųjų metų dalis
+4402 Iš išvestinių finansinių priemonių atsiradę įsipareigojimai
+4403 Kitų ilgalaikių skolų einamųjų metų dalis
+4404 Kiti skoliniai įsipareigojimai
+441 Skolos kredito įstaigoms
+4410 Įsipareigojimai pagal trumpalaikių paskolų sutartis
+4411 Skolų kredito įstaigoms einamųjų metų dalis
+4413 Kiti įsipareigojimai
+442 Gauti avansai
+4420 Iš pirkėjų gauti avansai
+4421 Iš paslaugų gavėjų gauti avansai
+443 Skolos tiekėjams
+4430 Skolos tiekėjams už prekes ir paslaugas
+4431 Kitos skolos tiekėjams
+444 Pagal vekselius ir čekius mokėtinos sumos
+445 Įmonių grupės įmonėms mokėtinos sumos
+4450 Patronuojančiajai įmonei mokėtinos sumos
+4451 Patronuojamosioms įmonėms mokėtinos sumos
+446 Asocijuotosioms įmonėms mokėtinos sumos
+447 Pelno mokesčio įsipareigojimai
+4470 Pelno mokesčio įsipareigojimai
+4471 Kiti panašūs įsipareigojimai
+448 Su darbo santykiais susiję įsipareigojimai
+4480 Mokėtinas darbo užmokestis
+4481 Mokėtinas gyventojų pajamų mokestis
+4482 Mokėtinos socialinio draudimo įmokos
+4484 Kitos išmokos darbuotojams
+4485 Atostoginių kaupiniai
+4486 Mokėtinos privalomojo sveikatos draudimo įmokos
+449 Kitos mokėtinos sumos
+4490 Mokėtinos dividendai
+4491 Mokėtinos tantjemos
+4492 Mokėtinas pridėtinės vertės mokestis
+4493 Kiti į biudžetą mokėtini mokesčiai
+4494 Kitos mokėtinos sumos
+4495 Įmonės savininkams mokėtinos sumos
+
+49 Sukauptos sąnaudos ir ateinančių laikotarpių pajamos
+
+491 Sukauptos sąnaudos
+492 Ateinančių laikotarpių pajamos
+
+5 PAJAMOS
+
+50 Pardavimo pajamos
+
+500 Prekių ir paslaugų pajamos
+5000 Parduotų prekių pajamos
+5001 Suteiktų paslaugų pajamos
+5009 Atsiskaitymų grynais pinigais apvalinimas (+/–)
+509 Nuolaidos, grąžinimas (−)
+
+51 Pajamos dėl biologinio turto tikrosios vertės pokyčio
+
+54 Kitõs veiklos pajamos
+
+5400 Ilgalaikio turto perleidimo pelnas
+5401 Kitos pajamos
+
+55 Investicijų į patronuojančiosios, patronuojamųjų ir asocijuotųjų įmonių akcijas pajamos
+
+5500 Investicijų į patronuojančiosios, patronuojamųjų ir asocijuotųjų įmonių akcijas dividendai
+5501 Investicijų į patronuojančiosios, patronuojamųjų ir asocijuotųjų įmonių akcijas perleidimo
+Pelnas
+
+56 Kitų ilgalaikių investicijų ir paskolų pajamos
+
+5600 Kitų ilgalaikių investicijų ir paskolų palūkanų pajamos
+5601 Kitų ilgalaikių investicijų ir paskolų perleidimo pelnas
+5604 Kitų ilgalaikių investicijų dividendai
+5609 Kitos pajamo
+
+58 Kitos palūkanų ir panašios pajamos
+
+5802 Kitų suteiktų paskolų palūkanų pajamos
+5803 Teigiama valiutų kursų pokyčio įtaka
+5804 Baudų ir delspinigių pajamos
+5805 Iš išvestinių finansinių priemonių atsiradęs pelnas
+5808 Investicijų tikrosios vertės padidėjimo pelnas
+5809 Investicijų perleidimo pelnas
+5810 Kitos finansinės ir investicinės veiklos pajamos
+
+6 SĄNAUDOS
+
+60 Pardavimo savikaina
+
+600 Parduotų prekių ir suteiktų paslaugų savikaina
+6000 Parduotų prekių savikaina
+6001 Suteiktų paslaugų savikaina
+6002 Įsigytų prekių ir paslaugų savikaina
+6003 Tiesioginės gamybos išlaidos
+6004 Netiesioginės gamybos išlaidos
+6005 Atsargų padidėjimas (sumažėjimas)
+609 Nuolaidos, grąžinimas (−)
+
+61 Sąnaudos dėl biologinio turto tikrosios vertės pokyčio
+
+62 Pardavimo sąnaudos
+
+6200 Komisiniai mokesčiai pardavėjams
+6201 Prekybos pastatų ir įrangos vertės nusidėvėjimas
+6202 Paslaugų ir prekių reklamos sąnaudos
+6203 Darbuotojų darbo užmokestis ir su juo susijusios sąnaudos
+6204 Atidėjinių sąnaudos
+6208 Kitos pardavimo sąnaudos
+6209 Gautos nuolaidos (−)
+
+63 Bendrosios ir administracinės sąnaudos
+
+6300 Nuomos sąnaudos
+6301 Remonto ir eksploatacijos sąnaudos
+6302 Išmokų tretiesiems asmenims sąnaudos
+6303 Draudimo sąnaudos
+6304 Darbuotojų darbo užmokestis ir su juo susijusios sąnaudos
+6305 Tantjemos ir kitos panašios išmokos
+6306 Ilgalaikio materialiojo turto vertės nusidėvėjimo sąnaudos
+6307 Nematerialiojo turto vertės amortizacijos sąnaudos
+6308 Veiklos mokesčių sąnaudos
+63080 Nekilnojamojo turto mokesčio sąnaudos
+63081 Neatskaitomo pridėtinės vertės mokesčio sąnaudos
+63082 Aplinkos teršimo mokesčio sąnaudos
+63083 Kitų mokesčių sąnaudos
+6309 Turto vertės sumažėjimo sąnaudos
+63090 Pirkėjų skolų vertės sumažėjimo sąnaudos
+63091 Atsargų vertės sumažėjimo sąnaudos
+63092 Nematerialiojo turto vertės sumažėjimo sąnaudos
+63093 Ilgalaikio materialiojo turto vertės sumažėjimo sąnaudos
+63094 Kito turto vertės sumažėjimo sąnaudos
+6310 Atidėjinių sąnaudos
+6311 Baudų ir delspinigių sąnaudos
+6312 Kitos bendrosios ir administracinės sąnaudos
+6313 Gautos nuolaidos (−)
+6319 Atsiskaitymų grynais pinigais apvalinimas (+/–)
+
+64 Kitõs veiklos sąnaudos
+
+6400 Ilgalaikio turto perleidimo nuostoliai
+6401 Kitos sąnaudos
+
+67 Finansinio turto ir trumpalaikių investicijų vertės sumažėjimas
+
+6701 Ilgalaikio finansinio turto vertės sumažėjimo sąnaudos
+6702 Trumpalaikių investicijų vertės sumažėjimo sąnaudos
+
+68 Palūkanų ir kitos panašios sąnaudos
+
+6800 Įmonių grupės įmonių suteiktų paskolų palūkanų sąnaudos
+68001 Patronuojančiosios įmonės suteiktų paskolų palūkanų sąnaudos
+68002 Patronuojamųjų įmonių suteiktų paskolų palūkanų sąnaudos
+6801 Asocijuotųjų įmonių suteiktų paskolų palūkanų sąnaudos
+6802 Kitų įmonių suteiktų paskolų palūkanų sąnaudos
+6803 Neigiama valiutų kursų pokyčio įtaka
+6804 Baudų ir delspinigių sąnaudos
+6805 Iš išvestinių finansinių priemonių atsiradę nuostoliai
+6806 Palūkanų sąnaudos už finansinės nuomos būdu įsigyjamą turtą
+6808 Investicijų tikrosios vertės sumažėjimo nuostoliai
+6809 Investicijų perleidimo nuostoliai
+6810 Kitos finansinės ir investicinės veiklos sąnaudos
+
+69 Pelno ir panašūs mokesčiai
+
+6900 Ataskaitinių metų pelno ir panašūs mokesčiai
+6901 Atidėtojo pelno mokesčio sąnaudos (pajamos)

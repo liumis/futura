@@ -1,0 +1,1108 @@
+@import '../../../../vendor/filament/filament/resources/css/theme.css';
+
+@source '../../../../app/Filament/**/*.php';
+@source '../../../../resources/views/filament/**/*.blade.php';
+@source '../../../../resources/views/livewire/**/*.blade.php';
+@source '../../../../app/Livewire/**/*.php';
+@source '../../../../vendor/filament/**/*.blade.php';
+
+@theme {
+    --color-primary-50: #eef1f8;
+    --color-primary-100: #d6dcef;
+    --color-primary-200: #adb9df;
+    --color-primary-300: #8496cf;
+    --color-primary-400: #5b73bf;
+    --color-primary-500: #2b3a67;
+    --color-primary-600: #243158;
+    --color-primary-700: #1d2849;
+    --color-primary-800: #161f3a;
+    --color-primary-900: #0f162b;
+}
+
+.fi-sidebar {
+    background-color: #2b3a67;
+}
+
+/* Default sidebar nav: white text & icons on brand blue (stock Filament uses gray-700). */
+.fi-sidebar .fi-sidebar-item-label {
+    @apply text-white;
+}
+
+.fi-sidebar .fi-sidebar-item-btn > .fi-icon {
+    @apply text-white;
+}
+
+.fi-sidebar .fi-sidebar-group-label {
+    @apply text-white/90;
+}
+
+.fi-sidebar .fi-sidebar-group-btn .fi-icon,
+.fi-sidebar .fi-sidebar-group-dropdown-trigger-btn .fi-icon {
+    @apply text-white;
+}
+
+/* Hover: visible highlight without losing contrast */
+.fi-sidebar .fi-sidebar-item-has-url > .fi-sidebar-item-btn:hover,
+.fi-sidebar .fi-sidebar-item-has-url > .fi-sidebar-item-btn:focus-visible {
+    @apply bg-white/10;
+}
+
+.fi-sidebar .fi-sidebar-group-dropdown-trigger-btn:hover,
+.fi-sidebar .fi-sidebar-group-dropdown-trigger-btn:focus-visible {
+    @apply bg-white/10;
+}
+
+/* Active item: light surface + brand-colored label (readable pill) */
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn {
+    @apply bg-white;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label {
+    @apply text-primary-700;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active > .fi-sidebar-item-btn > .fi-icon {
+    @apply text-primary-700;
+}
+
+.fi-sidebar .fi-sidebar-item.fi-active .fi-sidebar-item-grouped-border-part {
+    @apply bg-primary-700;
+}
+
+/* "New order": same footprint as other sidebar links; teal accent (not white / not primary navy) */
+.fi-sidebar .fi-sidebar-new-order > .fi-sidebar-item-btn {
+    @apply rounded-md border border-teal-400/40 bg-teal-700/90;
+}
+
+.fi-sidebar .fi-sidebar-new-order > .fi-sidebar-item-btn .fi-sidebar-item-label {
+    @apply text-white;
+}
+
+.fi-sidebar .fi-sidebar-new-order > .fi-sidebar-item-btn > .fi-icon {
+    @apply text-teal-100;
+}
+
+.fi-sidebar .fi-sidebar-new-order > .fi-sidebar-item-btn:hover,
+.fi-sidebar .fi-sidebar-new-order > .fi-sidebar-item-btn:focus-visible {
+    @apply border-teal-300/60 bg-teal-600;
+}
+
+.fi-sidebar .fi-sidebar-new-order.fi-active > .fi-sidebar-item-btn {
+    @apply border-teal-200/70 bg-teal-500 ring-1 ring-white/35 ring-offset-1 ring-offset-[#2b3a67];
+}
+
+.fi-btn-primary {
+    background-color: #2b3a67 !important;
+    border-color: #2b3a67 !important;
+}
+
+.fi-btn-primary:hover {
+    background-color: #1f2a4d !important;
+    border-color: #1f2a4d !important;
+}
+
+/* Products table: hide "Filters" heading, keep only dropdown. */
+.fi-resource-products .fi-ta-filters-header {
+    display: none;
+}
+
+/* Products table filter: hide the field label ("Value"). */
+.fi-resource-products .fi-ta-filters .fi-fo-field-label-col,
+.fi-resource-products .fi-ta-filters .fi-fo-field-label,
+.fi-resource-products .fi-ta-filters .fi-fo-field-label-content,
+.fi-resource-products .fi-ta-filters label {
+    display: none !important;
+}
+
+/* Orders table: line-items tooltip (multi-line HTML). */
+.fi-order-lines-tooltip {
+    max-width: 22rem;
+    text-align: left;
+    white-space: normal;
+}
+
+/* Cargo edit: cost summary box. */
+.fi-cargo-cost-summary {
+    @apply rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/50;
+}
+
+.fi-cargo-cost-summary-grid {
+    @apply grid grid-cols-1 gap-4 sm:grid-cols-2;
+}
+
+.fi-cargo-cost-summary-item {
+    @apply min-w-0;
+}
+
+.fi-cargo-cost-summary-label {
+    @apply text-sm font-medium text-gray-950 dark:text-white;
+}
+
+.fi-cargo-cost-summary-value {
+    @apply mt-1 text-base font-semibold text-gray-950 dark:text-white;
+}
+
+/* Order create/edit: product cards in collection sections. */
+.fi-work-schedule-weekend {
+    @apply rounded-lg bg-slate-100 px-3 py-2 ring-1 ring-slate-200/80;
+}
+
+.fi-work-schedule-actual-mismatch {
+    @apply rounded-lg bg-amber-50 px-3 py-2 ring-1 ring-amber-200/80;
+}
+
+.fi-work-schedule-weekday-toggles {
+    @apply mb-4 flex flex-wrap items-center gap-3;
+}
+
+.fi-work-schedule-weekday-toggles__label {
+    @apply text-sm font-medium text-gray-700 dark:text-gray-200;
+}
+
+.fi-work-schedule-weekday-toggles__links {
+    @apply flex flex-wrap gap-2;
+}
+
+.fi-work-schedule-weekday-toggles__btn {
+    @apply inline-flex min-w-[3.25rem] items-center justify-center rounded-lg border px-3 py-1.5 text-xs font-semibold tracking-wide shadow-sm transition;
+}
+
+.fi-work-schedule-weekday-toggles__btn.is-off {
+    @apply border-gray-300 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-white dark:text-gray-800 dark:hover:bg-gray-100;
+}
+
+.fi-work-schedule-weekday-toggles__btn.is-on {
+    @apply border-primary-600 bg-primary-600 text-white hover:border-primary-700 hover:bg-primary-700;
+}
+
+.fi-order-product-card {
+    @apply flex flex-col gap-2 rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900;
+}
+
+.fi-order-product-card--empty {
+    @apply border-gray-300 bg-gray-100 shadow-none dark:border-gray-600 dark:bg-gray-800/80;
+}
+
+.fi-order-product-swatch {
+    @apply aspect-[4/3] w-full overflow-hidden rounded-md border border-gray-200 bg-gray-50 dark:border-gray-700 dark:bg-gray-800;
+    background-repeat: repeat;
+    background-size: auto;
+    background-position: top left;
+}
+
+.fi-order-product-swatch--empty {
+    @apply bg-gray-100 dark:bg-gray-800;
+}
+
+.fi-order-product-details {
+    @apply min-h-0 flex-1;
+}
+
+.fi-order-product-name {
+    @apply text-sm leading-snug font-semibold text-gray-900 dark:text-gray-100;
+}
+
+.fi-order-product-code {
+    @apply font-medium text-gray-500 dark:text-gray-400;
+}
+
+.fi-order-product-meta {
+    @apply mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-600 dark:text-gray-300;
+}
+
+.fi-order-product-upcoming {
+    @apply mt-1 text-xs leading-snug font-semibold text-red-600 dark:text-red-400;
+}
+
+/* User menu profile row: allow long email + icon (Filament defaults to whitespace-nowrap on items). */
+.fi-user-menu .fi-dropdown-list-item.fi-user-menu-profile {
+    @apply items-center whitespace-normal py-2;
+}
+
+.fi-user-menu .fi-dropdown-list-item.fi-user-menu-profile .fi-dropdown-list-item-label {
+    @apply flex w-full min-w-0 shrink overflow-visible whitespace-normal text-start;
+}
+
+.fi-topbar-notifications {
+    @apply relative shrink-0;
+}
+
+.fi-topbar-notifications svg {
+    @apply size-6;
+}
+
+.todo-calendar-tooltip {
+    max-width: 360px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: rgba(17, 24, 39, 0.95);
+    color: #f9fafb;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.25);
+    pointer-events: none;
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.todo-calendar-tooltip__title {
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+.todo-calendar-tooltip__description {
+    font-weight: 400;
+    opacity: 0.95;
+}
+
+.fc-custom-event {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    width: 100%;
+    min-width: 0;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.fc-custom-event__title {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fc-custom-event__comments {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-left: auto;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 11px;
+    line-height: 1;
+    opacity: 0.95;
+}
+
+.fc-custom-event__comments svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* New invoice: polished upload card + dropzone style. */
+.invoice-fancy-upload .filepond--root {
+    @apply rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-700 dark:bg-slate-800/60;
+}
+
+.invoice-fancy-upload .filepond--drop-label {
+    @apply rounded-xl border-2 border-dashed border-primary-400 bg-slate-100 text-slate-600 dark:bg-slate-700/60 dark:text-slate-200;
+    min-height: 220px;
+}
+
+.invoice-fancy-upload .filepond--drop-label label {
+    @apply text-base font-medium;
+}
+
+.invoice-fancy-upload .filepond--panel-root {
+    background-color: transparent !important;
+}
+
+.invoice-fancy-upload .filepond--credits {
+    display: none !important;
+}
+
+.invoice-fancy-upload .filepond--file-action-button {
+    @apply bg-primary-600 text-white;
+}
+
+.invoice-fancy-upload .filepond--file-action-button:hover {
+    @apply bg-primary-700;
+}
+
+/* Invoices list table readability */
+.invoice-table {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.invoice-table thead th {
+    white-space: nowrap;
+    letter-spacing: 0.01em;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.invoice-table tbody td {
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    vertical-align: middle;
+}
+
+.invoice-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.invoice-table-wrap {
+    box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+}
+
+/* Todo calendar filters: production-like chips with semantic statuses. */
+.todo-filter-chip {
+    @apply inline-flex cursor-pointer select-none items-center rounded-full border px-3 py-1.5 font-medium transition;
+    border-color: #cbd5e1;
+    color: #334155;
+    background-color: #f8fafc;
+    font-size: 12px;
+}
+
+.todo-filter-chip:hover {
+    background-color: #f1f5f9;
+}
+
+.todo-filter-chip.is-active {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+}
+
+.todo-filter-chip--finance.is-active {
+    border-color: #dc2626;
+    background-color: #dc2626;
+    color: #fff;
+}
+
+.todo-filter-chip--income.is-active {
+    border-color: #0369a1;
+    background-color: #0369a1;
+    color: #fff;
+}
+
+.todo-filter-chip--payments.is-active {
+    border-color: #7c3aed;
+    background-color: #7c3aed;
+    color: #fff;
+}
+
+.todo-filter-chip--new.is-active {
+    border-color: #6b7280;
+    background-color: #6b7280;
+    color: #fff;
+}
+
+.todo-filter-chip--inprogress.is-active {
+    border-color: #f59e0b;
+    background-color: #f59e0b;
+    color: #111827;
+}
+
+.todo-filter-chip--confirm.is-active {
+    border-color: #2563eb;
+    background-color: #2563eb;
+    color: #fff;
+}
+
+.todo-filter-chip--returned.is-active {
+    border-color: #9333ea;
+    background-color: #9333ea;
+    color: #fff;
+}
+
+.todo-filter-chip--done.is-active {
+    border-color: #16a34a;
+    background-color: #16a34a;
+    color: #fff;
+}
+
+.todo-filter-chip--priority-high.is-active {
+    border-color: #dc2626;
+    background-color: #dc2626;
+    color: #fff;
+}
+
+.todo-filter-chip--priority-regular.is-active {
+    border-color: #2563eb;
+    background-color: #2563eb;
+    color: #fff;
+}
+
+.todo-filter-chip--priority-low.is-active {
+    border-color: #64748b;
+    background-color: #64748b;
+    color: #fff;
+}
+
+/* Date filters: same visual language as filter chips/cards. */
+.todo-date-filter {
+    @apply inline-flex items-center gap-2 rounded-full border px-3 py-1.5;
+    border-color: #cbd5e1;
+    background-color: #f8fafc;
+}
+
+.todo-date-filter__label {
+    @apply text-xs font-medium;
+    color: #334155;
+}
+
+.todo-date-filter__input {
+    @apply rounded-md border px-2 py-1 text-xs transition;
+    min-width: 130px;
+    border-color: #cbd5e1;
+    background-color: #ffffff;
+    color: #0f172a;
+}
+
+.todo-date-filter__input:focus {
+    outline: none;
+    border-color: #2b3a67;
+    box-shadow: 0 0 0 2px rgba(43, 58, 103, 0.18);
+}
+
+.dark .todo-date-filter {
+    border-color: #334155;
+    background-color: #0f172a;
+}
+
+.dark .todo-date-filter__label {
+    color: #cbd5e1;
+}
+
+.dark .todo-date-filter__input {
+    border-color: #475569;
+    background-color: #1e293b;
+    color: #e2e8f0;
+}
+
+.chart-filter-label {
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.chart-filter-separator {
+    height: 1px;
+    margin: 10px 12px;
+    background-color: #e5e7eb;
+}
+
+.dark .chart-filter-separator {
+    background-color: #334155;
+}
+
+.chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.chart-legend__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-legend__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 9999px;
+}
+
+/* Timeline (Gantt-style) */
+.timeline-gantt-header,
+.timeline-gantt-row {
+    display: grid;
+    grid-template-columns: 280px 120px 130px 130px 120px auto;
+    align-items: center;
+}
+
+.timeline-gantt-header {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: #0f172a;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.timeline-gantt-header > div,
+.timeline-gantt-row > div,
+.timeline-gantt-row > a {
+    padding: 10px 12px;
+    border-right: 1px solid #e5e7eb;
+}
+
+.timeline-gantt-days {
+    display: grid;
+}
+
+.timeline-gantt-day {
+    text-align: center;
+    border-right: 1px solid #334155;
+    opacity: 0.95;
+}
+
+.timeline-gantt-row {
+    border-top: 1px solid #e5e7eb;
+    font-size: 12px;
+}
+
+.timeline-gantt-task {
+    color: #0f172a;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.timeline-gantt-task:hover {
+    text-decoration: underline;
+}
+
+.timeline-gantt-meta {
+    color: #475569;
+    white-space: nowrap;
+}
+
+.timeline-gantt-track {
+    position: relative;
+    height: 42px;
+    overflow: hidden;
+}
+
+.timeline-gantt-grid {
+    position: absolute;
+    inset: 0;
+    display: grid;
+}
+
+.timeline-gantt-cell {
+    border-right: 1px solid #e5e7eb;
+}
+
+.timeline-gantt-bar {
+    position: absolute;
+    top: 9px;
+    height: 24px;
+    border-radius: 4px;
+    color: #fff;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 3px 8px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+}
+
+.absence-calendar-hours {
+    @apply relative z-10 mx-1 mb-1 cursor-pointer rounded-md border border-slate-200 bg-slate-50 px-1.5 py-1 text-[10px] leading-tight transition hover:border-primary-400 hover:bg-primary-50 dark:border-slate-600 dark:bg-slate-800/80 dark:hover:border-primary-500 dark:hover:bg-primary-950/30;
+}
+
+.absence-calendar-day--editable {
+    cursor: pointer;
+}
+
+.absence-calendar-hours--variance {
+    @apply border-amber-400 bg-amber-50 dark:border-amber-500 dark:bg-amber-950/40;
+}
+
+.absence-calendar-hours__row {
+    @apply flex items-center justify-between gap-2;
+}
+
+.absence-calendar-hours__row--off {
+    @apply justify-center font-medium text-slate-500 dark:text-slate-400;
+}
+
+.absence-calendar-hours__label {
+    @apply text-slate-500 dark:text-slate-400;
+}
+
+.absence-calendar-hours__planned {
+    @apply font-semibold text-slate-800 dark:text-slate-100;
+}
+
+.absence-calendar-hours__actual {
+    @apply font-semibold text-primary-600;
+}
+
+.absence-calendar-hours__actual-link {
+    @apply underline decoration-primary-400 underline-offset-2 hover:text-primary-700 dark:hover:text-primary-400;
+}
+
+.absence-calendar-hours__row--actions {
+    @apply mt-0.5 justify-end;
+}
+
+.absence-calendar-hours__edit {
+    @apply text-[10px] font-semibold text-primary-600 underline decoration-primary-400 underline-offset-2 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300;
+}
+
+.absence-calendar-work-event {
+    @apply w-full px-1 py-0.5 text-[10px] leading-tight text-slate-800;
+}
+
+.absence-calendar-work-event__line {
+    @apply flex items-center justify-between gap-2;
+}
+
+.absence-calendar-work-event__line span {
+    @apply text-slate-600;
+}
+
+.absence-calendar-work-event__line strong {
+    @apply font-semibold text-slate-900;
+}
+
+.fc .absence-calendar-work-event {
+    @apply cursor-pointer;
+}
+
+.absence-calendar-tooltip {
+    @apply max-w-xs rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm shadow-lg dark:border-gray-700 dark:bg-gray-900;
+}
+
+.absence-calendar-tooltip__title {
+    @apply font-semibold text-gray-900 dark:text-white;
+}
+
+.absence-calendar-tooltip__description {
+    @apply mt-1 whitespace-pre-line text-gray-600 dark:text-gray-300;
+}
+
+.fc .fc-daygrid-day-frame {
+    min-height: 5.5rem;
+    cursor: pointer;
+}
+
+.fc .fc-timegrid-slot {
+    cursor: pointer;
+}
+
+.todo-kanban-board {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(220px, 1fr));
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+}
+
+.todo-kanban-column {
+    display: flex;
+    min-height: 420px;
+    flex-direction: column;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background-color: #f8fafc;
+}
+
+.todo-kanban-column__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    border-top: 4px solid #6b7280;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 10px 12px;
+    background-color: #fff;
+    border-top-left-radius: 0.75rem;
+    border-top-right-radius: 0.75rem;
+}
+
+.todo-kanban-column__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.todo-kanban-column__count {
+    min-width: 1.5rem;
+    border-radius: 9999px;
+    background-color: #e5e7eb;
+    padding: 2px 8px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: #374151;
+}
+
+.todo-kanban-column__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px;
+    min-height: 360px;
+}
+
+.kanban-card {
+    display: flex;
+    gap: 8px;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    background-color: #fff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+    cursor: default;
+}
+
+.kanban-card--ghost {
+    opacity: 0.45;
+}
+
+.kanban-card--chosen {
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+}
+
+.kanban-card__handle {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px 0 10px 8px;
+    font-size: 12px;
+    line-height: 1;
+    color: #9ca3af;
+    cursor: grab;
+    user-select: none;
+}
+
+.kanban-card__handle:active {
+    cursor: grabbing;
+}
+
+.kanban-card__body {
+    flex: 1;
+    padding: 10px 10px 10px 0;
+    cursor: pointer;
+}
+
+.kanban-card__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111827;
+    line-height: 1.35;
+}
+
+.kanban-card__meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.kanban-card__comments {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 8px;
+    border-radius: 9999px;
+    background-color: #f3f4f6;
+    padding: 2px 8px;
+    font-size: 11px;
+    color: #374151;
+}
+
+.kanban-card__comments svg {
+    width: 14px;
+    height: 14px;
+}
+
+@media (max-width: 1400px) {
+    .todo-kanban-board {
+        grid-template-columns: repeat(5, minmax(200px, 1fr));
+    }
+}
+
+@media (max-width: 1100px) {
+    .todo-kanban-board {
+        grid-template-columns: repeat(5, 220px);
+    }
+}
+
+/* Reports: filters card + period summary */
+.fi-report-filters {
+    @apply overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10;
+}
+
+.fi-report-filters__header {
+    @apply border-b border-gray-200 bg-gray-50/80 px-4 py-4 dark:border-gray-700 dark:bg-gray-800/40;
+}
+
+.fi-report-filters__title {
+    @apply text-sm font-semibold tracking-tight text-gray-950 dark:text-white;
+}
+
+.fi-report-filters__description {
+    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+}
+
+.fi-report-filters__body {
+    @apply p-4;
+}
+
+.fi-report-stat-summary {
+    @apply overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10;
+}
+
+.fi-report-stat-summary__header {
+    @apply border-b border-gray-200 bg-gray-50/80 px-4 py-4 dark:border-gray-700 dark:bg-gray-800/40;
+}
+
+.fi-report-stat-summary__title {
+    @apply text-sm font-semibold tracking-tight text-gray-950 dark:text-white;
+}
+
+.fi-report-stat-summary__description {
+    @apply mt-1 text-sm text-gray-500 dark:text-gray-400;
+}
+
+.fi-report-stat-summary__empty {
+    @apply px-4 py-10 text-center text-sm text-gray-500 dark:text-gray-400;
+}
+
+.fi-report-stat-summary__grid {
+    @apply grid divide-y divide-gray-200 dark:divide-gray-700 sm:divide-x sm:divide-y-0;
+}
+
+.fi-report-stat-summary__grid--cols-2 {
+    @apply sm:grid-cols-2;
+}
+
+.fi-report-stat-summary__grid--cols-3 {
+    @apply sm:grid-cols-3;
+}
+
+.fi-report-stat-summary__grid--cols-4 {
+    @apply sm:grid-cols-2 lg:grid-cols-4;
+}
+
+.fi-report-stat-summary__grid--cols-6 {
+    @apply sm:grid-cols-2 lg:grid-cols-3;
+}
+
+.fi-report-stat-summary__item {
+    @apply px-4 py-4;
+}
+
+.fi-report-stat-summary__item--emphasis {
+    @apply bg-primary-50/60 dark:bg-primary-950/20;
+}
+
+.fi-report-stat-summary__label {
+    @apply text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400;
+}
+
+.fi-report-stat-summary__value {
+    @apply mt-2 text-2xl font-semibold tabular-nums tracking-tight text-gray-950 dark:text-white;
+}
+
+.fi-report-stat-summary__value--emphasis {
+    @apply text-primary-700 dark:text-primary-400;
+}
+
+.fi-report-stat-summary__hint {
+    @apply mt-1 text-xs text-gray-500 dark:text-gray-400;
+}
+
+.fi-report-stat-summary__footer {
+    @apply border-t border-gray-200 bg-gray-50/80 px-4 py-3 text-xs text-gray-500 dark:border-gray-700 dark:bg-gray-800/40 dark:text-gray-400;
+}
+
+/* Image draw annotator — above Filament sidebar/topbar. */
+.ss-annotate-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483000 !important;
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.65) !important;
+    backdrop-filter: blur(1px);
+}
+
+.ss-annotate-dialog {
+    display: flex;
+    max-height: 92vh;
+    width: 100%;
+    max-width: 64rem;
+    flex-direction: column;
+    border-radius: 0.75rem;
+    background: #ffffff;
+    padding: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+}
+
+.ss-annotate-canvas-wrap {
+    min-height: 240px;
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.375rem;
+    background: #f9fafb;
+    padding: 0.5rem;
+}
+
+.ss-annotate-canvas {
+    display: block;
+    max-width: 100%;
+    max-height: 70vh;
+    touch-action: none;
+    margin: 0 auto;
+}
+/* New comment composer — distinct from comment history above it. */
+.ss-new-comment-form {
+    border: 1px solid #cbd5e1 !important;
+    border-left: 4px solid #2b3a67 !important;
+    background: linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%) !important;
+    border-radius: 0.75rem !important;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.ss-new-comment-form .fi-section-header-heading {
+    color: #2b3a67;
+}
+
+.ss-employee-related {
+    min-width: 20rem;
+    padding: 0.75rem 0.875rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 0.625rem;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
+    box-shadow: 0 1px 2px rgb(15 23 42 / 0.04);
+}
+
+.dark .ss-employee-related {
+    border-color: #374151;
+    background: linear-gradient(180deg, rgb(255 255 255 / 0.04) 0%, rgb(255 255 255 / 0.02) 100%);
+    box-shadow: none;
+}
+
+.ss-employee-related__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ss-employee-related__row {
+    display: grid;
+    grid-template-columns: 8.75rem 4.75rem 4.75rem;
+    align-items: center;
+    column-gap: 0.5rem;
+    padding: 0.375rem 0;
+    font-size: 0.8125rem;
+    line-height: 1.25;
+}
+
+.ss-employee-related__label {
+    font-weight: 600;
+    color: #374151;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.ss-employee-related__label::after {
+    content: ':';
+}
+
+.dark .ss-employee-related__label {
+    color: #e5e7eb;
+}
+
+.ss-employee-related__slot {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+}
+
+.ss-employee-related__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.25rem;
+    width: 4.75rem;
+    min-height: 1.625rem;
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.375rem;
+    border: 1px solid transparent;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    transition:
+        background-color 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.ss-employee-related__btn-icon {
+    width: 0.875rem;
+    height: 0.875rem;
+    flex-shrink: 0;
+}
+
+.ss-employee-related__btn--view {
+    color: #2b3a67;
+    background-color: #ffffff;
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 0 rgb(15 23 42 / 0.02);
+}
+
+.ss-employee-related__btn--view:hover {
+    color: #1d2849;
+    background-color: #f8fafc;
+    border-color: #94a3b8;
+}
+
+.ss-employee-related__btn--add {
+    color: #ffffff;
+    background-color: #2b3a67;
+    border-color: #2b3a67;
+    box-shadow: 0 1px 2px rgb(43 58 103 / 0.24);
+}
+
+.ss-employee-related__btn--add:hover {
+    color: #ffffff;
+    background-color: #243158;
+    border-color: #243158;
+}
+
+.ss-employee-related__btn:focus-visible {
+    outline: 2px solid #2b3a67;
+    outline-offset: 1px;
+}
+
+.dark .ss-employee-related__btn--view {
+    color: #e5e7eb;
+    background-color: rgb(255 255 255 / 0.04);
+    border-color: #4b5563;
+    box-shadow: none;
+}
+
+.dark .ss-employee-related__btn--view:hover {
+    color: #ffffff;
+    background-color: rgb(255 255 255 / 0.08);
+    border-color: #6b7280;
+}
+
+.dark .ss-employee-related__btn--add {
+    color: #ffffff;
+    background-color: #5b73bf;
+    border-color: #5b73bf;
+}
+
+.dark .ss-employee-related__btn--add:hover {
+    background-color: #8496cf;
+    border-color: #8496cf;
+}
+
+.dark .ss-employee-related__btn:focus-visible {
+    outline-color: #93c5fd;
+}
+
+.ss-employee-related-cell {
+    min-width: 20.5rem;
+    vertical-align: top;
+    padding-top: 0.5rem !important;
+    padding-bottom: 0.5rem !important;
+    padding-inline: 0.5rem !important;
+}
