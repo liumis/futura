@@ -2,6 +2,7 @@
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Support\SchemaForeignKeys;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -26,15 +27,9 @@ return new class extends Migration
             ])->save();
         });
 
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-        });
+        SchemaForeignKeys::dropOnColumn('employees', 'user_id');
 
         Schema::table('employees', function (Blueprint $table) {
-            if (Schema::hasIndex('employees', 'employees_user_id_unique')) {
-                $table->dropUnique(['user_id']);
-            }
-
             $table->dropColumn('user_id');
         });
     }

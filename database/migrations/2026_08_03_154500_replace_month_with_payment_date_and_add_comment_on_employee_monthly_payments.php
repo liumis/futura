@@ -1,5 +1,6 @@
 <?php
 
+use App\Support\SchemaForeignKeys;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
@@ -30,19 +31,9 @@ return new class extends Migration
                 ]);
             }
 
-            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-                $table->dropForeign(['employee_id']);
-            });
+            SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
 
             Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-                if ($this->hasIndexNamed('employee_monthly_payments_employee_id_year_month_unique')) {
-                    $table->dropUnique(['employee_id', 'year', 'month']);
-                }
-
-                if ($this->hasIndexNamed('employee_monthly_payments_year_month_index')) {
-                    $table->dropIndex(['year', 'month']);
-                }
-
                 $table->dropColumn(['year', 'month']);
             });
 
@@ -77,19 +68,9 @@ return new class extends Migration
             }
         }
 
-        Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-            $table->dropForeign(['employee_id']);
-        });
+        SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
 
         Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-            if ($this->hasIndexNamed('employee_monthly_payments_employee_id_payment_date_unique')) {
-                $table->dropUnique(['employee_id', 'payment_date']);
-            }
-
-            if ($this->hasIndexNamed('employee_monthly_payments_payment_date_index')) {
-                $table->dropIndex(['payment_date']);
-            }
-
             if (Schema::hasColumn('employee_monthly_payments', 'payment_date')) {
                 $table->dropColumn('payment_date');
             }
