@@ -92,6 +92,10 @@ class EmployeeResource extends Resource
                     ->step(0.01)
                     ->suffix('%'),
 
+                Forms\Components\Checkbox::make('is_general_manager')
+                    ->label('General manager')
+                    ->default(false),
+
                 Section::make('VMI')
                     ->description('Payroll tax flags used for NPD / GPM and II pillar when calculating net pay.')
                     ->schema([
@@ -151,6 +155,12 @@ class EmployeeResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->placeholder('—'),
+
+                Tables\Columns\IconColumn::make('is_general_manager')
+                    ->label('General manager')
+                    ->boolean()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\ViewColumn::make('related_links')
                     ->label('Related')
