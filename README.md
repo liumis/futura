@@ -76,6 +76,18 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 5. Enable the **scheduler** and a **queue worker**.
 6. Push to `main` deploys automatically. Health check: `/up`
 
+### CI deploy gate (GitHub Actions)
+
+The workflow in `.github/workflows/deploy.yml` runs tests on every push/PR to `main`, then triggers a Laravel Cloud deploy hook when tests pass.
+
+1. In Laravel Cloud → **Settings → Deployments**, enable **Deploy hook** and copy the URL.
+2. In GitHub → **liumis/futura → Settings → Secrets and variables → Actions**, add:
+   - `LARAVEL_CLOUD_DEPLOY_HOOK` = your deploy hook URL
+3. To avoid **double deploys**, disable **Push to deploy** in Cloud and rely on the hook after CI passes.
+4. Cloud still runs `php artisan app:cloud-deploy-database` (migrations) as your **Deploy command**.
+
+If the secret is missing, tests still run but deploy is skipped (push-to-deploy can remain enabled until the secret is added).
+
 ### Sync color images to production storage (S3)
 
 Swatches are on **futuratextiles.eu** collection pages and can be pulled straight into S3 from Cloud. You also have a full local copy under `storage/app/public/colors/` (145 files).
