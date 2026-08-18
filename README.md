@@ -75,3 +75,18 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
    - `FILESYSTEM_DISK=s3` after attaching object storage (invoices and manual-import files)
 5. Enable the **scheduler** and a **queue worker**.
 6. Push to `main` deploys automatically. Health check: `/up`
+
+### Sync color images to production storage (S3)
+
+If product color swatch images are missing on production, your `colors.image` files exist locally but were not uploaded to the production object storage.
+
+Upload local `storage/app/public/colors/*` files to the production S3 bucket with:
+
+1. In your environment where you have the Cloud S3 credentials, run:
+
+```bash
+php artisan app:sync-color-images --source-disk=public --target-disk=s3 --prefix=colors --only-missing
+```
+
+2. Then redeploy (or just hard-refresh) the production page:
+`https://customers.futuratextiles.eu/orders/create`
