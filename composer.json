@@ -11,6 +11,7 @@
         "filament/filament": "^5.4",
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
+        "league/flysystem-aws-s3-v3": "^3.35",
         "setasign/fpdf": "^1.9",
         "setasign/fpdi": "^2.6",
         "spatie/laravel-permission": "^6.25"
