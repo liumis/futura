@@ -13,6 +13,10 @@ class FuturaTextilesColorImageScraper
 {
     private const BASE_URL = 'https://futuratextiles.eu/portfolio_category';
 
+    private const SWATCH_TARGET_WIDTH = 600;
+
+    private const SWATCH_MAX_WIDTH = 800;
+
     /**
      * @var array<string, string> collection slug => swatch filename prefix
      */
@@ -58,7 +62,13 @@ class FuturaTextilesColorImageScraper
             return [];
         }
 
-        return $this->extractImagesByCode($response->body(), $prefix);
+        $html = $response->body();
+        unset($response);
+
+        $images = $this->extractImagesByCode($html, $prefix);
+        unset($html);
+
+        return $images;
     }
 
     /**
@@ -79,6 +89,7 @@ class FuturaTextilesColorImageScraper
         Color::query()
             ->where('collection_id', $collection->id)
             ->orderBy('color_code')
+            ->cursor()
             ->each(function (Color $color) use ($imagesByCode, $slug, $force, &$stats): void {
                 $code = (string) (int) $color->color_code;
 
@@ -142,22 +153,22 @@ class FuturaTextilesColorImageScraper
             return [];
         }
 
-        $images = [];
+        $candidates = [];
 
         foreach ($matches as $match) {
             $code = (string) (int) $match[2];
             $url = $this->absoluteUrl($match[1].$match[3]);
-            $normalizedUrl = $this->normalizeImageUrl($url);
+            $score = $this->swatchScore($url);
 
-            if (! isset($images[$code])) {
-                $images[$code] = $normalizedUrl;
-
-                continue;
+            if (! isset($candidates[$code]) || $score > $candidates[$code]['score']) {
+                $candidates[$code] = ['url' => $url, 'score' => $score];
             }
+        }
 
-            if ($this->imageSizeScore($url) > $this->imageSizeScore($images[$code])) {
-                $images[$code] = $normalizedUrl;
-            }
+        $images = [];
+
+        foreach ($candidates as $code => $candidate) {
+            $images[$code] = $candidate['url'];
         }
 
         return $images;
@@ -186,40 +197,64 @@ class FuturaTextilesColorImageScraper
         return $url;
     }
 
-    private function normalizeImageUrl(string $url): string
+    private function swatchScore(string $url): int
     {
-        $url = $this->absoluteUrl($url);
-
-        return preg_replace('/-\d+x\d+(?=\.\w+$)/', '', $url) ?? $url;
-    }
-
-    private function imageSizeScore(string $url): int
-    {
-        if (preg_match('/-(\d+)x(\d+)\.(?:jpg|jpeg|png|webp)$/i', $url, $match)) {
-            return (int) $match[1] * (int) $match[2];
+        if (! preg_match('/-(\d+)x(\d+)\.(?:jpg|jpeg|png|webp)$/i', $url, $match)) {
+            return 0;
         }
 
-        return PHP_INT_MAX;
+        $width = (int) $match[1];
+
+        if ($width < 200 || $width > self::SWATCH_MAX_WIDTH) {
+            return max(1, 100 - abs($width - self::SWATCH_TARGET_WIDTH));
+        }
+
+        return 1000 - abs($width - self::SWATCH_TARGET_WIDTH);
     }
 
     private function downloadImage(string $url, string $collectionSlug, string $colorCode): string
     {
-        $response = Http::timeout(60)
-            ->withHeaders(['User-Agent' => 'FuturaTextilesSS/1.0'])
-            ->get($url);
-
-        if (! $response->successful()) {
-            throw new RuntimeException("Failed to download {$url}: HTTP {$response->status()}");
-        }
-
         $extension = pathinfo(parse_url($url, PHP_URL_PATH) ?? '', PATHINFO_EXTENSION) ?: 'jpg';
         $extension = Str::lower($extension);
         $path = "colors/{$collectionSlug}/{$colorCode}.{$extension}";
+        $tmpPath = tempnam(sys_get_temp_dir(), 'ft-color-');
 
-        $disk = Color::storageDisk();
-        $options = $disk === 's3' ? ['visibility' => 'public'] : [];
+        if ($tmpPath === false) {
+            throw new RuntimeException('Failed to create a temporary file for image download.');
+        }
 
-        Storage::disk($disk)->put($path, $response->body(), $options);
+        try {
+            $response = Http::timeout(60)
+                ->withHeaders(['User-Agent' => 'FuturaTextilesSS/1.0'])
+                ->sink($tmpPath)
+                ->get($url);
+
+            if (! $response->successful()) {
+                throw new RuntimeException("Failed to download {$url}: HTTP {$response->status()}");
+            }
+
+            unset($response);
+
+            $stream = fopen($tmpPath, 'rb');
+
+            if ($stream === false) {
+                throw new RuntimeException("Failed to read downloaded image for {$url}.");
+            }
+
+            try {
+                $disk = Color::storageDisk();
+                $options = $disk === 's3' ? ['visibility' => 'public'] : [];
+                Storage::disk($disk)->writeStream($path, $stream, $options);
+            } finally {
+                if (is_resource($stream)) {
+                    fclose($stream);
+                }
+            }
+        } finally {
+            if (is_file($tmpPath)) {
+                unlink($tmpPath);
+            }
+        }
 
         return $path;
     }

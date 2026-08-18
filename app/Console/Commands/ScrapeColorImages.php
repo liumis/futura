@@ -38,8 +38,22 @@ class ScrapeColorImages extends Command
         }
 
         $this->info('Scraping all Futura Textiles collection pages...');
-        $stats = $scraper->scrapeAll($force);
-        $this->reportStats('All collections', $stats);
+        $totals = ['matched' => 0, 'downloaded' => 0, 'skipped' => 0, 'missing' => []];
+
+        Collection::query()
+            ->orderBy('name')
+            ->each(function (Collection $collection) use ($scraper, $force, &$totals): void {
+                $this->info("Scraping {$collection->name}...");
+                $stats = $scraper->scrapeCollection($collection, $force);
+                $this->reportStats($collection->name, $stats);
+
+                $totals['matched'] += $stats['matched'];
+                $totals['downloaded'] += $stats['downloaded'];
+                $totals['skipped'] += $stats['skipped'];
+                $totals['missing'] = array_merge($totals['missing'], $stats['missing']);
+            });
+
+        $this->reportStats('All collections', $totals);
 
         return self::SUCCESS;
     }
