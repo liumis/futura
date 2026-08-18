@@ -20,6 +20,7 @@ $args += "app:sync-color-images"
 $args += "--source-disk=$SourceDisk"
 $args += "--target-disk=$TargetDisk"
 $args += "--prefix=$Prefix"
+$args += "--scan-filesystem"
 
 if ($OnlyMissing) {
     $args += "--only-missing"

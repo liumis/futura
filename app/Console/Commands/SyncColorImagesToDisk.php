@@ -5,24 +5,31 @@ namespace App\Console\Commands;
 use App\Models\Color;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Throwable;
 
 class SyncColorImagesToDisk extends Command
 {
+    private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp'];
+
     protected $signature = 'app:sync-color-images
                             {--source-disk=public : Disk where images already exist (e.g. public for local storage/app/public)}
                             {--target-disk=s3 : Disk to upload to (typically s3)}
                             {--prefix=colors : File path prefix inside the disk (e.g. colors)}
+                            {--scan-filesystem : Discover local files by collection slug and color code under the prefix}
+                            {--update-db : When used with --scan-filesystem, save discovered paths on colors.image}
                             {--only-missing : Skip files that already exist on the target disk}
                             {--dry-run : Do not upload; only print what would be copied}';
 
-    protected $description = 'Upload local color swatch images to production storage (S3) so they display on prod.';
+    protected $description = 'Upload local color swatch images to production storage (S3). Run from your PC, not on Cloud.';
 
     public function handle(): int
     {
         $sourceDiskName = (string) $this->option('source-disk');
         $targetDiskName = (string) $this->option('target-disk');
         $prefix = trim((string) $this->option('prefix'), '/');
+        $scanFilesystem = (bool) $this->option('scan-filesystem');
+        $updateDb = (bool) $this->option('update-db');
         $onlyMissing = (bool) $this->option('only-missing');
         $dryRun = (bool) $this->option('dry-run');
 
@@ -34,16 +41,13 @@ class SyncColorImagesToDisk extends Command
         }
 
         $colors = Color::query()
-            ->whereNotNull('image')
-            ->where('image', '!=', '')
-            ->when($prefix !== '', function ($q) use ($prefix): void {
-                $q->where('image', 'like', $prefix.'/%');
-            })
-            ->select(['id', 'image'])
-            ->get();
+            ->with('collection:id,name')
+            ->orderBy('collection_id')
+            ->orderBy('color_code')
+            ->get(['id', 'collection_id', 'color_code', 'color_name', 'image']);
 
         $total = $colors->count();
-        $this->info("Found {$total} color(s) with images on source disk: {$sourceDiskName}");
+        $this->info("Processing {$total} color(s) from source disk: {$sourceDiskName}");
 
         if ($total === 0) {
             return self::SUCCESS;
@@ -53,12 +57,26 @@ class SyncColorImagesToDisk extends Command
         $skipped = 0;
         $missingOnSource = 0;
         $failed = 0;
+        $dbUpdated = 0;
 
         foreach ($colors as $color) {
-            $relativePath = ltrim((string) $color->image, '/');
+            $relativePath = $scanFilesystem
+                ? $this->resolveFilesystemPath($sourceDisk, $prefix, $color)
+                : ltrim((string) $color->image, '/');
 
-            if ($relativePath === '') {
+            if ($relativePath === null || $relativePath === '') {
+                $missingOnSource++;
+                $slug = Str::lower((string) $color->collection?->name);
+                $code = (string) (int) $color->color_code;
+                $this->warn("Source missing for color_id={$color->id}: {$slug}/{$code}");
                 continue;
+            }
+
+            if ($scanFilesystem && $updateDb && $color->image !== $relativePath) {
+                if (! $dryRun) {
+                    $color->update(['image' => $relativePath]);
+                }
+                $dbUpdated++;
             }
 
             if (! $sourceDisk->exists($relativePath)) {
@@ -103,9 +121,38 @@ class SyncColorImagesToDisk extends Command
         $this->info("Uploaded: {$uploaded}");
         $this->info("Skipped (only-missing): {$skipped}");
         $this->info("Missing on source: {$missingOnSource}");
+        if ($scanFilesystem && $updateDb) {
+            $this->info("DB paths updated: {$dbUpdated}");
+        }
         $this->info("Failed: {$failed}");
 
         return $failed > 0 ? self::FAILURE : self::SUCCESS;
+    }
+
+    private function resolveFilesystemPath($sourceDisk, string $prefix, Color $color): ?string
+    {
+        $slug = Str::lower((string) $color->collection?->name);
+        $code = (string) (int) $color->color_code;
+
+        if ($slug === '' || $code === '') {
+            return null;
+        }
+
+        foreach (self::IMAGE_EXTENSIONS as $extension) {
+            $path = $prefix !== ''
+                ? "{$prefix}/{$slug}/{$code}.{$extension}"
+                : "{$slug}/{$code}.{$extension}";
+
+            if ($sourceDisk->exists($path)) {
+                return $path;
+            }
+        }
+
+        if (filled($color->image) && $sourceDisk->exists((string) $color->image)) {
+            return (string) $color->image;
+        }
+
+        return null;
     }
 }
 

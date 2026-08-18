@@ -13,7 +13,7 @@ class ScrapeColorImages extends Command
                             {--collection= : Scrape a single collection by name (e.g. Agnona)}
                             {--force : Re-download images even if already stored}';
 
-    protected $description = 'Download color swatch images from futuratextiles.eu collection pages';
+    protected $description = 'Download color swatch images from futuratextiles.eu into storage (S3 on Cloud)';
 
     public function handle(FuturaTextilesColorImageScraper $scraper): int
     {

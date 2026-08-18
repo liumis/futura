@@ -78,16 +78,20 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ### Sync color images to production storage (S3)
 
-Do **not** run `app:sync-color-images` on Laravel Cloud. Production has no local files under `storage/app/public`.
+Swatches are on **futuratextiles.eu** collection pages and can be pulled straight into S3 from Cloud. You also have a full local copy under `storage/app/public/colors/` (145 files).
 
-On Cloud (after attaching a bucket named disk `s3` and `FILESYSTEM_DISK=s3`), download swatches from futuratextiles.eu straight into the bucket:
+**On Laravel Cloud** (after attaching object storage and `FILESYSTEM_DISK=s3`):
 
 ```bash
 php artisan colors:scrape-images --force
 ```
 
-To copy from your PC instead, set Cloud `AWS_*` vars locally, then:
+This downloads ~142/145 swatches directly into the bucket. Three colors are not on the website (agnona 103/108, paloma 107).
+
+**From your PC** (to fill gaps or upload all 145 without scraping), copy Cloud `AWS_*` credentials into local `.env`, then:
 
 ```bash
-php artisan app:sync-color-images --source-disk=public --target-disk=s3 --prefix=colors --only-missing
+php artisan app:sync-color-images --source-disk=public --target-disk=s3 --prefix=colors --scan-filesystem --only-missing
 ```
+
+Do **not** run `app:sync-color-images` on Cloud — it has no local files under `storage/app/public`.

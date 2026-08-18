@@ -14,6 +14,17 @@ class FuturaTextilesColorImageScraper
     private const BASE_URL = 'https://futuratextiles.eu/portfolio_category';
 
     /**
+     * @var array<string, string> collection slug => swatch filename prefix
+     */
+    private const COLLECTION_PREFIXES = [
+        'agnona' => 'AG',
+        'argano' => 'AR',
+        'borga' => 'BOR',
+        'paloma' => 'PAL',
+        'saramo' => 'SARA',
+    ];
+
+    /**
      * @return array<string, string> collection slug => page URL
      */
     public static function collectionUrls(): array
@@ -30,7 +41,7 @@ class FuturaTextilesColorImageScraper
     /**
      * @return array<int, string> color code => image URL
      */
-    public function scrapeCollectionPage(string $url): array
+    public function scrapeCollectionPage(string $url, ?string $collectionSlug = null): array
     {
         $response = Http::timeout(60)
             ->withHeaders(['User-Agent' => 'FuturaTextilesSS/1.0'])
@@ -40,21 +51,14 @@ class FuturaTextilesColorImageScraper
             throw new RuntimeException("Failed to fetch {$url}: HTTP {$response->status()}");
         }
 
-        $html = $response->body();
-        $images = [];
+        $slug = $collectionSlug ?? $this->slugFromUrl($url);
+        $prefix = self::COLLECTION_PREFIXES[$slug] ?? null;
 
-        if (preg_match_all(
-            '/collor-(\d+)[^>]*style="background-image:\s*url\([\'"]([^\'"]+)[\'"]\)/',
-            $html,
-            $matches,
-            PREG_SET_ORDER,
-        )) {
-            foreach ($matches as $match) {
-                $images[(string) (int) $match[1]] = $this->normalizeImageUrl($match[2]);
-            }
+        if ($prefix === null) {
+            return [];
         }
 
-        return $images;
+        return $this->extractImagesByCode($response->body(), $prefix);
     }
 
     /**
@@ -69,7 +73,7 @@ class FuturaTextilesColorImageScraper
             throw new RuntimeException("No Futura Textiles URL configured for collection \"{$collection->name}\".");
         }
 
-        $imagesByCode = $this->scrapeCollectionPage($urls[$slug]);
+        $imagesByCode = $this->scrapeCollectionPage($urls[$slug], $slug);
         $stats = ['matched' => 0, 'downloaded' => 0, 'skipped' => 0, 'missing' => []];
 
         Color::query()
@@ -125,11 +129,77 @@ class FuturaTextilesColorImageScraper
         return $totals;
     }
 
-    private function normalizeImageUrl(string $url): string
+    /**
+     * @return array<int, string> color code => image URL
+     */
+    private function extractImagesByCode(string $html, string $prefix): array
+    {
+        $pattern = '/((?:https?:)?\/\/futuratextiles\.eu\/wp-content\/uploads\/[^"\'\s]+?\/'
+            .preg_quote($prefix, '/')
+            .'_(\d+)_[A-Z0-9_\-]+)((?:-\d+x\d+)?\.(?:jpg|jpeg|png|webp))/i';
+
+        if (! preg_match_all($pattern, $html, $matches, PREG_SET_ORDER)) {
+            return [];
+        }
+
+        $images = [];
+
+        foreach ($matches as $match) {
+            $code = (string) (int) $match[2];
+            $url = $this->absoluteUrl($match[1].$match[3]);
+            $normalizedUrl = $this->normalizeImageUrl($url);
+
+            if (! isset($images[$code])) {
+                $images[$code] = $normalizedUrl;
+
+                continue;
+            }
+
+            if ($this->imageSizeScore($url) > $this->imageSizeScore($images[$code])) {
+                $images[$code] = $normalizedUrl;
+            }
+        }
+
+        return $images;
+    }
+
+    private function slugFromUrl(string $url): string
+    {
+        $path = parse_url($url, PHP_URL_PATH) ?? '';
+        $segment = trim((string) Str::afterLast(rtrim($path, '/'), '/'));
+
+        return Str::lower($segment);
+    }
+
+    private function absoluteUrl(string $url): string
     {
         $url = html_entity_decode(trim($url));
 
+        if (str_starts_with($url, '//')) {
+            return 'https:'.$url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return 'https://futuratextiles.eu'.$url;
+        }
+
+        return $url;
+    }
+
+    private function normalizeImageUrl(string $url): string
+    {
+        $url = $this->absoluteUrl($url);
+
         return preg_replace('/-\d+x\d+(?=\.\w+$)/', '', $url) ?? $url;
+    }
+
+    private function imageSizeScore(string $url): int
+    {
+        if (preg_match('/-(\d+)x(\d+)\.(?:jpg|jpeg|png|webp)$/i', $url, $match)) {
+            return (int) $match[1] * (int) $match[2];
+        }
+
+        return PHP_INT_MAX;
     }
 
     private function downloadImage(string $url, string $collectionSlug, string $colorCode): string
