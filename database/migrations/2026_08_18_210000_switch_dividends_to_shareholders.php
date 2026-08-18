@@ -36,19 +36,7 @@ return new class extends Migration
         );
 
         if (Schema::hasColumn('dividends', 'employee_id')) {
-            Schema::table('dividends', function (Blueprint $table): void {
-                foreach ([
-                    'dividends_employee_id_date_index',
-                    'dividends_status_employee_id_date_index',
-                ] as $index) {
-                    try {
-                        $table->dropIndex($index);
-                    } catch (\Throwable) {
-                        // Index may already be gone.
-                    }
-                }
-            });
-
+            // MySQL requires dropping the FK before indexes that back it.
             SchemaForeignKeys::dropColumnIfExists('dividends', 'employee_id');
         }
 
@@ -66,14 +54,6 @@ return new class extends Migration
 
             return;
         }
-
-        Schema::table('dividends', function (Blueprint $table): void {
-            try {
-                $table->dropIndex('dividends_shareholder_id_date_index');
-            } catch (\Throwable) {
-                // Index may already be gone.
-            }
-        });
 
         if (! Schema::hasColumn('dividends', 'employee_id')) {
             Schema::table('dividends', function (Blueprint $table): void {
