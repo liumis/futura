@@ -30,7 +30,12 @@ class Color extends Model
             return null;
         }
 
-        return Storage::disk('public')->url($this->image);
+        // On production we usually store uploads on S3 (FILESYSTEM_DISK=s3).
+        // On local we typically use the "public" disk (storage/app/public + storage:link).
+        $filesystemDisk = (string) env('FILESYSTEM_DISK', config('filesystems.default', 'local'));
+        $disk = $filesystemDisk === 's3' ? 's3' : 'public';
+
+        return Storage::disk($disk)->url($this->image);
     }
 
     public function collection(): BelongsTo
