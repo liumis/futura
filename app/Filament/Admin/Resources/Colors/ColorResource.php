@@ -75,7 +75,8 @@ class ColorResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('image')
                     ->label('Image')
-                    ->getStateUsing(fn (Color $record): ?string => $record->imageUrl())
+                    ->disk(Color::storageDisk())
+                    ->visibility(Color::storageDisk() === 's3' ? 'private' : 'public')
                     ->checkFileExistence(false)
                     ->square()
                     ->size(40),

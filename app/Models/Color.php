@@ -37,7 +37,18 @@ class Color extends Model
             return null;
         }
 
-        return Storage::disk(self::storageDisk())->url($this->image);
+        $disk = self::storageDisk();
+        $storage = Storage::disk($disk);
+
+        if ($disk === 's3') {
+            try {
+                return $storage->temporaryUrl($this->image, now()->addHours(24));
+            } catch (\Throwable) {
+                // Fall through to a public URL if the driver cannot sign requests.
+            }
+        }
+
+        return $storage->url($this->image);
     }
 
     public function collection(): BelongsTo

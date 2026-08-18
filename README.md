@@ -88,6 +88,12 @@ php artisan colors:scrape-images --force
 
 This downloads ~142/145 swatches directly into the bucket. Three colors are not on the website (agnona 103/108, paloma 107).
 
+To rebuild **small web-safe thumbs** from files already in the bucket (no scrape):
+
+```bash
+php artisan colors:regenerate-thumbs
+```
+
 **From your PC** (to fill gaps or upload all 145 without scraping), copy Cloud `AWS_*` credentials into local `.env`, then:
 
 ```bash
