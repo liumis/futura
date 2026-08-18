@@ -55,7 +55,7 @@ class ColorResource extends Resource
                 Forms\Components\FileUpload::make('image')
                     ->label('Image')
                     ->image()
-                    ->disk('public')
+                    ->disk(Color::storageDisk())
                     ->directory('colors')
                     ->visibility('public')
                     ->acceptedFileTypes(['image/jpeg', 'image/png', 'image/webp', 'image/gif'])
@@ -75,7 +75,7 @@ class ColorResource extends Resource
             ->columns([
                 Tables\Columns\ImageColumn::make('image')
                     ->label('Image')
-                    ->disk('public')
+                    ->getStateUsing(fn (Color $record): ?string => $record->imageUrl())
                     ->checkFileExistence(false)
                     ->square()
                     ->size(40),

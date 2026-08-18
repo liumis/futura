@@ -24,18 +24,20 @@ class Color extends Model
         'image',
     ];
 
+    public static function storageDisk(): string
+    {
+        $default = (string) config('filesystems.default', 'local');
+
+        return $default === 's3' ? 's3' : 'public';
+    }
+
     public function imageUrl(): ?string
     {
         if (blank($this->image)) {
             return null;
         }
 
-        // On production we usually store uploads on S3 (FILESYSTEM_DISK=s3).
-        // On local we typically use the "public" disk (storage/app/public + storage:link).
-        $filesystemDisk = (string) env('FILESYSTEM_DISK', config('filesystems.default', 'local'));
-        $disk = $filesystemDisk === 's3' ? 's3' : 'public';
-
-        return Storage::disk($disk)->url($this->image);
+        return Storage::disk(self::storageDisk())->url($this->image);
     }
 
     public function collection(): BelongsTo
