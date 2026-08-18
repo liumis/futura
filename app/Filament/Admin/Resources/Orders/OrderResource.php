@@ -27,6 +27,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
@@ -123,6 +124,9 @@ class OrderResource extends Resource
                     ])
                     ->columnSpanFull()
                     ->visible(fn (): bool => self::packageProfiles() !== []),
+
+                \Filament\Schemas\Components\View::make('filament.admin.components.order-line-section-totals')
+                    ->columnSpanFull(),
 
                 ...self::orderLineItemSections(),
             ]);
@@ -354,6 +358,10 @@ class OrderResource extends Resource
                 );
 
                 $heading = self::collectionSectionHeading($collection);
+                $productIds = $collection->products
+                    ->pluck('id')
+                    ->map(fn ($id): int => (int) $id)
+                    ->all();
 
                 $cards = $collection->products
                     ->sortBy(fn (Product $product): string => $product->color?->color_code ?? '')
@@ -366,12 +374,12 @@ class OrderResource extends Resource
                     )
                     ->all();
 
-                return Section::make($heading)
-                    ->collapsed()
-                    ->columnSpanFull()
-                    ->schema([
-                        Grid::make(4)->schema($cards),
-                    ]);
+                return self::makeOrderLineItemSection(
+                    sectionKey: 'collection-'.$collection->id,
+                    heading: $heading,
+                    productIds: $productIds,
+                    cards: $cards,
+                );
             })
             ->all();
 
@@ -407,10 +415,40 @@ class OrderResource extends Resource
             ->all();
 
         $typeName = $products->first()?->productType?->name ?? 'Catalog';
+        $productIds = $products
+            ->pluck('id')
+            ->map(fn ($id): int => (int) $id)
+            ->all();
 
-        return Section::make($typeName)
+        return self::makeOrderLineItemSection(
+            sectionKey: 'catalog',
+            heading: $typeName,
+            productIds: $productIds,
+            cards: $cards,
+        );
+    }
+
+    /**
+     * @param  list<int>  $productIds
+     * @param  array<int, Group>  $cards
+     */
+    private static function makeOrderLineItemSection(
+        string $sectionKey,
+        string $heading,
+        array $productIds,
+        array $cards,
+    ): Section {
+        return Section::make(new HtmlString(
+            e($heading).
+            ' <span class="fi-order-section-total" wire:ignore>(0)</span>',
+        ))
+            ->key('order-line-section-'.$sectionKey)
             ->collapsed()
             ->columnSpanFull()
+            ->extraAttributes([
+                'data-fi-order-section' => '1',
+                'data-fi-order-product-ids' => json_encode(array_values($productIds)),
+            ])
             ->schema([
                 Grid::make(4)->schema($cards),
             ]);

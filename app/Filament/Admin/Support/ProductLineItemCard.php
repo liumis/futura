@@ -28,6 +28,10 @@ class ProductLineItemCard
             'x-on:change' => 'const card = $el.closest(\'.fi-order-product-card\'); if (card) { card.classList.toggle(\'fi-order-product-card--empty\', ! (parseInt($event.target.value || 0, 10) > 0)); }',
         ];
 
+        if (str_starts_with($amountField, 'order_amounts.')) {
+            $amountInputAttributes['data-order-amount-input'] = (string) $product->id;
+        }
+
         if ($recalculateCosts) {
             $amountInputAttributes['data-cargo-product-amount'] = (string) $product->id;
             $amountInputAttributes['x-on:input'] .= '; $dispatch(\'cargo-cost-recalculate\')';

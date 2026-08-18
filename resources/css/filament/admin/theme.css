@@ -214,6 +214,14 @@
     @apply mt-1 text-xs leading-snug font-semibold text-red-600 dark:text-red-400;
 }
 
+.fi-order-section-total {
+    @apply ms-1 font-semibold text-gray-400 dark:text-gray-500;
+}
+
+.fi-order-section-total--active {
+    @apply text-primary-600 dark:text-primary-400;
+}
+
 /* User menu profile row: allow long email + icon (Filament defaults to whitespace-nowrap on items). */
 .fi-user-menu .fi-dropdown-list-item.fi-user-menu-profile {
     @apply items-center whitespace-normal py-2;
