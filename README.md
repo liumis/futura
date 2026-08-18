@@ -94,6 +94,13 @@ To rebuild **small web-safe thumbs** from files already in the bucket (no scrape
 php artisan colors:regenerate-thumbs
 ```
 
+To fill **only missing** files (packaged fallbacks + website, no full re-scrape):
+
+```bash
+php artisan colors:fill-missing
+php artisan colors:regenerate-thumbs
+```
+
 **From your PC** (to fill gaps or upload all 145 without scraping), copy Cloud `AWS_*` credentials into local `.env`, then:
 
 ```bash

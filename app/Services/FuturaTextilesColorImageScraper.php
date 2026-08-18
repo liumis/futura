@@ -141,6 +141,107 @@ class FuturaTextilesColorImageScraper
     }
 
     /**
+     * Upload packaged fallbacks and scrape only colors whose files are missing on the storage disk.
+     *
+     * @return array{filled_packaged: int, filled_site: int, skipped: int, still_missing: list<string>}
+     */
+    public function fillMissing(): array
+    {
+        $disk = Storage::disk(Color::storageDisk());
+        $stats = [
+            'filled_packaged' => 0,
+            'filled_site' => 0,
+            'skipped' => 0,
+            'still_missing' => [],
+        ];
+        $needScrape = [];
+
+        Color::query()
+            ->with('collection:id,name')
+            ->orderBy('collection_id')
+            ->orderBy('color_code')
+            ->cursor()
+            ->each(function (Color $color) use ($disk, &$stats, &$needScrape): void {
+                $slug = Str::lower((string) $color->collection?->name);
+                $code = (string) (int) $color->color_code;
+                $conventional = "colors/{$slug}/{$code}.jpg";
+                $current = ltrim((string) $color->image, '/');
+
+                if (
+                    ($current !== '' && $disk->exists($current))
+                    || $disk->exists($conventional)
+                ) {
+                    $stats['skipped']++;
+
+                    return;
+                }
+
+                $packaged = resource_path("color-swatches/{$slug}/{$code}.jpg");
+
+                if (is_file($packaged)) {
+                    $path = $this->storeImageFromLocalPath($packaged, $slug, $code);
+                    $color->update(['image' => $path]);
+                    $stats['filled_packaged']++;
+
+                    return;
+                }
+
+                $needScrape[$slug][] = $color;
+            });
+
+        foreach ($needScrape as $slug => $colors) {
+            $url = self::collectionUrls()[$slug] ?? null;
+
+            if ($url === null) {
+                foreach ($colors as $color) {
+                    $code = (string) (int) $color->color_code;
+                    $stats['still_missing'][] = "{$slug}/{$code} ({$color->color_name})";
+                }
+
+                continue;
+            }
+
+            $imagesByCode = $this->scrapeCollectionPage($url, $slug);
+
+            foreach ($colors as $color) {
+                $code = (string) (int) $color->color_code;
+
+                if (! isset($imagesByCode[$code])) {
+                    $stats['still_missing'][] = "{$slug}/{$code} ({$color->color_name})";
+
+                    continue;
+                }
+
+                $path = $this->downloadImage($imagesByCode[$code], $slug, $code);
+                $color->update(['image' => $path]);
+                $stats['filled_site']++;
+            }
+        }
+
+        return $stats;
+    }
+
+    public function storeImageFromLocalPath(string $absolutePath, string $collectionSlug, string $colorCode): string
+    {
+        $path = "colors/{$collectionSlug}/{$colorCode}.jpg";
+        $stream = fopen($absolutePath, 'rb');
+
+        if ($stream === false) {
+            throw new RuntimeException("Failed to read {$absolutePath}.");
+        }
+
+        try {
+            $this->writeImageStream($path, $stream);
+        } finally {
+            if (is_resource($stream)) {
+                fclose($stream);
+            }
+        }
+
+        return $path;
+    }
+
+    /**
      * @return array<int, string> color code => image URL
      */
     private function extractImagesByCode(string $html, string $prefix): array
@@ -242,9 +343,7 @@ class FuturaTextilesColorImageScraper
             }
 
             try {
-                $disk = Color::storageDisk();
-                $options = $disk === 's3' ? ['visibility' => 'public'] : [];
-                Storage::disk($disk)->writeStream($path, $stream, $options);
+                $this->writeImageStream($path, $stream);
             } finally {
                 if (is_resource($stream)) {
                     fclose($stream);
@@ -257,5 +356,15 @@ class FuturaTextilesColorImageScraper
         }
 
         return $path;
+    }
+
+    /**
+     * @param  resource  $stream
+     */
+    private function writeImageStream(string $path, $stream): void
+    {
+        $disk = Color::storageDisk();
+        $options = $disk === 's3' ? ['visibility' => 'public'] : [];
+        Storage::disk($disk)->writeStream($path, $stream, $options);
     }
 }
