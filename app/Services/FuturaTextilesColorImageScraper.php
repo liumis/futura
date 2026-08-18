@@ -86,7 +86,7 @@ class FuturaTextilesColorImageScraper
 
                 $stats['matched']++;
 
-                if (! $force && filled($color->image) && Storage::disk('public')->exists($color->image)) {
+                if (! $force && filled($color->image) && Storage::disk(self::imageDisk())->exists($color->image)) {
                     $stats['skipped']++;
 
                     return;
@@ -95,7 +95,7 @@ class FuturaTextilesColorImageScraper
                 $path = $this->downloadImage($imagesByCode[$code], $slug, $code);
 
                 if (filled($color->image) && $color->image !== $path) {
-                    Storage::disk('public')->delete($color->image);
+                    Storage::disk(self::imageDisk())->delete($color->image);
                 }
 
                 $color->update(['image' => $path]);
@@ -146,8 +146,18 @@ class FuturaTextilesColorImageScraper
         $extension = Str::lower($extension);
         $path = "colors/{$collectionSlug}/{$colorCode}.{$extension}";
 
-        Storage::disk('public')->put($path, $response->body());
+        $disk = self::imageDisk();
+        $options = $disk === 's3' ? ['visibility' => 'public'] : [];
+
+        Storage::disk($disk)->put($path, $response->body(), $options);
 
         return $path;
+    }
+
+    private static function imageDisk(): string
+    {
+        $default = (string) config('filesystems.default');
+
+        return $default === 's3' ? 's3' : 'public';
     }
 }

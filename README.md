@@ -78,15 +78,16 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 
 ### Sync color images to production storage (S3)
 
-If product color swatch images are missing on production, your `colors.image` files exist locally but were not uploaded to the production object storage.
+Do **not** run `app:sync-color-images` on Laravel Cloud. Production has no local files under `storage/app/public`.
 
-Upload local `storage/app/public/colors/*` files to the production S3 bucket with:
+On Cloud (after attaching a bucket named disk `s3` and `FILESYSTEM_DISK=s3`), download swatches from futuratextiles.eu straight into the bucket:
 
-1. In your environment where you have the Cloud S3 credentials, run:
+```bash
+php artisan colors:scrape-images --force
+```
+
+To copy from your PC instead, set Cloud `AWS_*` vars locally, then:
 
 ```bash
 php artisan app:sync-color-images --source-disk=public --target-disk=s3 --prefix=colors --only-missing
 ```
-
-2. Then redeploy (or just hard-refresh) the production page:
-`https://customers.futuratextiles.eu/orders/create`
