@@ -79,9 +79,4 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeMonthlyPayment::class);
     }
-
-    public function dividends(): HasMany
-    {
-        return $this->hasMany(Dividend::class);
-    }
 }

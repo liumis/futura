@@ -11,7 +11,7 @@ class DividendPaymentReportPdfGenerator
 {
     public static function generate(DividendPaymentReport $report): string
     {
-        $report->loadMissing(['creator', 'payments.employee', 'approvers']);
+        $report->loadMissing(['creator', 'payments.shareholder', 'approvers']);
 
         $lines = $report->payments->map(function ($payment): array {
             $gross = (float) $payment->amount;
@@ -20,7 +20,7 @@ class DividendPaymentReportPdfGenerator
 
             return [
                 'date' => $payment->date?->format('Y-m-d') ?? '—',
-                'person' => $payment->employee?->fullName() ?? '—',
+                'person' => $payment->shareholder?->name ?? '—',
                 'gross' => Money::format($gross),
                 'gpm' => Money::format($gpm),
                 'net' => Money::format($net),

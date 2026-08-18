@@ -13,7 +13,7 @@ class Dividend extends Model
      * @var list<string>
      */
     protected $fillable = [
-        'employee_id',
+        'shareholder_id',
         'date',
         'amount',
         'gpm_amount',
@@ -46,9 +46,9 @@ class Dividend extends Model
         return $this->belongsTo(DividendPaymentReport::class, 'dividend_payment_report_id');
     }
 
-    public function employee(): BelongsTo
+    public function shareholder(): BelongsTo
     {
-        return $this->belongsTo(Employee::class);
+        return $this->belongsTo(Shareholder::class);
     }
 
     protected static function booted(): void

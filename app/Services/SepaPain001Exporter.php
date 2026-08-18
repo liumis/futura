@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\CompanySetting;
+use App\Models\Dividend;
 use App\Models\EmployeeMonthlyPayment;
 use App\Support\Money;
 use Illuminate\Support\Carbon;
@@ -47,16 +48,10 @@ class SepaPain001Exporter
         $controlSum = 0.0;
 
         foreach ($payments as $payment) {
-            $employee = $payment->employee;
-            if ($employee === null) {
-                throw new RuntimeException('Payment #'.$payment->getKey().' has no employee.');
-            }
-
-            $creditorName = trim($employee->fullName());
-            $creditorIban = $this->normalizeIban((string) ($employee->bank_account ?? ''));
+            [$creditorName, $creditorIban] = $this->resolveCreditor($payment);
 
             if ($creditorName === '') {
-                throw new RuntimeException('Employee name is missing for payment #'.$payment->getKey().'.');
+                throw new RuntimeException('Creditor name is missing for payment #'.$payment->getKey().'.');
             }
 
             if ($creditorIban === '') {
@@ -256,6 +251,36 @@ class SepaPain001Exporter
         }
 
         return $output;
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    protected function resolveCreditor(EmployeeMonthlyPayment|Dividend $payment): array
+    {
+        if ($payment instanceof Dividend) {
+            $shareholder = $payment->shareholder;
+
+            if ($shareholder === null) {
+                throw new RuntimeException('Payment #'.$payment->getKey().' has no shareholder.');
+            }
+
+            return [
+                trim((string) $shareholder->name),
+                $this->normalizeIban((string) ($shareholder->bank_account ?? '')),
+            ];
+        }
+
+        $employee = $payment->employee;
+
+        if ($employee === null) {
+            throw new RuntimeException('Payment #'.$payment->getKey().' has no employee.');
+        }
+
+        return [
+            trim($employee->fullName()),
+            $this->normalizeIban((string) ($employee->bank_account ?? '')),
+        ];
     }
 
     public function normalizeIban(string $iban): string

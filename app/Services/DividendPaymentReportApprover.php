@@ -26,13 +26,13 @@ class DividendPaymentReportApprover
     {
         $paymentModels = $payments instanceof Collection
             ? $payments
-            : Dividend::query()->with(['employee'])->whereIn('id', $payments)->get();
+            : Dividend::query()->with(['shareholder'])->whereIn('id', $payments)->get();
 
         if ($paymentModels->isEmpty()) {
             throw new RuntimeException('Select at least one dividend.');
         }
 
-        $paymentModels->loadMissing(['employee']);
+        $paymentModels->loadMissing(['shareholder']);
 
         $calculator = app(LithuanianDividendCalculator::class);
         foreach ($paymentModels as $payment) {
@@ -96,7 +96,7 @@ class DividendPaymentReportApprover
             }
 
             $report->approvers()->sync($sync);
-            $report->load(['payments.employee', 'approvers', 'creator']);
+            $report->load(['payments.shareholder', 'approvers', 'creator']);
             $report->refreshStatus();
 
             $document = self::storeDocument($report, $creator);

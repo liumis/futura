@@ -6,8 +6,8 @@ use App\Filament\Admin\Resources\Dividends\Pages;
 use App\Enums\DividendPaymentReportStatus;
 use App\Enums\DividendPaymentStatus;
 use App\Models\Dividend;
+use App\Models\Shareholder;
 use App\Support\Money;
-use App\Models\Employee;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\DividendPaymentReportApprover;
@@ -43,7 +43,7 @@ class DividendResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Dividend payments';
 
-    protected static string|UnitEnum|null $navigationGroup = 'People & contracts';
+    protected static string|UnitEnum|null $navigationGroup = 'Employees & contracts';
 
     protected static ?int $navigationSort = 8;
 
@@ -51,20 +51,21 @@ class DividendResource extends Resource
     {
         return $schema
             ->components([
-                Forms\Components\Select::make('employee_id')
-                    ->label('Employee')
+                Forms\Components\Select::make('shareholder_id')
+                    ->label('Shareholder')
                     ->relationship(
-                        'employee',
+                        'shareholder',
                         'name',
-                        fn (Builder $query) => $query
-                            ->where('shareholder_percentage', '>', 0)
-                            ->orderBy('surname')
-                            ->orderBy('name'),
+                        fn (Builder $query) => $query->orderBy('name'),
                     )
                     ->getOptionLabelFromRecordUsing(
-                        fn (Employee $employee): string => $employee->fullName(),
+                        fn (Shareholder $shareholder): string => sprintf(
+                            '%s (%s%%)',
+                            $shareholder->name,
+                            number_format((float) $shareholder->shareholder_percentage, 2, '.', ''),
+                        ),
                     )
-                    ->searchable(['name', 'surname', 'email'])
+                    ->searchable(['name', 'email'])
                     ->preload()
                     ->required()
                     ->native(false)
@@ -99,7 +100,7 @@ class DividendResource extends Resource
                     ->dehydrated(false),
 
                 Forms\Components\TextInput::make('net_amount')
-                    ->label('Net to employee')
+                    ->label('Net to shareholder')
                     ->numeric()
                     ->prefix(Money::prefix())
                     ->disabled()
@@ -118,11 +119,10 @@ class DividendResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('employee.fullName')
-                    ->label('Employee')
-                    ->getStateUsing(fn (Dividend $record): string => $record->employee?->fullName() ?? '—')
-                    ->searchable(['employee.name', 'employee.surname'])
-                    ->sortable(['employee.surname', 'employee.name']),
+                Tables\Columns\TextColumn::make('shareholder.name')
+                    ->label('Shareholder')
+                    ->searchable()
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('date')
                     ->date()
@@ -139,7 +139,7 @@ class DividendResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('net_amount')
-                    ->label('Net to employee')
+                    ->label('Net to shareholder')
                     ->money(Money::currency())
                     ->sortable(),
 
@@ -347,7 +347,7 @@ class DividendResource extends Resource
                                 return;
                             }
 
-                            $open->load('employee');
+                            $open->load('shareholder');
                             $calculator = app(LithuanianDividendCalculator::class);
                             foreach ($open as $dividend) {
                                 if ($dividend->gpm_amount === null || $dividend->net_amount === null) {
@@ -406,7 +406,7 @@ class DividendResource extends Resource
                                 return;
                             }
 
-                            $selected->load('employee');
+                            $selected->load('shareholder');
                             $calculator = app(LithuanianDividendCalculator::class);
                             foreach ($selected as $dividend) {
                                 if ($dividend->gpm_amount === null || $dividend->net_amount === null) {
@@ -483,10 +483,10 @@ class DividendResource extends Resource
 
                                 foreach ([
                                     'Date',
-                                    'Person',
+                                    'Shareholder',
                                     'Gross',
                                     'GPM 20%',
-                                    'Net to employee',
+                                    'Net to shareholder',
                                     'Comment',
                                     'Payment status',
                                     'Report status',
@@ -502,7 +502,7 @@ class DividendResource extends Resource
 
                                     echo '<tr>';
                                     echo '<td>'.e((string) ($dividend->date?->format('Y-m-d') ?? '')).'</td>';
-                                    echo '<td>'.e((string) ($dividend->employee?->fullName() ?? '')).'</td>';
+                                    echo '<td>'.e((string) ($dividend->shareholder?->name ?? '')).'</td>';
                                     echo '<td>'.e((string) ($dividend->amount ?? '')).'</td>';
                                     echo '<td>'.e((string) ($dividend->gpm_amount ?? '')).'</td>';
                                     echo '<td>'.e((string) ($dividend->net_amount ?? '')).'</td>';
@@ -526,7 +526,7 @@ class DividendResource extends Resource
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
-            'employee',
+            'shareholder',
             'dividendPaymentReport.approvers',
             'dividendPaymentReport.document',
         ]);
