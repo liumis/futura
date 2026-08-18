@@ -193,6 +193,7 @@ class ProdDatabaseBootstrap
 
         $statements = preg_split('/;\s*\R/', $decoded) ?: [];
         $executed = 0;
+        $touched = [];
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
 
@@ -204,8 +205,22 @@ class ProdDatabaseBootstrap
                     continue;
                 }
 
-                DB::unprepared($statement);
+                $adapted = self::adaptStatementForMysql($statement);
+
+                if ($adapted === null) {
+                    continue;
+                }
+
+                DB::unprepared($adapted);
                 $executed++;
+
+                if (preg_match('/^INSERT INTO `([^`]+)`/i', $adapted, $match) === 1) {
+                    $touched[$match[1]] = true;
+                }
+            }
+
+            foreach (array_keys($touched) as $table) {
+                self::resetAutoIncrement($table);
             }
 
             self::recordImport('mysql-dump', $force);
@@ -343,6 +358,161 @@ class ProdDatabaseBootstrap
         $quoted = self::quoteIdentifier($table);
 
         DB::statement("ALTER TABLE {$quoted} AUTO_INCREMENT = {$next}");
+    }
+
+    /**
+     * SQLite may still have columns that MySQL migrations already dropped.
+     * Skip missing tables and drop unknown columns from INSERT statements.
+     */
+    private static function adaptStatementForMysql(string $statement): ?string
+    {
+        if (preg_match('/^DELETE FROM `([^`]+)`$/i', $statement, $match) === 1) {
+            $table = $match[1];
+
+            if (! Schema::hasTable($table) || in_array($table, self::SKIP_TABLES, true)) {
+                return null;
+            }
+
+            return $statement;
+        }
+
+        if (preg_match('/^INSERT INTO `([^`]+)` \((.+)\) VALUES\s+(.+)$/is', $statement, $match) !== 1) {
+            return $statement;
+        }
+
+        $table = $match[1];
+
+        if (! Schema::hasTable($table) || in_array($table, self::SKIP_TABLES, true)) {
+            return null;
+        }
+
+        preg_match_all('/`([^`]+)`/', $match[2], $columnMatches);
+        $dumpColumns = $columnMatches[1];
+        $schemaColumns = Schema::getColumnListing($table);
+        $keepIndexes = [];
+        $keepColumns = [];
+
+        foreach ($dumpColumns as $index => $column) {
+            if (in_array($column, $schemaColumns, true)) {
+                $keepIndexes[] = $index;
+                $keepColumns[] = $column;
+            }
+        }
+
+        if ($keepColumns === []) {
+            return null;
+        }
+
+        if (count($keepColumns) === count($dumpColumns)) {
+            return $statement;
+        }
+
+        $rows = self::parseSqlValueGroups($match[3]);
+        $values = [];
+
+        foreach ($rows as $row) {
+            if (count($row) !== count($dumpColumns)) {
+                throw new RuntimeException("Dump row for {$table} has ".count($row).' values but '.count($dumpColumns).' columns.');
+            }
+
+            $cells = [];
+
+            foreach ($keepIndexes as $index) {
+                $cells[] = $row[$index];
+            }
+
+            $values[] = '('.implode(', ', $cells).')';
+        }
+
+        $quotedColumns = implode(', ', array_map(self::quoteIdentifier(...), $keepColumns));
+
+        return 'INSERT INTO '.self::quoteIdentifier($table).' ('.$quotedColumns.') VALUES '.implode(', ', $values);
+    }
+
+    /**
+     * @return list<list<string>>
+     */
+    private static function parseSqlValueGroups(string $sql): array
+    {
+        $rows = [];
+        $currentRow = [];
+        $current = '';
+        $inString = false;
+        $depth = 0;
+        $length = strlen($sql);
+
+        for ($i = 0; $i < $length; $i++) {
+            $char = $sql[$i];
+
+            if ($inString) {
+                $current .= $char;
+
+                if ($char === '\\' && $i + 1 < $length) {
+                    $current .= $sql[$i + 1];
+                    $i++;
+
+                    continue;
+                }
+
+                if ($char === "'") {
+                    $inString = false;
+                }
+
+                continue;
+            }
+
+            if ($char === "'") {
+                $inString = true;
+                $current .= $char;
+
+                continue;
+            }
+
+            if ($char === '(') {
+                if ($depth === 0) {
+                    $depth = 1;
+                    $current = '';
+                    $currentRow = [];
+
+                    continue;
+                }
+
+                $depth++;
+                $current .= $char;
+
+                continue;
+            }
+
+            if ($char === ')') {
+                $depth--;
+
+                if ($depth === 0) {
+                    $currentRow[] = trim($current);
+                    $rows[] = $currentRow;
+                    $current = '';
+                    $currentRow = [];
+
+                    continue;
+                }
+
+                $current .= $char;
+
+                continue;
+            }
+
+            if ($char === ',' && $depth === 1) {
+                $currentRow[] = trim($current);
+                $current = '';
+
+                continue;
+            }
+
+            if ($depth >= 1) {
+                $current .= $char;
+            }
+        }
+
+        return $rows;
     }
 
     private static function quoteIdentifier(string $name): string
