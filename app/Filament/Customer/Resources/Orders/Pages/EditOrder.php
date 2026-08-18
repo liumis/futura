@@ -55,6 +55,9 @@ class EditOrder extends EditRecord
         $this->pendingOrderAmounts = $data['order_amounts'] ?? [];
         unset($data['order_amounts'], $data['status'], $data['tracking_number']);
         $data['user_id'] = auth()->id();
+        $data['package_id'] = AdminOrderResource::packageIdFromAmounts(
+            is_array($this->pendingOrderAmounts) ? $this->pendingOrderAmounts : [],
+        );
 
         return $data;
     }

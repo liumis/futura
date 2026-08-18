@@ -115,12 +115,14 @@ class OrderResource extends Resource
                     ->native(false)
                     ->searchable()
                     ->live()
-                    ->visible(fn (): bool => self::packageProfileOptions() !== []),
+                    ->visible(fn (): bool => self::packageProfileOptions() !== [] && ! self::isCustomerUser()),
 
                 \Filament\Schemas\Components\View::make('filament.admin.components.order-package-summary')
                     ->viewData([
                         'packageProfiles' => self::packageProfiles(),
                         'initialPackageId' => self::defaultPackageProfileId(),
+                        'productPackageIds' => self::productPackageIds(),
+                        'resolvePackageFromProducts' => self::isCustomerUser(),
                     ])
                     ->columnSpanFull()
                     ->visible(fn (): bool => self::packageProfiles() !== []),
@@ -178,6 +180,65 @@ class OrderResource extends Resource
         $id = Package::query()->orderBy('id')->value('id');
 
         return filled($id) ? (int) $id : null;
+    }
+
+    private static function isCustomerUser(): bool
+    {
+        return auth()->user()?->hasRole('customer') ?? false;
+    }
+
+    /**
+     * @return array<int, int> product id => package id
+     */
+    private static function productPackageIds(): array
+    {
+        return Product::query()
+            ->with(['color.collection.supplier:id,default_package_id'])
+            ->get(['id', 'color_id'])
+            ->mapWithKeys(function (Product $product): array {
+                $packageId = $product->color?->collection?->supplier?->default_package_id;
+
+                return filled($packageId) ? [(int) $product->id => (int) $packageId] : [];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  array<string|int, mixed>  $amounts
+     */
+    public static function packageIdFromAmounts(array $amounts): ?int
+    {
+        $normalized = self::normalizeAmounts($amounts);
+
+        if ($normalized === []) {
+            return self::defaultPackageProfileId();
+        }
+
+        $products = Product::query()
+            ->with(['color.collection.supplier:id,default_package_id'])
+            ->whereIn('id', array_keys($normalized))
+            ->get()
+            ->keyBy('id');
+
+        $votes = [];
+
+        foreach ($normalized as $productId => $quantity) {
+            $packageId = $products->get($productId)?->color?->collection?->supplier?->default_package_id;
+
+            if (! filled($packageId)) {
+                continue;
+            }
+
+            $votes[(int) $packageId] = ($votes[(int) $packageId] ?? 0) + $quantity;
+        }
+
+        if ($votes === []) {
+            return self::defaultPackageProfileId();
+        }
+
+        arsort($votes);
+
+        return (int) array_key_first($votes);
     }
 
     /**

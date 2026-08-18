@@ -46,6 +46,10 @@ class CreateOrder extends CreateRecord
 
         unset($data['tracking_number']);
 
+        $data['package_id'] = AdminOrderResource::packageIdFromAmounts(
+            is_array($this->pendingOrderAmounts) ? $this->pendingOrderAmounts : [],
+        );
+
         return $data;
     }
 

@@ -2,6 +2,8 @@
     wire:ignore
     x-data="{
         packageProfiles: @js($packageProfiles),
+        productPackageIds: @js($productPackageIds ?? []),
+        resolvePackageFromProducts: @js($resolvePackageFromProducts ?? false),
         packageCount: 0,
         paletteCount: 0,
         totals: {
@@ -31,7 +33,44 @@
             }, 0);
         },
         selectedPackage() {
-            const id = $wire.get('data.package_id') ?? $wire.data?.package_id ?? @js($initialPackageId);
+            const amounts = $wire.get('data.order_amounts') ?? $wire.data?.order_amounts ?? {};
+            const resolveFromProducts = this.resolvePackageFromProducts;
+            const productPackageIds = this.productPackageIds;
+            let id = $wire.get('data.package_id') ?? $wire.data?.package_id ?? @js($initialPackageId);
+
+            if (resolveFromProducts) {
+                const votes = {};
+
+                Object.entries(amounts).forEach(([productId, amount]) => {
+                    const qty = parseInt(amount || 0, 10);
+
+                    if (! Number.isFinite(qty) || qty <= 0) {
+                        return;
+                    }
+
+                    const packageId = productPackageIds[productId] ?? productPackageIds[String(productId)];
+
+                    if (! packageId) {
+                        return;
+                    }
+
+                    votes[packageId] = (votes[packageId] || 0) + qty;
+                });
+
+                let topId = null;
+                let topQty = -1;
+
+                Object.entries(votes).forEach(([packageId, qty]) => {
+                    if (qty > topQty) {
+                        topQty = qty;
+                        topId = packageId;
+                    }
+                });
+
+                if (topId !== null) {
+                    id = topId;
+                }
+            }
 
             return this.packageProfiles[id] ?? this.packageProfiles[String(id)] ?? null;
         },

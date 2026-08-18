@@ -136,10 +136,28 @@ class OrderPackageCalculator
 
     public static function resolvePackage(Order $order): ?Package
     {
-        $order->loadMissing('package');
+        $order->loadMissing(['package', 'orderItems.product.color.collection.supplier']);
 
         if ($order->package !== null) {
             return $order->package;
+        }
+
+        $votes = [];
+
+        foreach ($order->orderItems as $item) {
+            $packageId = $item->product?->color?->collection?->supplier?->default_package_id;
+
+            if (! filled($packageId)) {
+                continue;
+            }
+
+            $votes[(int) $packageId] = ($votes[(int) $packageId] ?? 0) + (int) $item->amount;
+        }
+
+        if ($votes !== []) {
+            arsort($votes);
+
+            return Package::query()->find((int) array_key_first($votes));
         }
 
         $id = Package::query()->orderBy('id')->value('id');
