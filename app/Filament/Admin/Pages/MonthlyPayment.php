@@ -41,7 +41,7 @@ class MonthlyPayment extends Page implements HasForms
 
     protected static ?string $title = 'Payments';
 
-    protected static string|UnitEnum|null $navigationGroup = 'People & contracts';
+    protected static string|UnitEnum|null $navigationGroup = 'Employees & contracts';
 
     protected static ?int $navigationSort = 99;
 

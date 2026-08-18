@@ -24,13 +24,13 @@ class EmployeeResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-identification';
 
-    protected static ?string $navigationLabel = 'People';
+    protected static ?string $navigationLabel = 'Employees';
 
-    protected static ?string $modelLabel = 'Person';
+    protected static ?string $modelLabel = 'Employee';
 
-    protected static ?string $pluralModelLabel = 'People';
+    protected static ?string $pluralModelLabel = 'Employees';
 
-    protected static string|UnitEnum|null $navigationGroup = 'People & contracts';
+    protected static string|UnitEnum|null $navigationGroup = 'Employees & contracts';
 
     protected static ?int $navigationSort = 1;
 

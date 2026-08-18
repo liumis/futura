@@ -33,7 +33,7 @@ class AbsenceCalendar extends Page
 
     protected static ?string $title = 'Work calendar';
 
-    protected static string|\UnitEnum|null $navigationGroup = 'People & contracts';
+    protected static string|\UnitEnum|null $navigationGroup = 'Employees & contracts';
 
     protected static ?int $navigationSort = 7;
 

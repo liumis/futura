@@ -30,7 +30,7 @@ class EmployeeOneTimePaymentResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Employees one time payments';
 
-    protected static string|UnitEnum|null $navigationGroup = 'People & contracts';
+    protected static string|UnitEnum|null $navigationGroup = 'Employees & contracts';
 
     protected static ?int $navigationSort = 7;
 

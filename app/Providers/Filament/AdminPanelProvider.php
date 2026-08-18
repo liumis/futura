@@ -137,7 +137,7 @@ class AdminPanelProvider extends PanelProvider
                 'Invoices',
                 'Documents',
                 'Tasks',
-                'People & contracts',
+                'Employees & contracts',
                 'Users',
                 'System',
             ])
@@ -198,7 +198,7 @@ class AdminPanelProvider extends PanelProvider
                     ->label('Payments')
                     ->icon('heroicon-o-plus-circle')
                     ->url(fn (): string => MonthlyPayment::getUrl())
-                    ->group('People & contracts')
+                    ->group('Employees & contracts')
                     ->sort(99)
                     ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
                     ->isActiveWhen(fn (): bool => request()->routeIs(MonthlyPayment::getRouteName())

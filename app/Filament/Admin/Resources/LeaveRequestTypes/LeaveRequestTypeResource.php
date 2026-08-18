@@ -27,7 +27,7 @@ class LeaveRequestTypeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Leave request types';
 
-    protected static string|UnitEnum|null $navigationGroup = 'People & contracts';
+    protected static string|UnitEnum|null $navigationGroup = 'Employees & contracts';
 
     protected static ?int $navigationSort = 3;
 

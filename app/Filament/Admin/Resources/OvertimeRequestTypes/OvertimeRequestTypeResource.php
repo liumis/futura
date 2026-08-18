@@ -27,7 +27,7 @@ class OvertimeRequestTypeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Overtime request types';
 
-    protected static string|UnitEnum|null $navigationGroup = 'People & contracts';
+    protected static string|UnitEnum|null $navigationGroup = 'Employees & contracts';
 
     protected static ?int $navigationSort = 5;
 
