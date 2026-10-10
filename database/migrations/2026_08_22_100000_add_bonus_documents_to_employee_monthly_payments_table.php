@@ -14,18 +14,18 @@ return new class extends Migration
 
         Schema::table('employee_monthly_payments', function (Blueprint $table): void {
             if (! Schema::hasColumn('employee_monthly_payments', 'bonus_order_document_id')) {
-                $table->foreignId('bonus_order_document_id')
-                    ->nullable()
-                    ->after('payslip_document_id')
-                    ->constrained('documents')
+                $table->unsignedBigInteger('bonus_order_document_id')->nullable()->after('payslip_document_id');
+                $table->foreign('bonus_order_document_id', 'emp_mp_bonus_order_doc_fk')
+                    ->references('id')
+                    ->on('documents')
                     ->nullOnDelete();
             }
 
             if (! Schema::hasColumn('employee_monthly_payments', 'shareholder_decision_document_id')) {
-                $table->foreignId('shareholder_decision_document_id')
-                    ->nullable()
-                    ->after('bonus_order_document_id')
-                    ->constrained('documents')
+                $table->unsignedBigInteger('shareholder_decision_document_id')->nullable()->after('bonus_order_document_id');
+                $table->foreign('shareholder_decision_document_id', 'emp_mp_shareholder_doc_fk')
+                    ->references('id')
+                    ->on('documents')
                     ->nullOnDelete();
             }
         });
@@ -39,11 +39,13 @@ return new class extends Migration
 
         Schema::table('employee_monthly_payments', function (Blueprint $table): void {
             if (Schema::hasColumn('employee_monthly_payments', 'shareholder_decision_document_id')) {
-                $table->dropConstrainedForeignId('shareholder_decision_document_id');
+                $table->dropForeign('emp_mp_shareholder_doc_fk');
+                $table->dropColumn('shareholder_decision_document_id');
             }
 
             if (Schema::hasColumn('employee_monthly_payments', 'bonus_order_document_id')) {
-                $table->dropConstrainedForeignId('bonus_order_document_id');
+                $table->dropForeign('emp_mp_bonus_order_doc_fk');
+                $table->dropColumn('bonus_order_document_id');
             }
         });
     }
