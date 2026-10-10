@@ -27,7 +27,7 @@ class ReportsSalesTest extends TestCase
 
         Livewire::test(ReportsSales::class)
             ->assertOk()
-            ->assertSee('Sales report')
+            ->assertSee('Sales matrix')
             ->assertSee('Total sum')
             ->assertSee('Meters')
             ->assertSee('From')

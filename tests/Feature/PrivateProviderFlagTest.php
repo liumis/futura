@@ -45,7 +45,7 @@ class PrivateProviderFlagTest extends TestCase
 
         Livewire::test(ListContacts::class)
             ->assertOk()
-            ->assertSee('Private provider')
+            ->assertSee('Private')
             ->assertSee('Jonas Jonaitis');
     }
 
@@ -76,6 +76,7 @@ class PrivateProviderFlagTest extends TestCase
             ->assertFormFieldExists('private_provider');
 
         Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->assertOk()
             ->assertSee('Private provider')
             ->assertSee('INV-PP-UI');

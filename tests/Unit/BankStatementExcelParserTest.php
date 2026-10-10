@@ -68,7 +68,7 @@ class BankStatementExcelParserTest extends TestCase
             $importer->importExcel($path, 'cashflow-seb-9371.xls');
             $this->fail('Expected a duplicate statement to be rejected.');
         } catch (BankStatementDuplicateException $exception) {
-            $this->assertStringContainsString('already imported', strtolower($exception->getMessage()));
+            $this->assertMatchesRegularExpression('/already (imported|in the system)/i', $exception->getMessage());
         }
 
         $this->assertSame(1, BankStatementImport::query()->count());

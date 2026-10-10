@@ -18,9 +18,10 @@ class CompanyBankAccountSyncer
     public function syncFromKnownSources(): int
     {
         $created = 0;
-        $company = CompanySetting::instance();
+        // Use first() — not instance() — so migrate/seed does not insert an empty company_settings row.
+        $company = CompanySetting::query()->first();
 
-        if (filled($company->company_iban)) {
+        if ($company && filled($company->company_iban)) {
             $created += $this->ensureAccount(
                 (string) $company->company_iban,
                 $company->company_bic,

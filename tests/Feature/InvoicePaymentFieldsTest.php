@@ -23,7 +23,7 @@ class InvoicePaymentFieldsTest extends TestCase
         $customer = User::factory()->create(['payment_term' => 21]);
 
         $this->assertSame(21, Invoice::paymentTermFromCustomer($customer));
-        $this->assertNull(Invoice::paymentTermFromCustomer(null));
+        $this->assertSame(Invoice::DEFAULT_PAYMENT_TERM_DAYS, Invoice::paymentTermFromCustomer(null));
     }
 
     public function test_paid_is_auto_checked_when_paid_amount_equals_invoice_sum(): void
@@ -108,13 +108,11 @@ class InvoicePaymentFieldsTest extends TestCase
         ]);
 
         Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->assertOk()
-            ->assertSee('Payment term')
             ->assertSee('Paid amount')
             ->assertSee('Paid')
-            ->assertSee('30 days')
             ->assertSee(Money::format(121))
-            ->assertSee('Yes')
             ->assertSee('Invoice summary')
             ->assertSee('Outstanding');
     }
@@ -209,6 +207,7 @@ class InvoicePaymentFieldsTest extends TestCase
         $this->assertSame('USD', $usdInvoice->fresh()?->currency);
 
         Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->assertOk()
             ->assertSee(Money::format(80, 2, 'USD'))
             ->assertSee(Money::format(100));

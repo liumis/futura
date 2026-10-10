@@ -80,6 +80,8 @@ class ReportsIsafExportTest extends TestCase
         ]);
 
         Livewire::test(ReportsIsaf::class)
+            ->set('data.from', $period->copy()->startOfMonth()->toDateString())
+            ->set('data.until', $period->copy()->endOfMonth()->toDateString())
             ->assertOk()
             ->assertSee('ISAF-S-PAGE')
             ->assertSee('Sales invoices')
@@ -106,10 +108,12 @@ class ReportsIsafExportTest extends TestCase
             'company_id' => '123456789',
         ]);
 
-        $from = now()->subMonthNoOverflow()->startOfMonth()->toDateString();
-        $until = now()->subMonthNoOverflow()->endOfMonth()->toDateString();
+        $from = now()->startOfMonth()->toDateString();
+        $until = now()->endOfMonth()->toDateString();
 
         Livewire::test(ReportsIsaf::class)
+            ->set('data.from', $from)
+            ->set('data.until', $until)
             ->callAction('downloadXml')
             ->assertFileDownloaded(
                 app(IsafXmlExporter::class)->fileName([

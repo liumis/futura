@@ -35,7 +35,7 @@ class BankStatementPartyTest extends TestCase
         $this->assertSame('LT117044090110985504', $from['iban']);
 
         $this->assertTrue($to['is_counterpart']);
-        $this->assertSame('Supplier UAB', $to['name']);
+        $this->assertSame('Supplier, UAB', $to['name']);
         $this->assertSame('LT123000000000000001', $to['iban']);
         $this->assertSame('SEB · Expense · LT117044090110985504', $transaction->partyLine($from));
     }
@@ -56,7 +56,7 @@ class BankStatementPartyTest extends TestCase
         $to = $transaction->toParty();
 
         $this->assertTrue($from['is_counterpart']);
-        $this->assertSame('Customer UAB', $from['name']);
+        $this->assertSame('Customer, UAB', $from['name']);
         $this->assertSame('LT123000000000000001', $from['iban']);
 
         $this->assertFalse($to['is_counterpart']);

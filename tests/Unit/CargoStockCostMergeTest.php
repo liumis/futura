@@ -197,8 +197,9 @@ class CargoStockCostMergeTest extends TestCase
         $import = WarehouseImport::query()->where('cargo_id', $cargo->getKey())->first();
 
         $this->assertSame(CargoStatus::Received, $cargo->fresh()->status);
-        $this->assertSame(20, $product->current_amount);
-        $this->assertSame(15.0, (float) $product->cost);
+        // Stock is applied later from Warehouse imports — receive only creates the pending row.
+        $this->assertSame(10, $product->current_amount);
+        $this->assertSame(10.0, (float) $product->cost);
         $this->assertNotNull($import);
         $this->assertSame(600.0, (float) $import->base_cost);
         $this->assertSame(0.0, (float) $import->overhead_cost);

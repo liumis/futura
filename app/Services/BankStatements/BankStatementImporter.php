@@ -165,40 +165,15 @@ class BankStatementImporter
 
         if ($newRows === []) {
             if ($skipped > 0) {
-                // Still create an import shell so the file can be archived on SharePoint / Documents.
-                return DB::transaction(function () use ($parsed, $originalFilename, $storedPath, $uploadedBy, $comment, $contentHash, $accountIban, $skipped): array {
-                    $import = BankStatementImport::query()->create([
-                        'original_filename' => $originalFilename,
-                        'stored_path' => $storedPath,
-                        'content_hash' => $contentHash,
-                        'bank_name' => $parsed['bank_name'],
-                        'account_iban' => $accountIban,
-                        'account_currency' => $parsed['currency'],
-                        'statement_id' => $parsed['statement_id'],
-                        'message_id' => $parsed['message_id'],
-                        'comment' => $comment,
-                        'period_from' => $parsed['period_from'],
-                        'period_to' => $parsed['period_to'],
-                        'uploaded_by' => $uploadedBy,
-                        'transaction_count' => count($parsed['transactions']),
-                        'imported_count' => 0,
-                        'skipped_count' => $skipped,
-                    ]);
-
-                    return [
-                        'import' => $import,
-                        'imported' => 0,
-                        'skipped' => $skipped,
-                        'total' => count($parsed['transactions']),
-                    ];
-                });
+                // Full overlap with existing lines — reject instead of inserting a duplicate shell.
+                throw BankStatementDuplicateException::allLinesAlreadyImported();
             }
 
             throw new BankStatementXmlException('No income or outcome lines could be stored from this file.');
         }
 
         return DB::transaction(function () use ($parsed, $originalFilename, $storedPath, $uploadedBy, $comment, $contentHash, $accountIban, $newRows, $skipped): array {
-            $import = BankStatementImport::query()->create([
+            $import = $this->resolveImportRecord([
                 'original_filename' => $originalFilename,
                 'stored_path' => $storedPath,
                 'content_hash' => $contentHash,
@@ -499,12 +474,36 @@ class BankStatementImporter
             return;
         }
 
-        // Allow re-upload when the prior import never made it to SharePoint / Documents.
+        // Allow re-upload when the prior import never made it to SharePoint / Documents
+        // (resolveImportRecord will reuse that row instead of inserting a duplicate hash).
         if (! $existing->hasSharepointLink()) {
             return;
         }
 
         throw BankStatementDuplicateException::alreadyImportedFile($existing->displayName());
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    private function resolveImportRecord(array $attributes): BankStatementImport
+    {
+        $contentHash = $attributes['content_hash'] ?? null;
+
+        if (filled($contentHash)) {
+            $existing = BankStatementImport::query()
+                ->where('content_hash', $contentHash)
+                ->first();
+
+            if ($existing !== null) {
+                $existing->fill(collect($attributes)->except(['content_hash'])->all());
+                $existing->save();
+
+                return $existing->refresh();
+            }
+        }
+
+        return BankStatementImport::query()->create($attributes);
     }
 
     /**

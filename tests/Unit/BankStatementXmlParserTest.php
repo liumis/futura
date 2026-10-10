@@ -50,7 +50,7 @@ class BankStatementXmlParserTest extends TestCase
             $importer->importXml($this->camtXml(), 'swedbank-again.xml');
             $this->fail('Expected a duplicate statement to be rejected.');
         } catch (BankStatementDuplicateException $exception) {
-            $this->assertStringContainsString('already imported', strtolower($exception->getMessage()));
+            $this->assertMatchesRegularExpression('/already (imported|in the system)/i', $exception->getMessage());
         }
 
         $this->assertSame(1, BankStatementImport::query()->count());
@@ -65,7 +65,7 @@ class BankStatementXmlParserTest extends TestCase
             ->get();
 
         $this->assertCount(2, $august);
-        $this->assertSame('Customer UAB', $august[0]->counterpart_name);
+        $this->assertSame('Customer, UAB', $august[0]->counterpart_name);
         $this->assertSame('SEB client', $august[1]->counterpart_name);
     }
 

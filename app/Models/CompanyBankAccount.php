@@ -203,7 +203,11 @@ class CompanyBankAccount extends Model
             }
         }
 
-        $companyIban = self::normalizeIban(CompanySetting::instance()->company_iban);
+        // Use first()/value — not instance() — so callers (e.g. migrate seed) do not
+        // insert an empty company_settings row that shadows later test creates.
+        $companyIban = self::normalizeIban(
+            CompanySetting::query()->value('company_iban')
+        );
         if ($companyIban !== null) {
             $map[$companyIban] = true;
         }

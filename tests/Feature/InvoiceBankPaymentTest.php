@@ -48,6 +48,7 @@ class InvoiceBankPaymentTest extends TestCase
         ]);
 
         $component = Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->assertOk()
             ->assertSee('Make bank payment')
             ->assertSee('SF-1')
@@ -66,8 +67,7 @@ class InvoiceBankPaymentTest extends TestCase
         $this->actingAsAdmin();
 
         Livewire::test(Invoices::class)
-            ->callAction('makeBankPayment')
-            ->assertNotified('No invoice selected');
+            ->assertActionDisabled('makeBankPayment');
     }
 
     public function test_mass_mark_as_paid_updates_selected_invoices(): void
@@ -106,6 +106,7 @@ class InvoiceBankPaymentTest extends TestCase
         ]);
 
         Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->set('selectedInvoiceIds', [(string) $first->getKey(), (string) $second->getKey()])
             ->callAction('massMarkAsPaid')
             ->assertNotified('Marked as paid');

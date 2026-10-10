@@ -70,6 +70,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->get(BankStatements::getUrl())->assertOk();
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('Add invoice')
             ->assertSee('Payment date')
             ->assertSee('Status')
@@ -121,6 +122,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('INV-1001')
             ->assertSee('Confirm')
             ->assertSee('suggested')
@@ -169,6 +171,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('Office rent')
             ->assertSee('Confirm')
             ->assertSee('suggested')
@@ -202,8 +205,8 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
-            ->assertSee('Invoice')
-            ->assertSee('Contract')
+            ->set('filters.month', 'any')
+            ->assertSee('Add invoice')
             ->call('mountAction', 'linkExistingInvoice', ['transactionId' => $transaction->getKey()])
             ->assertSet('mountedActions.0.name', 'linkExistingInvoice');
     }
@@ -231,6 +234,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->call('mountAction', 'linkExistingPayment', ['transactionId' => $transaction->getKey()])
             ->assertSet('mountedActions.0.name', 'linkExistingPayment');
     }
@@ -288,6 +292,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('Salary August')
             ->assertSee('Office rent invoice 88')
             ->set('filters.link_status', 'missing')
@@ -360,6 +365,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('seb-2026-08.xml')
             ->assertSee('Own transfer autolink')
             ->assertSee('Card fee autolink')
@@ -459,6 +465,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('Fully paid line')
             ->assertSee('Partly paid line')
             ->assertSee('Unlinked bank-paid line')
@@ -516,6 +523,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('Bank account')
             ->assertSee('From')
             ->assertSee('To')
@@ -583,6 +591,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('Between own accounts')
             ->assertSee('Customer income line')
             ->assertSee('Supplier outcome line')
@@ -643,6 +652,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->actingAs($this->admin);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->assertSee('Category')
             ->assertSeeHtml('wire:change="updateFinanceCategory('.$invoice->getKey())
             ->assertSee('Missing type')
@@ -654,6 +664,7 @@ class BankStatementsInvoiceLinkTest extends TestCase
         $this->assertFalse((bool) $invoice->is_own_account);
 
         Livewire::test(BankStatements::class)
+            ->set('filters.month', 'any')
             ->call('updateFinanceCategory', $invoice->getKey(), 'income:'.$income->getKey());
 
         $invoice->refresh();

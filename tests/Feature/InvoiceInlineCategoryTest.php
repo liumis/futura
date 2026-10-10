@@ -42,6 +42,7 @@ class InvoiceInlineCategoryTest extends TestCase
         ]);
 
         Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->assertOk()
             ->assertSee('INV-CAT-1')
             ->assertSeeHtml('wire:change="updateFinanceCategory('.$invoice->getKey())

@@ -60,6 +60,15 @@ jobs:
           php artisan migrate --force
 
       - name: Run tests
+        # Keep migrate on MySQL above; force sqlite for the suite (matches phpunit.xml).
+        env:
+          DB_CONNECTION: sqlite
+          DB_DATABASE: ':memory:'
+          DB_HOST: ''
+          DB_PORT: ''
+          DB_USERNAME: ''
+          DB_PASSWORD: ''
+          DB_URL: ''
         run: composer test
 
   deploy:

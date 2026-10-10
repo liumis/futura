@@ -48,6 +48,7 @@ class InvoiceAdditionalDocumentsTest extends TestCase
         ]);
 
         Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->assertOk()
             ->assertSee('CMR')
             ->assertSee('CMR.pdf')
@@ -77,6 +78,7 @@ class InvoiceAdditionalDocumentsTest extends TestCase
         ]);
 
         Livewire::test(Invoices::class)
+            ->set('filters.month', 'any')
             ->assertOk()
             ->assertSee('CMR')
             ->assertSeeHtml("mountAction('uploadAdditionalDocuments'")

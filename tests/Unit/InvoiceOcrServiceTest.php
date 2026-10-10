@@ -26,7 +26,7 @@ TXT;
 
         $result = (new InvoiceOcrService)->parseRawText($text);
 
-        $this->assertSame('UAB Pavyzdys', $result['provider_company_name']);
+        $this->assertSame('Pavyzdys, UAB', $result['provider_company_name']);
         $this->assertSame('301234567', $result['provider_company_id']);
         $this->assertSame('LT301234567', $result['provider_company_vat']);
         $this->assertSame('SF-2026-10', $result['invoice_number']);
@@ -50,7 +50,7 @@ TXT;
 
         $result = (new InvoiceOcrService)->parseRawText($text);
 
-        $this->assertSame('UAB Tikras Tiekejas', $result['provider_company_name']);
+        $this->assertSame('Tikras Tiekejas, UAB', $result['provider_company_name']);
     }
 
     public function test_prefers_seller_block_over_buyer(): void
@@ -68,7 +68,7 @@ TXT;
 
         $result = (new InvoiceOcrService)->parseRawText($text);
 
-        $this->assertSame('UAB Tikras Tiekejas', $result['provider_company_name']);
+        $this->assertSame('Tikras Tiekejas, UAB', $result['provider_company_name']);
         $this->assertSame(12.10, $result['sum_inc_vat']);
     }
 
@@ -315,7 +315,7 @@ TXT;
 
         $result = (new InvoiceOcrService)->parseRawText($text);
 
-        $this->assertSame('UAB Pavyzdys', $result['provider_company_name'] ?? null);
+        $this->assertSame('Pavyzdys, UAB', $result['provider_company_name'] ?? null);
         json_encode($result, JSON_THROW_ON_ERROR);
         $this->assertTrue(mb_check_encoding((string) ($result['provider_company_name'] ?? ''), 'UTF-8'));
     }
