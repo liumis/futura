@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App\Services\ProdDatabaseBootstrap;
 use Illuminate\Console\Command;
 
 class CloudDeployDatabase extends Command
@@ -18,7 +19,9 @@ class CloudDeployDatabase extends Command
             return $migrate;
         }
 
-        $force = filter_var(env('PROD_BOOTSTRAP_FORCE', false), FILTER_VALIDATE_BOOLEAN);
+        // Force when env asks, or when the dump checksum is new / prior import never finished.
+        $force = filter_var(env('PROD_BOOTSTRAP_FORCE', false), FILTER_VALIDATE_BOOLEAN)
+            || ! ProdDatabaseBootstrap::alreadyImported();
 
         return $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
     }

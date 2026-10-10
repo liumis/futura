@@ -196,12 +196,23 @@ class ProdDatabaseBootstrap
         $touched = [];
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::statement('SET UNIQUE_CHECKS=0');
+        DB::statement('SET SQL_SAFE_UPDATES=0');
 
         try {
+            // Always empty application tables first. Dump DELETEs alone are not enough when
+            // a previous import failed mid-way or live data already has the same primary keys.
+            self::wipeImportableTables();
+
             foreach ($statements as $statement) {
                 $statement = trim($statement);
 
                 if ($statement === '' || str_starts_with($statement, '--')) {
+                    continue;
+                }
+
+                // Redundant after wipe; skip so a failed DELETE cannot block the import.
+                if (preg_match('/^DELETE FROM `/i', $statement) === 1) {
                     continue;
                 }
 
@@ -225,17 +236,40 @@ class ProdDatabaseBootstrap
 
             self::recordImport('mysql-dump', $force);
         } catch (Throwable $e) {
+            DB::statement('SET UNIQUE_CHECKS=1');
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
             throw $e;
         }
 
+        DB::statement('SET UNIQUE_CHECKS=1');
         DB::statement('SET FOREIGN_KEY_CHECKS=1');
 
         return [
             'tables' => $executed,
             'rows' => $executed,
         ];
+    }
+
+    /**
+     * Remove all rows from importable tables so the dump can replace live data cleanly.
+     */
+    private static function wipeImportableTables(): void
+    {
+        $tables = collect(DB::select('SHOW FULL TABLES WHERE Table_type = ?', ['BASE TABLE']))
+            ->map(function (object $row): string {
+                $values = array_values((array) $row);
+
+                return (string) ($values[0] ?? '');
+            })
+            ->filter(fn (string $name): bool => $name !== '')
+            ->reject(fn (string $name): bool => in_array($name, self::SKIP_TABLES, true))
+            ->values()
+            ->all();
+
+        foreach ($tables as $table) {
+            DB::unprepared('DELETE FROM '.self::quoteIdentifier($table));
+        }
     }
 
     /**
@@ -267,8 +301,12 @@ class ProdDatabaseBootstrap
         $importedRows = 0;
 
         DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        DB::statement('SET UNIQUE_CHECKS=0');
+        DB::statement('SET SQL_SAFE_UPDATES=0');
 
         try {
+            self::wipeImportableTables();
+
             DB::transaction(function () use ($tables, $force, &$importedTables, &$importedRows): void {
                 foreach ($tables as $table => $rows) {
                     if (! Schema::hasTable($table) || in_array($table, self::SKIP_TABLES, true)) {
@@ -276,7 +314,6 @@ class ProdDatabaseBootstrap
                     }
 
                     $columns = Schema::getColumnListing($table);
-                    DB::table($table)->delete();
 
                     foreach (array_chunk($rows, 100) as $chunk) {
                         $prepared = [];
