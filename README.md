@@ -65,7 +65,7 @@ The Laravel framework is open-sourced software licensed under the [MIT license](
 3. Attach a MySQL database. Cloud injects `DB_*` — do not set `DB_CONNECTION=sqlite` in production.
 3. Deploy command: `php artisan app:cloud-deploy-database`  
    This runs migrations, then imports `database/snapshots/prod-bootstrap.sql.gz` (current data as a MySQL dump) if that dump has not been imported yet. To reload a newer dump, set `PROD_BOOTSTRAP_FORCE=true` for one deploy, then remove it.
-3b. Frontend: `public/build` (Vite/Filament admin theme) is committed so Cloud always serves the charcoal/Jost theme. After theme CSS changes, run `npm run build` and commit `public/build`. Cloud’s Node build must run **after** `composer install` (theme `@import`s `vendor/filament/...`).
+3b. Frontend theme: panels load `public/css/filament-admin-theme.css` (committed). After editing `resources/css/filament/admin/theme.css`, run `npm run build` (copies into `public/css/`) and commit that file. Do not rely on Cloud’s Vite output for the admin theme.
 4. Environment variables:
    - `APP_KEY` — `php artisan key:generate --show`
    - `APP_ENV=production`

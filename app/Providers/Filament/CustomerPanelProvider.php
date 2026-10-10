@@ -84,7 +84,7 @@ class CustomerPanelProvider extends PanelProvider
             ])
             ->darkMode(false)
             ->maxContentWidth(Width::Full)
-            ->viteTheme('resources/css/filament/admin/theme.css')
+            ->theme(asset('css/filament-admin-theme.css'))
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): string => view('filament.components.darbai-fonts')->render()

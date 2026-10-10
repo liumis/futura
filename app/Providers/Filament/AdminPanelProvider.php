@@ -108,7 +108,8 @@ class AdminPanelProvider extends PanelProvider
             ->maxContentWidth(Width::Full)
             ->sidebarWidth('15rem')
             ->sidebarFullyCollapsibleOnDesktop()
-            ->viteTheme('resources/css/filament/admin/theme.css')
+            // Static theme file (not Vite) so Laravel Cloud's npm build cannot replace it with a broken default bundle.
+            ->theme(asset('css/filament-admin-theme.css'))
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): string => view('filament.components.darbai-fonts')->render(),
