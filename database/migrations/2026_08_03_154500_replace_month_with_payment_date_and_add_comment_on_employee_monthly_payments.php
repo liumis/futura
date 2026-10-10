@@ -31,6 +31,9 @@ return new class extends Migration
                 ]);
             }
 
+            // MySQL keeps the employee_id FK on the composite unique index — drop FK first.
+            SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
+
             $this->dropIndexesUsingColumns('employee_monthly_payments', ['year', 'month']);
 
             SchemaForeignKeys::dropColumnIfExists('employee_monthly_payments', 'year', 'month');
