@@ -256,7 +256,8 @@ class ProdDatabaseBootstrap
      */
     private static function wipeImportableTables(): void
     {
-        $tables = collect(DB::select('SHOW FULL TABLES WHERE Table_type = ?', ['BASE TABLE']))
+        // Avoid bound parameters — some MySQL versions reject placeholders in SHOW.
+        $tables = collect(DB::select('SHOW FULL TABLES WHERE Table_type = \'BASE TABLE\''))
             ->map(function (object $row): string {
                 $values = array_values((array) $row);
 
@@ -268,7 +269,13 @@ class ProdDatabaseBootstrap
             ->all();
 
         foreach ($tables as $table) {
-            DB::unprepared('DELETE FROM '.self::quoteIdentifier($table));
+            $quoted = self::quoteIdentifier($table);
+            // TRUNCATE is faster and resets AI; fall back to DELETE if unsupported.
+            try {
+                DB::unprepared('TRUNCATE TABLE '.$quoted);
+            } catch (Throwable) {
+                DB::unprepared('DELETE FROM '.$quoted);
+            }
         }
     }
 
