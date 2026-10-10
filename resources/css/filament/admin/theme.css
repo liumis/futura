@@ -6,6 +6,7 @@
 @source '../../../../app/Livewire/**/*.php';
 @source '../../../../vendor/filament/**/*.blade.php';
 
+/* Futura admin theme — charcoal primary, white chrome, Jost (built into public/build). */
 @theme {
     --font-sans: 'Jost', ui-sans-serif, system-ui, sans-serif;
     --font-mono: 'Azeret Mono', ui-monospace, monospace;
