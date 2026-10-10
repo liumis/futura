@@ -15,7 +15,7 @@
         .title {
             font-size: 18px;
             font-weight: 700;
-            color: #2b3a67;
+            color: #111111;
             margin: 0 0 6px;
         }
         .meta { color: #64748b; margin-bottom: 18px; }
@@ -25,7 +25,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.04em;
-            color: #2b3a67;
+            color: #111111;
             border-bottom: 1px solid #cbd5e1;
             padding-bottom: 4px;
             margin-bottom: 8px;
@@ -40,7 +40,7 @@
         th {
             width: 34%;
             background: #f1f5f9;
-            font-weight: 600;
+            font-weight: 700;
         }
         .footer {
             margin-top: 28px;

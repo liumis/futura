@@ -95,7 +95,7 @@ class SharepointSettings extends Page implements HasForms
                     ]),
 
                 Section::make('Site & library')
-                    ->description('Target site/library. New documents are stored as documents/{document type}/{file}.')
+                    ->description('Target site/library. Documents go to {root}/documents/{type}. Bank statements go to {root}/bank-statements/{year}/{month}. Invoices go to {root}/invoices/{year}/{month}.')
                     ->schema([
                         TextInput::make('site_url')
                             ->label('Site URL')
@@ -124,7 +124,7 @@ class SharepointSettings extends Page implements HasForms
                             ->label('Root folder path')
                             ->maxLength(500)
                             ->placeholder('/SS Documents')
-                            ->helperText('Optional prefix inside the library. Final path: {root}/documents/{document type}/{file}.'),
+                            ->helperText('Optional prefix inside the library. Documents: {root}/documents/{type}/{file}. Bank statements: {root}/bank-statements/{year}/{month}/{file}. Invoices: {root}/invoices/{year}/{month}/{file}.'),
                     ]),
             ]);
     }
@@ -181,6 +181,6 @@ class SharepointSettings extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 }

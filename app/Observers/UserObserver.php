@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Enums\ActivityLogEvent;
 use App\Models\User;
 use App\Services\ActivityLogger;
+use App\Services\DocumentConfirmationService;
 
 class UserObserver
 {
@@ -15,6 +16,8 @@ class UserObserver
             'User created: '.$user->email,
             $user,
         );
+
+        app(DocumentConfirmationService::class)->enrollUser($user);
     }
 
     public function updated(User $user): void

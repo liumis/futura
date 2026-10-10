@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\Countries;
 
-use App\Filament\Admin\Resources\Countries\Pages;
 use App\Models\Country;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -28,11 +27,11 @@ class CountryResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Countries';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Warehouse & shipping';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
     protected static ?string $navigationParentItem = 'Shipping settings';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 13;
 
     public static function form(Schema $schema): Schema
     {
@@ -81,22 +80,22 @@ class CountryResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

@@ -2,10 +2,11 @@
 
 namespace App\Filament\Admin\Resources\Colors;
 
-use App\Filament\Admin\Resources\Colors\Pages;
 use App\Models\Color;
-use App\Support\UploadLimits;
 use BackedEnum;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -52,6 +53,32 @@ class ColorResource extends Resource
                     ->maxLength(255)
                     ->label('Color name'),
 
+                Forms\Components\TextInput::make('recommended_stock')
+                    ->label('Recommended stock')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->default(200)
+                    ->suffix('m')
+                    ->required()
+                    ->helperText('Target stock level in meters. Used later for low-stock alerts.'),
+
+                Forms\Components\TextInput::make('default_order')
+                    ->label('Default order')
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->default(10)
+                    ->suffix('rolls')
+                    ->required()
+                    ->helperText('Default order quantity in rolls (items), used by Auto order.'),
+
+                Forms\Components\ColorPicker::make('hex')
+                    ->label('Real color')
+                    ->hex()
+                    ->nullable()
+                    ->helperText('Used on stock charts. Run colors:fill-hex or use “Fill hex from images” to autofill from the swatch.'),
+
                 Forms\Components\FileUpload::make('image')
                     ->label('Image')
                     ->image()
@@ -81,6 +108,11 @@ class ColorResource extends Resource
                     ->square()
                     ->size(40),
 
+                Tables\Columns\ColorColumn::make('hex')
+                    ->label('Real color')
+                    ->copyable()
+                    ->placeholder('—'),
+
                 Tables\Columns\TextColumn::make('collection.name')
                     ->searchable()
                     ->sortable()
@@ -95,6 +127,22 @@ class ColorResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->label('Color code'),
+
+                Tables\Columns\TextInputColumn::make('recommended_stock')
+                    ->label('Recommended stock (m)')
+                    ->type('number')
+                    ->rules(['required', 'integer', 'min:0'])
+                    ->width('7rem')
+                    ->grow(false)
+                    ->sortable(),
+
+                Tables\Columns\TextInputColumn::make('default_order')
+                    ->label('Default order (rolls)')
+                    ->type('number')
+                    ->rules(['required', 'integer', 'min:0'])
+                    ->width('7rem')
+                    ->grow(false)
+                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('products_count')
                     ->counts('products')
@@ -122,15 +170,15 @@ class ColorResource extends Resource
             ->filtersLayout(FiltersLayout::AboveContent)
             ->deferFilters(false)
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->paginationPageOptions([20, 50, 100])
-            ->defaultPaginationPageOption(20);
+            ->defaultPaginationPageOption(50);
     }
 
     public static function getEloquentQuery(): Builder
@@ -140,22 +188,22 @@ class ColorResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

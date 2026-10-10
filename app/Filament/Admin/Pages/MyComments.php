@@ -12,21 +12,21 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Tables;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\HtmlString;
-use Filament\Schemas\Components\Utilities\Get;
 use Illuminate\Support\Str;
 use UnitEnum;
 
@@ -55,7 +55,7 @@ class MyComments extends Page implements HasTable
                 'can_edit' => (int) ($record->todo?->user_id ?? 0) === (int) (auth()->id() ?? 0),
                 'title' => (string) ($record->todo?->title ?? ''),
                 'project_id' => $record->todo?->project_id,
-                'user_name' => (string) ($record->todo?->user?->name ?? $record->todo?->user?->email ?? '—'),
+                'user_name' => $record->todo?->user?->displayName() ?: '—',
                 'status' => (string) ($record->todo?->status?->value ?? '—'),
                 'start_date' => $record->todo?->start_date?->format('Y-m-d H:i:s'),
                 'deadline' => $record->todo?->deadline?->format('Y-m-d H:i:s'),
@@ -152,7 +152,7 @@ class MyComments extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public function table(Table $table): Table
@@ -192,7 +192,7 @@ class MyComments extends Page implements HasTable
                     ->iconColor('gray')
                     ->formatStateUsing(fn (?string $state): string => Str::limit((string) ($state ?? ''), 300, '...'))
                     ->tooltip(function (TodoComment $record): string {
-                        $author = (string) ($record->user?->name ?? $record->user?->email ?? 'Unknown user');
+                        $author = $record->user?->displayName() ?: 'Unknown user';
                         $date = (string) ($record->created_at?->format('Y-m-d H:i:s') ?? '');
                         $content = (string) ($record->content ?? '');
 
@@ -231,7 +231,7 @@ class MyComments extends Page implements HasTable
 
                                         return [
                                             'id' => $comment->getKey(),
-                                            'author_name' => (string) ($comment->user?->name ?? $comment->user?->email ?? 'Unknown user'),
+                                            'author_name' => $comment->user?->displayName() ?: 'Unknown user',
                                             'created_at_label' => (string) ($comment->created_at?->format('Y-m-d H:i:s') ?? ''),
                                             'content' => (string) $comment->content,
                                             'attachments' => $comment->attachments ?? [],

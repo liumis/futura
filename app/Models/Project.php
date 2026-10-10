@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Project extends Model
@@ -14,6 +15,8 @@ class Project extends Model
     protected $fillable = [
         'name',
         'code',
+        'project_type_id',
+        'project_stage_id',
         'archived',
     ];
 
@@ -36,6 +39,16 @@ class Project extends Model
         return $query->where('archived', false);
     }
 
+    public function projectType(): BelongsTo
+    {
+        return $this->belongsTo(ProjectType::class);
+    }
+
+    public function projectStage(): BelongsTo
+    {
+        return $this->belongsTo(ProjectStage::class);
+    }
+
     public function todos(): HasMany
     {
         return $this->hasMany(Todo::class);
@@ -44,6 +57,11 @@ class Project extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Document::class);
+    }
+
+    public function projectExpenses(): HasMany
+    {
+        return $this->hasMany(ProjectExpense::class);
     }
 
     public function label(): string

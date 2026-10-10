@@ -8,10 +8,8 @@ use Illuminate\Notifications\Notification;
 class LowStockNotification extends Notification
 {
     public function __construct(
-        public int $productCount,
-        public float $alertLimit,
-    ) {
-    }
+        public int $colorCount,
+    ) {}
 
     /**
      * @return array<int, string>
@@ -26,19 +24,17 @@ class LowStockNotification extends Notification
      */
     public function toArray(object $notifiable): array
     {
-        $limit = rtrim(rtrim(number_format($this->alertLimit, 3, '.', ''), '0'), '.');
-
         return [
             'type' => NotificationType::LowStock->value,
             'title' => 'Low stock',
-            'body' => $this->productCount === 1
-                ? '1 product is below the '.$limit.' m alert limit.'
-                : $this->productCount.' products are below the '.$limit.' m alert limit.',
+            'body' => $this->colorCount === 1
+                ? '1 color is below its recommended stock.'
+                : $this->colorCount.' colors are below their recommended stock.',
             'icon' => 'heroicon-o-exclamation-triangle',
             'color' => 'danger',
             'url' => route('filament.admin.pages.reports-low-stock'),
             'link_label' => 'View low stock report',
-            'count' => $this->productCount,
+            'count' => $this->colorCount,
         ];
     }
 }

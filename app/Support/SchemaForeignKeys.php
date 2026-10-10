@@ -55,6 +55,12 @@ class SchemaForeignKeys
             return;
         }
 
+        if (Schema::getConnection()->getDriverName() === 'sqlite') {
+            self::sqliteDropColumns($table, $existing);
+
+            return;
+        }
+
         foreach ($existing as $column) {
             self::dropOnColumn($table, $column);
         }
@@ -62,6 +68,91 @@ class SchemaForeignKeys
         Schema::table($table, function (Blueprint $blueprint) use ($existing): void {
             $blueprint->dropColumn($existing);
         });
+    }
+
+    /**
+     * SQLite cannot ALTER DROP COLUMN when a foreign key / index still references the column.
+     * Rebuild the table without those columns while preserving PRIMARY KEY on id.
+     *
+     * @param  list<string>  $columnsToDrop
+     */
+    public static function sqliteDropColumns(string $table, array $columnsToDrop): void
+    {
+        $columnsToDrop = array_values(array_filter(
+            $columnsToDrop,
+            fn (string $column): bool => Schema::hasColumn($table, $column),
+        ));
+
+        if ($columnsToDrop === []) {
+            return;
+        }
+
+        DB::statement('PRAGMA foreign_keys = OFF');
+
+        try {
+            $keep = array_values(array_diff(Schema::getColumnListing($table), $columnsToDrop));
+            $tmp = $table.'__fk_drop_tmp';
+            $safeTable = str_replace('"', '""', $table);
+            $safeTmp = str_replace('"', '""', $tmp);
+
+            Schema::dropIfExists($tmp);
+
+            $columnDefs = [];
+            foreach (DB::select("PRAGMA table_info(\"{$safeTable}\")") as $info) {
+                $name = (string) $info->name;
+
+                if (in_array($name, $columnsToDrop, true)) {
+                    continue;
+                }
+
+                $quoted = '"'.str_replace('"', '""', $name).'"';
+
+                if ((int) $info->pk === 1 && $name === 'id') {
+                    $columnDefs[] = "{$quoted} INTEGER PRIMARY KEY AUTOINCREMENT";
+
+                    continue;
+                }
+
+                $type = filled($info->type) ? (string) $info->type : 'TEXT';
+                $nullSql = ((int) $info->notnull === 1) ? 'NOT NULL' : 'NULL';
+                $defaultSql = '';
+
+                if ($info->dflt_value !== null) {
+                    $defaultSql = ' DEFAULT '.$info->dflt_value;
+                }
+
+                $columnDefs[] = "{$quoted} {$type} {$nullSql}{$defaultSql}";
+            }
+
+            DB::statement('CREATE TABLE "'.$safeTmp.'" ('.implode(', ', $columnDefs).')');
+
+            if ($keep !== []) {
+                $quotedKeep = implode(', ', array_map(
+                    static fn (string $column): string => '"'.str_replace('"', '""', $column).'"',
+                    $keep,
+                ));
+
+                DB::statement("INSERT INTO \"{$safeTmp}\" ({$quotedKeep}) SELECT {$quotedKeep} FROM \"{$safeTable}\"");
+            }
+
+            if (in_array('id', $keep, true)) {
+                $maxId = (int) (DB::table($table)->max('id') ?? 0);
+
+                if ($maxId > 0) {
+                    try {
+                        DB::table('sqlite_sequence')->where('name', $tmp)->delete();
+                        DB::table('sqlite_sequence')->insert(['name' => $tmp, 'seq' => $maxId]);
+                    } catch (\Throwable) {
+                        // sqlite_sequence may not exist yet
+                    }
+                }
+            }
+
+            Schema::drop($table);
+            Schema::rename($tmp, $table);
+        } finally {
+            DB::statement('PRAGMA foreign_keys = ON');
+        }
     }
 
     public static function hasOnColumn(string $table, string $column): bool

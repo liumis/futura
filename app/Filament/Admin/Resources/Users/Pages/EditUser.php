@@ -12,6 +12,11 @@ class EditUser extends EditRecord
     protected static string $resource = UserResource::class;
 
     /**
+     * @var list<int>|null
+     */
+    protected ?array $pendingRoleIds = null;
+
+    /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
@@ -46,6 +51,25 @@ class EditUser extends EditRecord
         $rolesState = $formState['roles'] ?? ($data['roles'] ?? []);
         $rolesState = is_array($rolesState) ? $rolesState : [];
 
+        $actor = auth()->user();
+        if ($actor instanceof User) {
+            $rolesState = $actor->filterAssignableRoleIds($rolesState);
+        }
+
+        $this->pendingRoleIds = $rolesState;
+        $this->data['roles'] = $rolesState;
+        unset($data['roles']);
+
+        if (User::formStateIncludesProjectManagerRole($rolesState)) {
+            $data['modules'] = User::normalizeAssignableModules(
+                is_array($formState['modules'] ?? null)
+                    ? $formState['modules']
+                    : (is_array($data['modules'] ?? null) ? $data['modules'] : null)
+            );
+        } else {
+            $data['modules'] = null;
+        }
+
         if (! User::formStateIncludesCustomerRole($rolesState)) {
             $data['customer_level_id'] = null;
             foreach ([
@@ -55,6 +79,7 @@ class EditUser extends EditRecord
                 'company_shipping_address',
                 'company_code',
                 'company_vat',
+                'payment_term',
             ] as $field) {
                 $data[$field] = null;
             }
@@ -73,5 +98,14 @@ class EditUser extends EditRecord
         $record->save();
 
         return $record->refresh();
+    }
+
+    protected function afterSave(): void
+    {
+        if ($this->pendingRoleIds === null || ! $this->record instanceof User) {
+            return;
+        }
+
+        $this->record->roles()->sync($this->pendingRoleIds);
     }
 }

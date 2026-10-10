@@ -47,11 +47,24 @@ class ActivityLogResource extends Resource
                     ->dateTime()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('user.name')
-                    ->label('User')
+                Tables\Columns\TextColumn::make('user.email')
+                    ->label('Email')
                     ->searchable()
                     ->sortable()
                     ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('subject_label')
+                    ->label('Invoice / subject')
+                    ->getStateUsing(fn (ActivityLog $record): ?string => $record->subjectLabel())
+                    ->placeholder('—')
+                    ->searchable(query: function (Builder $query, string $search): Builder {
+                        return $query->where(function (Builder $builder) use ($search): void {
+                            $builder
+                                ->where('description', 'like', '%'.$search.'%')
+                                ->orWhere('properties->invoice_number', 'like', '%'.$search.'%')
+                                ->orWhere('properties->invoice_id', 'like', '%'.$search.'%');
+                        });
+                    }),
 
                 Tables\Columns\TextColumn::make('event_key')
                     ->label('Event')
@@ -115,12 +128,12 @@ class ActivityLogResource extends Resource
                     }),
 
                 SelectFilter::make('user_id')
-                    ->label('User')
-                    ->relationship('user', 'name', fn (Builder $query) => $query->orderBy('name'))
+                    ->label('Email')
+                    ->relationship('user', 'email', fn (Builder $query) => $query->orderBy('email'))
                     ->searchable()
                     ->preload()
                     ->native(false)
-                    ->getOptionLabelFromRecordUsing(fn (User $record): string => (string) ($record->name ?? $record->email ?? '')),
+                    ->getOptionLabelFromRecordUsing(fn (User $record): string => (string) ($record->email ?? $record->name ?? '')),
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([])
@@ -136,12 +149,12 @@ class ActivityLogResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->with('user');
+        return parent::getEloquentQuery()->with(['user', 'subject']);
     }
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool

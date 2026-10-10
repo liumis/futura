@@ -27,7 +27,15 @@ class WriteOffDocumentCreator
             throw new \InvalidArgumentException('One or more selected rows are already included in a document.');
         }
 
-        return DB::transaction(function () use ($updates, $documentDate): WriteOffDocument {
+        $increase = $updates->first(
+            fn (StockManualUpdate $update): bool => $update->delta() >= 0,
+        );
+
+        if ($increase instanceof StockManualUpdate) {
+            throw new \InvalidArgumentException('Write-off documents can only include stock decreases.');
+        }
+
+        $document = DB::transaction(function () use ($updates, $documentDate): WriteOffDocument {
             $document = WriteOffDocument::query()->create([
                 'document_number' => self::temporaryDocumentNumber(),
                 'document_date' => $documentDate->toDateString(),
@@ -49,6 +57,16 @@ class WriteOffDocumentCreator
 
             return $document->fresh(['user', 'stockManualUpdates.product.color.collection', 'stockManualUpdates.user']);
         });
+
+        // PDF + SharePoint outside the DB transaction (Graph I/O).
+        WriteOffDocumentGenerator::storeFor($document);
+
+        return $document->fresh([
+            'user',
+            'document',
+            'stockManualUpdates.product.color.collection',
+            'stockManualUpdates.user',
+        ]);
     }
 
     private static function temporaryDocumentNumber(): string

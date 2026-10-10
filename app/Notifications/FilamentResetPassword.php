@@ -13,7 +13,7 @@ class FilamentResetPassword extends FilamentResetPasswordNotification
     public function toMail($notifiable): MailMessage
     {
         $expireMinutes = (int) config('auth.passwords.users.expire');
-        $logoUrl = rtrim((string) config('app.url'), '/').'/images/logo.svg';
+        $logoUrl = rtrim((string) config('app.url'), '/').'/images/logo.png';
         $appName = config('app.name');
 
         return (new MailMessage)

@@ -15,6 +15,7 @@ class WriteOffDocument extends Model
         'document_number',
         'document_date',
         'user_id',
+        'document_id',
     ];
 
     /**
@@ -30,6 +31,11 @@ class WriteOffDocument extends Model
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function document(): BelongsTo
+    {
+        return $this->belongsTo(Document::class);
     }
 
     public function stockManualUpdates(): HasMany

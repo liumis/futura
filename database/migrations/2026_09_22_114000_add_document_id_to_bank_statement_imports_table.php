@@ -1,0 +1,36 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        if (! Schema::hasTable('bank_statement_imports')
+            || Schema::hasColumn('bank_statement_imports', 'document_id')) {
+            return;
+        }
+
+        Schema::table('bank_statement_imports', function (Blueprint $table): void {
+            $table->foreignId('document_id')
+                ->nullable()
+                ->after('sharepoint_path')
+                ->constrained('documents')
+                ->nullOnDelete();
+        });
+    }
+
+    public function down(): void
+    {
+        if (! Schema::hasTable('bank_statement_imports')
+            || ! Schema::hasColumn('bank_statement_imports', 'document_id')) {
+            return;
+        }
+
+        Schema::table('bank_statement_imports', function (Blueprint $table): void {
+            $table->dropConstrainedForeignId('document_id');
+        });
+    }
+};

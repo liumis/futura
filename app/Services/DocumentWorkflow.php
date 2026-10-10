@@ -2,10 +2,12 @@
 
 namespace App\Services;
 
+use App\Enums\DocumentSigningStatus;
 use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Mail\DokobitExternalSigningInviteMail;
 use App\Models\Document;
 use App\Models\DocumentSigning;
+use App\Models\DocumentSigningSigner;
 use App\Models\User;
 use App\Notifications\DocumentApprovalRequestNotification;
 use Illuminate\Support\Facades\DB;
@@ -16,6 +18,77 @@ use Throwable;
 
 class DocumentWorkflow
 {
+    public const UPLOADED_SIGNED_COPY_LABEL = 'Uploaded signed copy';
+
+    public const UPLOADED_SIGNED_COPY_SIGNER_KEY = 'uploaded-signed-copy';
+
+    /**
+     * Record an already-signed scan/PDF as completed (no Dokobit, no approval stamp).
+     */
+    public static function markUploadedAsSigned(Document $document, User $user): Document
+    {
+        if ($document->paymentReport !== null || $document->dividendPaymentReport !== null) {
+            throw new RuntimeException('Payment report documents use their own approval flow.');
+        }
+
+        if ($document->hasCompletedSignature()) {
+            throw new RuntimeException('This document is already signed.');
+        }
+
+        if ($document->awaitsDokobitSignature()) {
+            throw new RuntimeException('Dokobit signing is already in progress. Finish or cancel it before marking a signed file.');
+        }
+
+        if (! DocumentBinaryStore::hasFile($document)) {
+            throw new RuntimeException('Attach the signed file before marking the document as signed.');
+        }
+
+        DB::transaction(function () use ($document, $user): void {
+            $document->refresh();
+
+            $signing = DocumentSigning::query()->create([
+                'document_id' => $document->getKey(),
+                'name' => 'Uploaded signed document — '.($document->name ?: '#'.$document->getKey()),
+                'status' => DocumentSigningStatus::Completed,
+                'created_by' => $user->getKey(),
+                'completed_at' => now(),
+            ]);
+
+            DocumentSigningSigner::query()->create([
+                'document_signing_id' => $signing->getKey(),
+                'signer_key' => self::UPLOADED_SIGNED_COPY_SIGNER_KEY,
+                'user_id' => $user->getKey(),
+                'name' => self::UPLOADED_SIGNED_COPY_LABEL,
+                'surname' => null,
+                'email' => $user->email,
+                'is_external' => false,
+                'signed_at' => now(),
+            ]);
+
+            $payload = [
+                'flag_approved' => true,
+                'user_approved_id' => $user->getKey(),
+                'approval_date' => now(),
+                'confirmed_ip' => request()->ip(),
+                'confirmed_user_agent' => substr((string) request()->userAgent(), 0, 500),
+            ];
+
+            try {
+                $binary = DocumentBinaryStore::getBinary($document);
+                if ($binary !== '') {
+                    $hash = hash('sha256', $binary);
+                    $payload['content_hash'] = $hash;
+                    $payload['pdf_hash'] = $hash;
+                }
+            } catch (Throwable) {
+            }
+
+            $document->update($payload);
+        });
+
+        return $document->fresh(['documentSigning.signers', 'approvedBy']);
+    }
+
     /**
      * Assign internal approvers and/or start Dokobit signing (internal + external invitees).
      *
@@ -33,6 +106,10 @@ class DocumentWorkflow
     ): array {
         if ($document->paymentReport !== null || $document->dividendPaymentReport !== null) {
             throw new RuntimeException('Payment report documents use their own approval flow.');
+        }
+
+        if ($document->hasCompletedSignature()) {
+            throw new RuntimeException('This document is already signed.');
         }
 
         if ($document->awaitsDokobitSignature() && (collect($signerUserIds)->filter()->isNotEmpty() || collect($externalInvitees)->filter()->isNotEmpty())) {

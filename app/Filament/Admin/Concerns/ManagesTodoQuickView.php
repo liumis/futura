@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Services\DocumentBinaryStore;
 use App\Services\SharepointTaskUploader;
 use Filament\Notifications\Notification;
+use Illuminate\Support\Carbon;
 use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use Throwable;
 
@@ -38,11 +39,12 @@ trait ManagesTodoQuickView
     {
         $users = User::query()
             ->orderBy('name')
+            ->orderBy('surname')
             ->orderBy('email')
-            ->get(['id', 'name', 'email'])
+            ->get(['id', 'name', 'surname', 'email'])
             ->map(fn (User $user): array => [
                 'id' => (int) $user->getKey(),
-                'label' => (string) ($user->name ?? $user->email ?? ('User #'.$user->getKey())),
+                'label' => $user->displayName(),
             ])
             ->values()
             ->all();
@@ -131,7 +133,7 @@ trait ManagesTodoQuickView
             $todo = Todo::query()->create($attributes);
             $todo->watchers()->sync($this->resolveWatcherIds($payload['watcher_ids'] ?? []));
             $this->ingestQuickViewUploads($todo, $newUploads);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Could not create todo')
                 ->body($exception->getMessage())
@@ -220,7 +222,7 @@ trait ManagesTodoQuickView
             }
             $todo->watchers()->sync($this->resolveWatcherIds($payload['watcher_ids'] ?? []));
             $this->ingestQuickViewUploads($todo->fresh(), $newUploads);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Could not save todo')
                 ->body($exception->getMessage())
@@ -266,7 +268,7 @@ trait ManagesTodoQuickView
 
         try {
             $todo->update(['status' => $status]);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Could not move task')
                 ->body($exception->getMessage())
@@ -303,7 +305,7 @@ trait ManagesTodoQuickView
         if (! $todo->archived) {
             try {
                 $todo->update(['archived' => true]);
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 Notification::make()
                     ->title('Could not archive todo')
                     ->body($exception->getMessage())
@@ -359,14 +361,14 @@ trait ManagesTodoQuickView
         }
 
         try {
-            $startDate = \Illuminate\Support\Carbon::parse($start);
-            $endDate = filled($end) ? \Illuminate\Support\Carbon::parse($end) : null;
+            $startDate = Carbon::parse($start);
+            $endDate = filled($end) ? Carbon::parse($end) : null;
 
             if ($endDate === null) {
-                $existingStart = $todo->start_date instanceof \Illuminate\Support\Carbon
+                $existingStart = $todo->start_date instanceof Carbon
                     ? $todo->start_date
                     : null;
-                $existingEnd = $todo->deadline instanceof \Illuminate\Support\Carbon
+                $existingEnd = $todo->deadline instanceof Carbon
                     ? $todo->deadline
                     : null;
                 $minutes = ($existingStart && $existingEnd && $existingEnd->gt($existingStart))
@@ -383,7 +385,7 @@ trait ManagesTodoQuickView
                 'start_date' => $startDate,
                 'deadline' => $endDate,
             ]);
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Could not move task')
                 ->body($exception->getMessage())
@@ -415,7 +417,7 @@ trait ManagesTodoQuickView
             'priority' => $todo->priority?->value ?? 'regular',
             'can_edit' => $this->canEditTodo($todo),
             'user_id' => $todo->user_id ? (int) $todo->user_id : null,
-            'user_label' => (string) ($todo->user?->name ?? $todo->user?->email ?? ('User #'.$todo->user_id)),
+            'user_label' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
             'edit_url' => route('filament.admin.resources.tasks.edit', ['record' => $todo->getKey()]),
             'start_date' => optional($todo->start_date)?->format('Y-m-d\TH:i'),
             'deadline' => optional($todo->deadline)?->format('Y-m-d\TH:i'),
@@ -489,7 +491,6 @@ trait ManagesTodoQuickView
     }
 
     /**
-     * @param  mixed  $attachments
      * @return list<array{name: string, path: string, item_id: ?string, web_url: ?string}>|null
      */
     protected function keptSharepointFilesFromPayload(mixed $attachments, ?Todo $existing): ?array
@@ -587,7 +588,6 @@ trait ManagesTodoQuickView
     }
 
     /**
-     * @param  mixed  $watcherIds
      * @return list<int>
      */
     protected function resolveWatcherIds(mixed $watcherIds): array
@@ -620,7 +620,7 @@ trait ManagesTodoQuickView
 
     protected function canEditTodo(Todo $todo): bool
     {
-        $isAdmin = auth()->user()?->hasRole('admin') ?? false;
+        $isAdmin = auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
         $isAuthor = (int) ($todo->user_id ?? 0) === (int) (auth()->id() ?? 0);
 
         return $isAdmin || $isAuthor;
@@ -639,7 +639,7 @@ trait ManagesTodoQuickView
         return (string) $value;
     }
 
-    protected function parseQuickViewDate(mixed $value): ?\Illuminate\Support\Carbon
+    protected function parseQuickViewDate(mixed $value): ?Carbon
     {
         if ($value === null || $value === '') {
             return null;
@@ -648,8 +648,8 @@ trait ManagesTodoQuickView
         $raw = trim(str_replace('T', ' ', (string) $value));
 
         try {
-            return \Illuminate\Support\Carbon::parse($raw);
-        } catch (\Throwable) {
+            return Carbon::parse($raw);
+        } catch (Throwable) {
             return null;
         }
     }

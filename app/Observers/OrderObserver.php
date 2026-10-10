@@ -3,8 +3,11 @@
 namespace App\Observers;
 
 use App\Enums\ActivityLogEvent;
+use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Services\ActivityLogger;
+use App\Services\OrderNotifier;
+use App\Services\OrderStockAllocator;
 
 class OrderObserver
 {
@@ -22,6 +25,13 @@ class OrderObserver
         if ($order->wasChanged('status')) {
             $old = $order->getOriginal('status');
             $new = $order->status;
+            OrderStockAllocator::applyStatusTransition($order, $old, $new);
+
+            if (OrderStatus::fromMixed($new) === OrderStatus::Pending
+                && OrderStatus::fromMixed($old) !== OrderStatus::Pending) {
+                OrderNotifier::submitted($order);
+            }
+
             ActivityLogger::log(
                 ActivityLogEvent::OrderStatusChanged,
                 'Order #'.$order->id.' status changed: '.$this->formatScalar($old).' → '.$this->formatScalar($new),
@@ -98,6 +108,7 @@ class OrderObserver
             'user_id',
             'name',
             'amount',
+            'stock_reserved',
             'updated_at',
             'created_at',
         ];
@@ -111,6 +122,11 @@ class OrderObserver
                 ['attributes' => $order->only($other)],
             );
         }
+    }
+
+    public function deleting(Order $order): void
+    {
+        OrderStockAllocator::releaseIfReserved($order);
     }
 
     public function deleted(Order $order): void

@@ -2,20 +2,16 @@
 
 namespace App\Filament\Admin\Resources\CustomerLevels;
 
-use App\Models\Collection;
 use App\Models\CustomerLevel;
-use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class CustomerLevelResource extends Resource
@@ -24,48 +20,25 @@ class CustomerLevelResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-tag';
 
-    protected static ?string $navigationLabel = 'Customer levels';
+    protected static ?string $navigationLabel = 'Customer group prices';
 
-    protected static ?string $modelLabel = 'Customer level';
+    protected static ?string $modelLabel = 'Customer group';
 
-    protected static ?string $pluralModelLabel = 'Customer levels';
+    protected static ?string $pluralModelLabel = 'Customer groups';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Users';
+    protected static string|UnitEnum|null $navigationGroup = 'Catalog';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 5;
 
     public static function form(Schema $schema): Schema
     {
         return $schema
             ->components([
                 Forms\Components\TextInput::make('name')
+                    ->label('Customer group')
                     ->required()
-                    ->maxLength(255),
-
-                Forms\Components\Repeater::make('priceRows')
-                    ->label('Prices by collection')
-                    ->schema([
-                        Forms\Components\Hidden::make('collection_id'),
-
-                        Grid::make(2)
-                            ->schema([
-                                Forms\Components\Placeholder::make('collection_label')
-                                    ->label('Collection')
-                                    ->content(fn ($get) => Collection::query()->find($get('collection_id'))?->name ?? '—'),
-
-                                Forms\Components\TextInput::make('price')
-                                    ->label('Price')
-                                    ->numeric()
-                                    ->minValue(0)
-                                    ->step(0.01)
-                                    ->prefix(Money::prefix())
-                                    ->required(),
-                            ]),
-                    ])
-                    ->reorderable(false)
-                    ->addable(false)
-                    ->deletable(false)
-                    ->columnSpanFull(),
+                    ->maxLength(255)
+                    ->helperText('Set collection prices on the group prices matrix after creating.'),
             ]);
     }
 
@@ -76,24 +49,6 @@ class CustomerLevelResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
-
-                Tables\Columns\TextColumn::make('customer_level_prices_count')
-                    ->counts('customerLevelPrices')
-                    ->label('Price rows')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextColumn::make('updated_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
             ])
             ->recordActions([
                 EditAction::make(),
@@ -105,29 +60,24 @@ class CustomerLevelResource extends Resource
             ]);
     }
 
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()->withCount('customerLevelPrices');
-    }
-
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

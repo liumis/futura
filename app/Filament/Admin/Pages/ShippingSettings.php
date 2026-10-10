@@ -9,6 +9,7 @@ use BackedEnum;
 use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Component;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
@@ -27,9 +28,9 @@ class ShippingSettings extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Shipping settings';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Warehouse & shipping';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 9;
 
     protected string $view = 'filament.admin.pages.shipping-settings';
 
@@ -121,7 +122,7 @@ class ShippingSettings extends Page implements HasTable
     }
 
     /**
-     * @return array<int, \Filament\Forms\Components\Component>
+     * @return array<int, Component>
      */
     public static function providerFormSchema(): array
     {
@@ -176,6 +177,6 @@ class ShippingSettings extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 }

@@ -1,33 +1,33 @@
 
 
 :root {
-    --primary: #2b3a67;
-    --accent: #f37a1f;
+    --primary: #23262A;
+    --accent: #4A4E54;
 }
 
 /* Primary override */
 .fi-btn-primary {
-    background-color: #2b3a67 !important;
-    border-color: #2b3a67 !important;
+    background-color: #23262A !important;
+    border-color: #23262A !important;
 }
 
 /* Hover */
 .fi-btn-primary:hover {
-    background-color: #1f2a4d !important;
+    background-color: #4A4E54 !important;
 }
 
 /* Accent buttons (optional) */
 .fi-btn-accent {
-    background-color: #f37a1f !important;
-    border-color: #f37a1f !important;
+    background-color: #23262A !important;
+    border-color: #23262A !important;
 }
 
 /* Links */
 a {
-    color: #2b3a67;
+    color: #23262A;
 }
 
 /* Active sidebar */
 .fi-sidebar-item-active {
-    background-color: rgba(43, 58, 103, 0.1);
+    background-color: rgba(35, 38, 42, 0.06);
 }

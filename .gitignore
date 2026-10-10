@@ -24,3 +24,11 @@ Homestead.yaml
 Thumbs.db
 /build-exit.txt
 /build-out.txt
+/tmp-dpd-scrape
+/tmp-siuskpigiau-scrape
+/_tmp_*
+/_tmp_*/
+/database/backups/
+/database/*.sqlite
+/database/*.sqlite-*
+/database/database.sqlite.*

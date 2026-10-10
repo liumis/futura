@@ -2,8 +2,8 @@
 
 namespace App\Filament\Admin\Resources\ExpenseTypes;
 
-use App\Filament\Admin\Resources\ExpenseTypes\Pages;
 use App\Models\ExpenseType;
+use App\Models\InvoiceCode;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -38,6 +38,20 @@ class ExpenseTypeResource extends Resource
                 Forms\Components\TextInput::make('name')
                     ->required()
                     ->maxLength(255),
+
+                Forms\Components\Select::make('invoice_code_id')
+                    ->label('Ledger account')
+                    ->options(fn (): array => InvoiceCode::query()
+                        ->orderBy('code')
+                        ->get()
+                        ->mapWithKeys(fn (InvoiceCode $code): array => [
+                            $code->id => $code->code.' '.$code->name,
+                        ])
+                        ->all())
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->helperText('Used for purchase finance lines in Didžioji knyga.'),
             ]);
     }
 
@@ -48,6 +62,17 @@ class ExpenseTypeResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('invoiceCode.code')
+                    ->label('Account')
+                    ->placeholder('—')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('invoiceCode.name')
+                    ->label('Account name')
+                    ->placeholder('—')
+                    ->wrap()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -72,22 +97,22 @@ class ExpenseTypeResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

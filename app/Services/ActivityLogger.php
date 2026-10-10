@@ -151,6 +151,52 @@ class ActivityLogger
     }
 
     /**
+     * Log a user file upload (SharePoint or local ingest).
+     *
+     * @param  array<string, mixed>  $properties
+     */
+    public static function logFileUploaded(
+        string $fileLabel,
+        string $format,
+        ?Model $subject = null,
+        array $properties = [],
+    ): void {
+        self::log(
+            ActivityLogEvent::FileUploaded,
+            'File uploaded: '.$fileLabel.' ('.$format.')',
+            $subject,
+            array_merge([
+                'file' => $fileLabel,
+                'format' => $format,
+                'action' => 'uploaded',
+            ], $properties),
+        );
+    }
+
+    /**
+     * Log opening or viewing a stored file (app proxy or SharePoint redirect).
+     *
+     * @param  array<string, mixed>  $properties
+     */
+    public static function logFileOpened(
+        string $fileLabel,
+        string $format,
+        ?Model $subject = null,
+        array $properties = [],
+    ): void {
+        self::log(
+            ActivityLogEvent::FileOpened,
+            'File opened: '.$fileLabel.' ('.$format.')',
+            $subject,
+            array_merge([
+                'file' => $fileLabel,
+                'format' => $format,
+                'action' => 'opened',
+            ], $properties),
+        );
+    }
+
+    /**
      * Login events: authenticated user, no auth()->id() guard issues — use listener.
      */
     public static function logLogin(Model $user, ?Request $request = null): void

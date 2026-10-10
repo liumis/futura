@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\ExpenseType;
+use App\Services\ExpenseTypeAccountMapper;
 use Illuminate\Database\Seeder;
 
 class ExpenseTypeSeeder extends Seeder
@@ -21,6 +22,7 @@ class ExpenseTypeSeeder extends Seeder
         'Mokesčiai',
         'Ilgalaikis turtas',
         'Kita',
+        'Kreditinė sąskaita',
     ];
 
     public function run(): void
@@ -28,5 +30,7 @@ class ExpenseTypeSeeder extends Seeder
         foreach (self::NAMES as $name) {
             ExpenseType::query()->firstOrCreate(['name' => $name]);
         }
+
+        ExpenseTypeAccountMapper::syncDefaults();
     }
 }

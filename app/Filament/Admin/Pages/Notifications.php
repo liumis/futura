@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Enums\AdminModule;
 use App\Services\LowStockNotifier;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -53,7 +54,7 @@ class Notifications extends Page
                 ->label('Check low stock now')
                 ->icon('heroicon-o-exclamation-triangle')
                 ->color('warning')
-                ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+                ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::WarehouseShipping) ?? false)
                 ->action(function (): void {
                     $notified = LowStockNotifier::run();
 

@@ -183,10 +183,11 @@ class WarehouseOrderMailer
             }
 
             $lines[] = sprintf(
-                '%s: %s (%s) × %d',
+                '%s: %s (%s) %s × %d',
                 $product->color?->collection?->name ?? '—',
                 $product->color?->color_name ?? '—',
                 $product->color?->color_code ?? '—',
+                $product->product_code ?? '—',
                 $amount,
             );
         }

@@ -13,6 +13,7 @@ class LeaveRequestType extends Model
     protected $fillable = [
         'name',
         'color',
+        'timesheet_code',
     ];
 
     public function leaveRequests(): HasMany

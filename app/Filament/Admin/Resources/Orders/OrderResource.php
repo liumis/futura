@@ -6,40 +6,44 @@ use App\Enums\CargoStatus;
 use App\Enums\OrderStatus;
 use App\Filament\Admin\Support\ProductLineItemCard;
 use App\Models\CargoItem;
-use App\Models\Color;
 use App\Models\Collection as CollectionModel;
+use App\Models\Contact;
 use App\Models\CustomerLevelPrice;
+use App\Models\Invoice;
 use App\Models\Order;
+use App\Models\OriginCountry;
 use App\Models\Package;
 use App\Models\Product;
 use App\Models\User;
 use App\Services\FulfillmentOrderMailer;
 use App\Services\OrderInvoiceCreator;
 use App\Services\OrderShippedMailer;
+use App\Services\OrderStockAllocator;
 use App\Support\Money;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
-use Filament\Actions\Action;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Group;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Components\View;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Columns\TextInputColumn;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\Indicator;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Schema as SchemaFacade;
 use Illuminate\Support\HtmlString;
@@ -51,7 +55,7 @@ class OrderResource extends Resource
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationLabel = 'Orders';
+    protected static ?string $navigationLabel = 'Orders list';
 
     protected static ?string $modelLabel = 'Order';
 
@@ -65,14 +69,14 @@ class OrderResource extends Resource
     {
         return $schema
             ->components([
-                Forms\Components\Select::make('status')
+                Select::make('status')
                     ->options(OrderStatus::class)
                     ->required(fn (): bool => ! (auth()->user()?->hasRole('customer') ?? false))
                     ->native(false)
-                    ->default(OrderStatus::Pending)
+                    ->default(OrderStatus::Placed)
                     ->hidden(fn (): bool => auth()->user()?->hasRole('customer') ?? false),
 
-                Forms\Components\Select::make('user_id')
+                Select::make('user_id')
                     ->label('Customer')
                     ->relationship(
                         'user',
@@ -84,10 +88,6 @@ class OrderResource extends Resource
                     ->preload()
                     ->required(fn (): bool => ! (auth()->user()?->hasRole('customer') ?? false))
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole('customer') ?? false)),
-
-                Forms\Components\Hidden::make('user_id')
-                    ->default(fn (): ?int => auth()->id())
-                    ->visible(fn (): bool => auth()->user()?->hasRole('customer') ?? false),
 
                 Forms\Components\TextInput::make('shipping_cost')
                     ->numeric()
@@ -103,12 +103,12 @@ class OrderResource extends Resource
                     ->label('Tracking number')
                     ->visible(fn (): bool => ! (auth()->user()?->hasRole('customer') ?? false)),
 
-                Forms\Components\DateTimePicker::make('order_date')
+                DatePicker::make('order_date')
                     ->label('Date')
-                    ->default(fn (): string => now()->format('Y-m-d H:i:s'))
+                    ->default(fn (): string => now()->toDateString())
                     ->visible(fn (): bool => SchemaFacade::hasColumn('orders', 'order_date')),
 
-                Forms\Components\Select::make('package_id')
+                Select::make('package_id')
                     ->label('Package profile')
                     ->options(fn (): array => self::packageProfileOptions())
                     ->default(fn (): ?int => self::defaultPackageProfileId())
@@ -117,7 +117,7 @@ class OrderResource extends Resource
                     ->live()
                     ->visible(fn (): bool => self::packageProfileOptions() !== [] && ! self::isCustomerUser()),
 
-                \Filament\Schemas\Components\View::make('filament.admin.components.order-package-summary')
+                View::make('filament.admin.components.order-package-summary')
                     ->viewData([
                         'packageProfiles' => self::packageProfiles(),
                         'initialPackageId' => self::defaultPackageProfileId(),
@@ -127,7 +127,7 @@ class OrderResource extends Resource
                     ->columnSpanFull()
                     ->visible(fn (): bool => self::packageProfiles() !== []),
 
-                \Filament\Schemas\Components\View::make('filament.admin.components.order-line-section-totals')
+                View::make('filament.admin.components.order-line-section-totals')
                     ->columnSpanFull(),
 
                 ...self::orderLineItemSections(),
@@ -244,92 +244,6 @@ class OrderResource extends Resource
     /**
      * Customer select: "Company name (First name Last name)" — space between name and surname, no comma.
      */
-    /**
-     * @return array<string|int, string> collection id => name
-     */
-    private static function collectionFilterOptions(): array
-    {
-        return CollectionModel::query()
-            ->orderBy('name')
-            ->pluck('name', 'id')
-            ->all();
-    }
-
-    /**
-     * Nested options for optgroups: collection name => [ color id => label ].
-     *
-     * @return array<string, array<string, string>>
-     */
-    private static function groupedColorFilterOptions(): array
-    {
-        return CollectionModel::query()
-            ->orderBy('name')
-            ->with(['colors' => fn ($query) => $query->orderBy('color_code')])
-            ->get()
-            ->mapWithKeys(function (CollectionModel $collection): array {
-                if ($collection->colors->isEmpty()) {
-                    return [];
-                }
-
-                return [
-                    $collection->name => $collection->colors->mapWithKeys(
-                        fn (Color $color): array => [
-                            (string) $color->getKey() => sprintf(
-                                '%s (%s)',
-                                $color->color_name,
-                                $color->color_code,
-                            ),
-                        ]
-                    )->all(),
-                ];
-            })
-            ->all();
-    }
-
-    /**
-     * @param  array<int|string>  $colorIds
-     * @return array<string, string> id string => label
-     */
-    private static function colorLabelsForColorIds(array $colorIds): array
-    {
-        $ids = array_values(array_unique(array_filter(array_map(
-            static fn ($id): int => (int) $id,
-            $colorIds,
-        ), static fn (int $id): bool => $id > 0)));
-
-        if ($ids === []) {
-            return [];
-        }
-
-        return Color::query()
-            ->whereIn('id', $ids)
-            ->get()
-            ->mapWithKeys(fn (Color $color): array => [
-                (string) $color->getKey() => sprintf(
-                    '%s (%s)',
-                    $color->color_name,
-                    $color->color_code,
-                ),
-            ])
-            ->all();
-    }
-
-    /**
-     * @return list<int>
-     */
-    private static function normalizeMultiSelectFilterIds(array $data): array
-    {
-        $values = $data['values'] ?? null;
-        if (! is_array($values) || $values === []) {
-            return [];
-        }
-
-        return array_values(array_unique(array_filter(array_map(
-            static fn ($id): int => (int) $id,
-            $values,
-        ), static fn (int $id): bool => $id > 0)));
-    }
-
     private static function formatCustomerOptionLabel(User $record): string
     {
         $person = trim(implode(' ', array_filter([$record->name, $record->surname])));
@@ -405,53 +319,61 @@ class OrderResource extends Resource
     }
 
     /**
-     * @return array<Section>
+     * @return array<int, Section>
      */
     private static function orderLineItemSections(): array
     {
-        $collectionSections = CollectionModel::query()
-            ->orderBy('name')
-            ->with(['products' => fn ($query) => $query->with(['productType', 'color'])->orderBy('color_id')])
-            ->get()
-            ->map(function (CollectionModel $collection): Section {
-                $upcomingByProductId = self::upcomingCargoByProductIds(
-                    $collection->products->pluck('id')->all()
-                );
+        $groups = [];
 
-                $heading = self::collectionSectionHeading($collection);
-                $productIds = $collection->products
-                    ->pluck('id')
-                    ->map(fn ($id): int => (int) $id)
-                    ->all();
+        foreach (
+            CollectionModel::query()
+                ->orderBy('name')
+                ->with(['products' => fn ($query) => $query->with(['productType', 'color.collection'])->orderBy('color_id')])
+                ->get() as $collection
+        ) {
+            $products = $collection->products
+                ->sortBy(fn (Product $product): string => $product->color?->color_code ?? '')
+                ->values();
 
-                $cards = $collection->products
-                    ->sortBy(fn (Product $product): string => $product->color?->color_code ?? '')
-                    ->map(
-                        fn (Product $product) => ProductLineItemCard::make(
-                            $product,
-                            'order_amounts.'.$product->id,
-                            $upcomingByProductId[$product->id] ?? null,
-                        ),
-                    )
-                    ->all();
+            if ($products->isEmpty()) {
+                continue;
+            }
 
-                return self::makeOrderLineItemSection(
-                    sectionKey: 'collection-'.$collection->id,
-                    heading: $heading,
-                    productIds: $productIds,
-                    cards: $cards,
-                );
-            })
-            ->all();
+            $groups[] = self::makeOrderCatalogCollectionGroup(
+                sectionKey: 'collection-'.$collection->id,
+                heading: self::collectionSectionHeading($collection),
+                products: $products->all(),
+                upcomingByProductId: self::upcomingCargoByProductIds($products->pluck('id')->all()),
+            );
+        }
 
-        $catalogSection = self::catalogOrderLineItemSection();
+        $catalogGroup = self::catalogOrderCatalogGroup();
 
-        return $catalogSection === null
-            ? $collectionSections
-            : [...$collectionSections, $catalogSection];
+        if ($catalogGroup !== null) {
+            $groups[] = $catalogGroup;
+        }
+
+        return [
+            Section::make('Products')
+                ->description('Collections start collapsed. Search or Expand all to browse — amounts sync without loading every product as a Livewire field. Low-stock colors are highlighted (recommended stock is read-only here).')
+                ->columnSpanFull()
+                ->compact()
+                ->extraAttributes([
+                    'class' => 'fi-cargo-order-wrap fi-cargo-order-wrap--sales',
+                    'wire:ignore' => true,
+                ])
+                ->schema([
+                    View::make('filament.admin.components.cargo-order-table-chrome')
+                        ->viewData([
+                            'headings' => ['', 'Color / product', 'Code', 'Size (m)', 'Stock', 'Upcoming', 'Amount'],
+                        ])
+                        ->columnSpanFull(),
+                    ...$groups,
+                ]),
+        ];
     }
 
-    private static function catalogOrderLineItemSection(): ?Section
+    private static function catalogOrderCatalogGroup(): ?View
     {
         $products = Product::query()
             ->catalog()
@@ -463,56 +385,150 @@ class OrderResource extends Resource
             return null;
         }
 
-        $upcomingByProductId = self::upcomingCargoByProductIds($products->pluck('id')->all());
-
-        $cards = $products
-            ->map(
-                fn (Product $product) => ProductLineItemCard::make(
-                    $product,
-                    'order_amounts.'.$product->id,
-                    $upcomingByProductId[$product->id] ?? null,
-                ),
-            )
-            ->all();
-
         $typeName = $products->first()?->productType?->name ?? 'Catalog';
-        $productIds = $products
-            ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
-            ->all();
 
-        return self::makeOrderLineItemSection(
+        return self::makeOrderCatalogCollectionGroup(
             sectionKey: 'catalog',
             heading: $typeName,
-            productIds: $productIds,
-            cards: $cards,
+            products: $products->all(),
+            upcomingByProductId: self::upcomingCargoByProductIds($products->pluck('id')->all()),
         );
     }
 
     /**
-     * @param  list<int>  $productIds
-     * @param  array<int, Group>  $cards
+     * @param  list<Product>  $products
+     * @param  array<int, array{amount: int, estimated_arrival: string|null}>  $upcomingByProductId
      */
-    private static function makeOrderLineItemSection(
+    private static function makeOrderCatalogCollectionGroup(
         string $sectionKey,
         string $heading,
-        array $productIds,
-        array $cards,
-    ): Section {
-        return Section::make(new HtmlString(
-            e($heading).
-            ' <span class="fi-order-section-total" wire:ignore>(0)</span>',
-        ))
+        array $products,
+        array $upcomingByProductId,
+    ): View {
+        $productIds = array_values(array_map(
+            fn (Product $product): int => (int) $product->id,
+            $products,
+        ));
+
+        return View::make('filament.admin.components.order-catalog-collection')
             ->key('order-line-section-'.$sectionKey)
-            ->collapsed()
             ->columnSpanFull()
-            ->extraAttributes([
-                'data-fi-order-section' => '1',
-                'data-fi-order-product-ids' => json_encode(array_values($productIds)),
-            ])
-            ->schema([
-                Grid::make(4)->schema($cards),
-            ]);
+            ->viewData(function (?Order $record, Get $get) use ($sectionKey, $heading, $products, $upcomingByProductId, $productIds): array {
+                $amounts = is_array($get('order_amounts')) ? $get('order_amounts') : [];
+
+                return [
+                    'sectionKey' => $sectionKey,
+                    'heading' => $heading,
+                    'productIds' => $productIds,
+                    'rows' => array_map(
+                        fn (Product $product): array => self::orderCatalogRowData(
+                            $product,
+                            $heading,
+                            $upcomingByProductId[$product->id] ?? null,
+                            $record,
+                            $amounts,
+                        ),
+                        $products,
+                    ),
+                ];
+            });
+    }
+
+    /**
+     * @param  array{amount: int, estimated_arrival: string|null}|null  $upcoming
+     * @param  array<string|int, mixed>  $amounts
+     * @return array<string, mixed>
+     */
+    private static function orderCatalogRowData(
+        Product $product,
+        string $collectionName,
+        ?array $upcoming,
+        ?Order $record,
+        array $amounts,
+    ): array {
+        $search = strtolower(trim(implode(' ', array_filter([
+            $collectionName,
+            $product->color?->color_name,
+            $product->color?->color_code,
+            $product->product_code,
+            $product->alternative_code,
+            $product->name,
+        ], fn ($value): bool => filled($value)))));
+
+        $sizeLabel = $product->sizeMeters() !== null
+            ? rtrim(rtrim(number_format((float) $product->name, 2, '.', ''), '0'), '.').' m'
+            : '—';
+
+        $nameHtml = $product->isCatalog()
+            ? '<div class="fi-cargo-order-name">'.e($product->name ?: '—').'</div>'
+            : '<div class="fi-cargo-order-name">'.e($product->color?->color_name ?? '—').'</div>';
+
+        $upcomingAmount = (int) ($upcoming['amount'] ?? 0);
+
+        $upcomingHtml = '<div class="fi-cargo-order-upcoming">—</div>';
+        if ($upcoming !== null) {
+            $date = filled($upcoming['estimated_arrival'] ?? null)
+                ? e(Carbon::parse((string) $upcoming['estimated_arrival'])->format('Y-m-d'))
+                : '—';
+            $upcomingHtml = '<div class="fi-cargo-order-upcoming fi-order-product-upcoming">'.$upcomingAmount.' · Est. '.$date.'</div>';
+        }
+
+        $colorId = (int) ($product->color_id ?? 0);
+        $recommended = (int) ($product->color?->recommended_stock ?? 0);
+        $stockMeters = $product->stockMeters();
+        $sizeMeters = $product->sizeMeters();
+        $isLowStock = ! $product->isCatalog() && $colorId > 0 && $recommended > 0 && $stockMeters < $recommended;
+
+        $formatMeters = static function (float $meters): string {
+            return rtrim(rtrim(number_format($meters, 2, '.', ''), '0'), '.').'m';
+        };
+
+        $displayStockRolls = (int) $product->current_amount;
+        $stockHtml = e((string) $displayStockRolls);
+        if (! $product->isCatalog() && $sizeMeters !== null) {
+            $recommendedControl = $colorId > 0
+                ? '<span class="fi-cargo-order-rec-btn is-disabled"'
+                    .' data-recommended-stock="1"'
+                    .' data-color-id="'.$colorId.'"'
+                    .' data-recommended-value="'.$recommended.'"'
+                    .' title="Recommended stock / low-stock benchmark (read-only)">'
+                    .'<span data-rec-label>'.$recommended.'</span> m'
+                    .'</span>'
+                : '<span class="fi-cargo-order-rec-btn is-disabled">'.$recommended.' m</span>';
+
+            $stockHtml = '<div class="fi-cargo-order-meta" title="'.e($formatMeters($stockMeters).' in stock').'">'
+                .'<span class="fi-cargo-order-meta-text">'
+                .e($formatMeters($sizeMeters)).' × '.e((string) $displayStockRolls).' = '
+                .'<strong class="fi-cargo-order-meta-total">'.e($formatMeters($stockMeters)).'</strong>'
+                .' (</span>'
+                .$recommendedControl
+                .'<span class="fi-cargo-order-meta-text">)</span>'
+                .'</div>';
+        }
+
+        $amount = (int) ($amounts[(string) $product->id] ?? $amounts[$product->id] ?? 0);
+        $max = self::availableOrderAmount(
+            $product,
+            $upcomingAmount,
+            self::reservedAmountOnOrder($record, (int) $product->id),
+        );
+
+        return [
+            'product_id' => (int) $product->id,
+            'search' => $search,
+            'stock_meters' => $stockMeters,
+            'recommended' => $recommended,
+            'color_id' => $colorId,
+            'is_low_stock' => $isLowStock,
+            'thumb_html' => ProductLineItemCard::thumbHtml($product),
+            'name_html' => $nameHtml,
+            'code_html' => '<div class="fi-cargo-order-code">'.e($product->product_code ?? '—').'</div>',
+            'size_label' => $sizeLabel,
+            'stock_html' => $stockHtml,
+            'upcoming_html' => $upcomingHtml,
+            'amount' => $amount,
+            'max' => $max,
+        ];
     }
 
     /**
@@ -563,23 +579,83 @@ class OrderResource extends Resource
         return (float) $collection->price;
     }
 
+    public static function reservedAmountOnOrder(?Order $order, int $productId): int
+    {
+        if ($order === null || ! $order->stock_reserved) {
+            return 0;
+        }
+
+        $order->loadMissing('orderItems');
+
+        foreach ($order->orderItems as $item) {
+            if ((int) $item->product_id === $productId) {
+                return (int) $item->amount;
+            }
+        }
+
+        return 0;
+    }
+
+    public static function availableOrderAmount(Product $product, int $upcomingAmount = 0, int $reservedByThisOrder = 0): int
+    {
+        return max(0, (int) $product->current_amount + max(0, $reservedByThisOrder) + max(0, $upcomingAmount));
+    }
+
+    /**
+     * @param  array<string|int, mixed>  $amounts
+     * @return array<int, int>
+     */
+    public static function clampAmountsToAvailability(array $amounts): array
+    {
+        $normalized = self::normalizeAmounts($amounts);
+
+        if ($normalized === []) {
+            return [];
+        }
+
+        $productIds = array_keys($normalized);
+        $stocks = Product::query()
+            ->whereIn('id', $productIds)
+            ->pluck('current_amount', 'id');
+        $upcoming = self::upcomingCargoByProductIds($productIds);
+
+        $clamped = [];
+
+        foreach ($normalized as $productId => $amount) {
+            $max = max(0, (int) ($stocks[$productId] ?? 0) + (int) ($upcoming[$productId]['amount'] ?? 0));
+            $amount = min($amount, $max);
+
+            if ($amount > 0) {
+                $clamped[$productId] = $amount;
+            }
+        }
+
+        return $clamped;
+    }
+
     /**
      * @param  array<string|int, mixed>  $amounts
      */
     public static function syncOrderItemsFromAmounts(Order $order, array $amounts): void
     {
+        $wasReserved = (bool) $order->stock_reserved;
+
+        if ($wasReserved) {
+            OrderStockAllocator::release($order);
+        }
+
         $order->orderItems()->delete();
 
-        foreach ($amounts as $productId => $amount) {
-            $amount = (int) $amount;
-            if ($amount <= 0) {
-                continue;
-            }
-
+        foreach (self::clampAmountsToAvailability($amounts) as $productId => $amount) {
             $order->orderItems()->create([
-                'product_id' => (int) $productId,
+                'product_id' => $productId,
                 'amount' => $amount,
             ]);
+        }
+
+        if ($wasReserved) {
+            $order->unsetRelation('orderItems');
+            OrderStockAllocator::reserve($order);
         }
     }
 
@@ -599,7 +675,7 @@ class OrderResource extends Resource
             $amount = (int) $item->amount;
 
             if ($product->isCatalog()) {
-                $total += self::catalogLineTotal((float) $product->default_cost, $amount);
+                $total += self::catalogLineTotal($product->collectionUnitPrice(), $amount);
 
                 continue;
             }
@@ -624,14 +700,7 @@ class OrderResource extends Resource
 
     public static function lineTotal(float $unitPrice, mixed $size, int $quantity): float
     {
-        $meters = is_numeric($size) ? (float) $size : 0.0;
-        $quantity = max(0, $quantity);
-
-        if ($meters > 0) {
-            return round($unitPrice * $meters * $quantity, 2);
-        }
-
-        return round($unitPrice * $quantity, 2);
+        return Product::lineTotalForSize($unitPrice, $size, $quantity);
     }
 
     public static function catalogLineTotal(float $unitPrice, int $quantity): float
@@ -678,7 +747,7 @@ class OrderResource extends Resource
                 $amount = (int) $item->amount;
 
                 if ($product?->isCatalog()) {
-                    $unit = (float) $product->default_cost;
+                    $unit = $product->collectionUnitPrice();
 
                     return [
                         'collection' => $product->productType?->name ?? 'Catalog',
@@ -769,8 +838,14 @@ class OrderResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('user.company_name')
-                    ->label('Company')
+                    ->label('Customer')
                     ->searchable()
+                    ->sortable()
+                    ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('order_date')
+                    ->label('Order date')
+                    ->date()
                     ->sortable()
                     ->placeholder('—'),
 
@@ -784,7 +859,7 @@ class OrderResource extends Resource
                             ->modalHeading('Change order status')
                             ->modalDescription('When confirming or shipping an order, you can review the email before sending it.')
                             ->schema([
-                                Forms\Components\Select::make('status')
+                                Select::make('status')
                                     ->options(OrderStatus::class)
                                     ->required()
                                     ->native(false)
@@ -918,11 +993,146 @@ class OrderResource extends Resource
                             }),
                     ),
 
-                Tables\Columns\TextColumn::make('warehouse_email_sent_at')
-                    ->label('Warehouse email date')
-                    ->dateTime()
-                    ->sortable()
-                    ->placeholder('—'),
+                Tables\Columns\TextColumn::make('payment_status')
+                    ->label('Payment status')
+                    ->badge()
+                    ->getStateUsing(fn (Order $record): string => $record->paymentSettlementLabel())
+                    ->color(fn (Order $record): string => $record->paymentSettlementColor())
+                    ->tooltip(function (Order $record): ?string {
+                        $invoices = $record->invoiceCollection();
+                        if ($invoices->isEmpty()) {
+                            return 'No invoice linked to this order';
+                        }
+
+                        return $invoices
+                            ->map(fn ($invoice): string => trim((string) ($invoice->invoice_number ?: '#'.$invoice->id))
+                                .' · '.$invoice->paymentSettlementLabel())
+                            ->implode("\n");
+                    })
+                    ->action(
+                        Action::make('changePaymentStatus')
+                            ->modalHeading('Change payment status')
+                            ->modalDescription(fn (Order $record): string => $record->invoiceCollection()->isEmpty()
+                                ? 'This order has no linked invoice yet.'
+                                : 'Updates paid amount on linked invoice(s).')
+                            ->disabled(fn (Order $record): bool => $record->invoiceCollection()->isEmpty())
+                            ->schema([
+                                Select::make('payment_status')
+                                    ->label('Payment status')
+                                    ->options([
+                                        'paid' => 'Paid',
+                                        'partly_paid' => 'Partly paid',
+                                        'unpaid' => 'Not paid',
+                                    ])
+                                    ->required()
+                                    ->native(false)
+                                    ->live(),
+
+                                Forms\Components\TextInput::make('paid_amount')
+                                    ->label('Paid amount')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->prefix(Money::prefix())
+                                    ->required(fn (Get $get): bool => $get('payment_status') === 'partly_paid')
+                                    ->visible(fn (Get $get): bool => $get('payment_status') === 'partly_paid')
+                                    ->helperText(fn (Order $record): string => 'Invoice total: '
+                                        .Money::format($record->invoiceCollection()->sum(fn (Invoice $invoice): float => (float) $invoice->sum_inc_vat))),
+                            ])
+                            ->fillForm(function (Order $record): array {
+                                $status = $record->paymentSettlementStatus() ?? 'unpaid';
+                                $paid = round($record->invoiceCollection()->sum(
+                                    fn (Invoice $invoice): float => (float) ($invoice->paid_amount ?? 0),
+                                ), 2);
+
+                                return [
+                                    'payment_status' => $status,
+                                    'paid_amount' => $paid,
+                                ];
+                            })
+                            ->modalSubmitActionLabel('Confirm')
+                            ->action(function (Order $record, array $data): void {
+                                $invoices = $record->invoiceCollection();
+                                if ($invoices->isEmpty()) {
+                                    Notification::make()
+                                        ->title('No invoice linked')
+                                        ->body('Create or link an invoice before changing payment status.')
+                                        ->warning()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $status = (string) ($data['payment_status'] ?? 'unpaid');
+
+                                if ($status === 'paid') {
+                                    foreach ($invoices as $invoice) {
+                                        $invoice->markFullyPaid();
+                                    }
+
+                                    Notification::make()
+                                        ->title('Marked as paid')
+                                        ->success()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                if ($status === 'unpaid') {
+                                    foreach ($invoices as $invoice) {
+                                        $invoice->markUnpaid();
+                                    }
+
+                                    Notification::make()
+                                        ->title('Marked as not paid')
+                                        ->success()
+                                        ->send();
+
+                                    return;
+                                }
+
+                                $paidAmount = max(0, round((float) ($data['paid_amount'] ?? 0), 2));
+                                $remaining = $paidAmount;
+
+                                foreach ($invoices as $invoice) {
+                                    $total = round((float) ($invoice->sum_inc_vat ?? 0), 2);
+                                    $allocate = min($total, $remaining);
+
+                                    $invoice->forceFill([
+                                        'paid_amount' => $allocate,
+                                        'paid' => false,
+                                    ]);
+                                    $invoice->normalizePaymentState();
+                                    $invoice->save();
+
+                                    $remaining = max(0, round($remaining - $allocate, 2));
+                                }
+
+                                Notification::make()
+                                    ->title('Payment status updated')
+                                    ->body('Paid amount set to '.Money::format($paidAmount).'.')
+                                    ->success()
+                                    ->send();
+                            }),
+                    ),
+
+                Tables\Columns\TextColumn::make('invoices')
+                    ->label('Invoice')
+                    ->getStateUsing(function (Order $record): HtmlString|string {
+                        $invoices = $record->invoiceCollection();
+                        if ($invoices->isEmpty()) {
+                            return '—';
+                        }
+
+                        $links = $invoices
+                            ->map(fn ($invoice): string => $invoice->openDocumentLinksHtml())
+                            ->all();
+
+                        return new HtmlString(implode('<br>', $links));
+                    })
+                    ->html()
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 TextInputColumn::make('shipping_cost')
                     ->label('Shipping')
@@ -952,12 +1162,6 @@ class OrderResource extends Resource
                     })
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('order_date')
-                    ->label('Order date')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-
                 Tables\Columns\TextColumn::make('user.name')
                     ->label('Customer name')
                     ->searchable()
@@ -975,106 +1179,279 @@ class OrderResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                Filter::make('order_date_range')
-                    ->label('Order date')
-                    ->schema([
-                        DatePicker::make('from')
-                            ->label('From'),
-                        DatePicker::make('until')
-                            ->label('Until'),
-                    ])
-                    ->query(function (Builder $query, array $data): void {
-                        if (! SchemaFacade::hasColumn('orders', 'order_date')) {
-                            return;
-                        }
-
-                        $from = $data['from'] ?? null;
-                        $until = $data['until'] ?? null;
-
-                        if (blank($from) && blank($until)) {
-                            return;
-                        }
-
-                        $column = $query->getModel()->qualifyColumn('order_date');
-
-                        if (filled($from)) {
-                            $query->whereDate($column, '>=', $from);
-                        }
-
-                        if (filled($until)) {
-                            $query->whereDate($column, '<=', $until);
-                        }
-                    }),
-
-                SelectFilter::make('user_id')
+                SelectFilter::make('contact_id')
                     ->label('Customer')
-                    ->relationship('user', 'name', fn (Builder $query) => $query->role('customer'))
-                    ->searchable()
-                    ->preload()
-                    ->native(false)
-                    ->getOptionLabelFromRecordUsing(fn (User $record): string => self::formatCustomerOptionLabel($record)),
-
-                SelectFilter::make('order_collections')
-                    ->label('Collections')
-                    ->multiple()
-                    ->options(fn (): array => self::collectionFilterOptions())
+                    ->options(fn (): array => Contact::query()->orderBy('company_name')->pluck('company_name', 'id')->all())
                     ->searchable()
                     ->preload()
                     ->native(false)
                     ->query(function (Builder $query, array $data): void {
-                        $ids = self::normalizeMultiSelectFilterIds($data);
-                        if ($ids === []) {
+                        $value = $data['value'] ?? null;
+                        if (blank($value)) {
                             return;
                         }
 
                         $query->whereHas(
-                            'orderItems.product.color',
-                            fn (Builder $q) => $q->whereIn(
-                                $q->getModel()->qualifyColumn('collection_id'),
-                                $ids,
-                            ),
+                            'invoices',
+                            fn (Builder $invoiceQuery) => $invoiceQuery->where('contact_id', $value),
                         );
                     }),
 
-                SelectFilter::make('order_colors')
-                    ->label('Colors')
-                    ->multiple()
-                    ->options(fn (): array => self::groupedColorFilterOptions())
-                    ->searchable()
-                    ->preload()
+                SelectFilter::make('customer_market')
+                    ->label('Market')
+                    ->options([
+                        'lithuania' => 'Lithuania',
+                        'export' => 'Export',
+                    ])
                     ->native(false)
-                    ->indicateUsing(function (SelectFilter $filter, array $state): array {
-                        $values = $state['values'] ?? null;
-                        if (! is_array($values) || $values === []) {
-                            return [];
-                        }
-
-                        $map = self::colorLabelsForColorIds($values);
-                        $labels = collect($values)
-                            ->map(fn ($id) => $map[(string) (int) $id] ?? null)
-                            ->filter()
-                            ->join(', ');
-
-                        if ($labels === '') {
-                            return [];
-                        }
-
-                        $name = $filter->getLabel();
-
-                        return [Indicator::make("{$name}: {$labels}")];
-                    })
                     ->query(function (Builder $query, array $data): void {
-                        $ids = self::normalizeMultiSelectFilterIds($data);
-                        if ($ids === []) {
+                        $value = $data['value'] ?? null;
+                        if ($value === 'lithuania') {
+                            $query->whereHas('user', fn (Builder $user) => $user->lithuaniaMarket());
+
                             return;
                         }
 
-                        $query->whereHas('orderItems.product', fn (Builder $q) => $q->whereIn(
-                            $q->getModel()->qualifyColumn('color_id'),
-                            $ids,
-                        ));
+                        if ($value === 'export') {
+                            $query->whereHas('user', fn (Builder $user) => $user->exportMarket());
+                        }
+                    }),
+
+                SelectFilter::make('customer_country')
+                    ->label('Country')
+                    ->options(fn (): array => OriginCountry::options())
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->query(function (Builder $query, array $data): void {
+                        $value = $data['value'] ?? null;
+
+                        if (blank($value)) {
+                            return;
+                        }
+
+                        $country = trim((string) $value);
+
+                        $query->where(function (Builder $builder) use ($country): void {
+                            $builder
+                                ->whereHas('user', function (Builder $user) use ($country): void {
+                                    $user->whereRaw('LOWER(TRIM(company_country)) = ?', [mb_strtolower($country)]);
+                                })
+                                ->orWhereHas('invoices.contact', function (Builder $contact) use ($country): void {
+                                    $contact->whereRaw('LOWER(TRIM(company_country)) = ?', [mb_strtolower($country)]);
+                                });
+                        });
+                    }),
+
+                SelectFilter::make('payment_status')
+                    ->label('Payment')
+                    ->options([
+                        'paid' => 'Paid',
+                        'partly_paid' => 'Partly paid',
+                        'unpaid' => 'Not paid',
+                    ])
+                    ->native(false)
+                    ->query(function (Builder $query, array $data): void {
+                        $value = $data['value'] ?? null;
+                        if (blank($value)) {
+                            return;
+                        }
+
+                        $fullyPaid = function (Builder $invoiceQuery): void {
+                            $invoiceQuery->where(function (Builder $builder): void {
+                                $builder
+                                    ->where('paid', true)
+                                    ->orWhereRaw('COALESCE(sum_inc_vat, 0) > 0.004 AND ABS(COALESCE(paid_amount, 0) - sum_inc_vat) < 0.005');
+                            });
+                        };
+
+                        $query->whereHas('invoices', function (Builder $invoiceQuery) use ($value, $fullyPaid): void {
+                            if ($value === 'paid') {
+                                $fullyPaid($invoiceQuery);
+
+                                return;
+                            }
+
+                            if ($value === 'partly_paid') {
+                                $invoiceQuery
+                                    ->whereRaw('COALESCE(paid_amount, 0) > 0.004')
+                                    ->where(function (Builder $builder) use ($fullyPaid): void {
+                                        $builder->whereNot(fn (Builder $inner) => $fullyPaid($inner));
+                                    });
+
+                                return;
+                            }
+
+                            if ($value === 'unpaid') {
+                                $invoiceQuery
+                                    ->whereRaw('COALESCE(paid_amount, 0) <= 0.004')
+                                    ->where(function (Builder $builder) use ($fullyPaid): void {
+                                        $builder->whereNot(fn (Builder $inner) => $fullyPaid($inner));
+                                    });
+                            }
+                        });
+                    }),
+
+                SelectFilter::make('month')
+                    ->label('Month')
+                    ->placeholder('All months')
+                    ->options(fn (): array => self::orderMonthFilterOptions())
+                    ->native(false)
+                    ->query(function (Builder $query, array $data): void {
+                        $value = trim((string) ($data['value'] ?? ''));
+                        if ($value === '' || $value === 'any') {
+                            return;
+                        }
+
+                        if (preg_match('/^\d{4}-\d{2}$/', $value) !== 1) {
+                            return;
+                        }
+
+                        [$year, $month] = array_map('intval', explode('-', $value));
+                        $start = Carbon::create($year, $month, 1)->startOfDay();
+                        $end = $start->copy()->endOfMonth();
+
+                        $query->whereRaw(
+                            'COALESCE(DATE(order_date), DATE(created_at)) BETWEEN ? AND ?',
+                            [$start->toDateString(), $end->toDateString()],
+                        );
+                    }),
+
+                Filter::make('invoice_dates')
+                    ->label('Invoice dates')
+                    ->schema([
+                        DatePicker::make('from')
+                            ->label('From')
+                            ->native(false),
+                        DatePicker::make('until')
+                            ->label('Until')
+                            ->native(false),
+                    ])
+                    ->columns(2)
+                    ->columnSpan(2)
+                    ->query(function (Builder $query, array $data): void {
+                        if (filled($data['from'] ?? null)) {
+                            $query->whereHas(
+                                'invoices',
+                                fn (Builder $invoiceQuery) => $invoiceQuery->whereDate('invoice_date', '>=', $data['from']),
+                            );
+                        }
+
+                        if (filled($data['until'] ?? null)) {
+                            $query->whereHas(
+                                'invoices',
+                                fn (Builder $invoiceQuery) => $invoiceQuery->whereDate('invoice_date', '<=', $data['until']),
+                            );
+                        }
+                    }),
+
+                Filter::make('finance')
+                    ->label('Type / category')
+                    ->schema([
+                        Select::make('finance_kind')
+                            ->label('Type')
+                            ->options([
+                                'income' => 'Income',
+                                'expense' => 'Expense',
+                                Invoice::OWN_ACCOUNT_FILTER => Invoice::OWN_ACCOUNT_LABEL,
+                                'missing' => 'Missing type',
+                            ])
+                            ->placeholder('All')
+                            ->native(false)
+                            ->live()
+                            ->afterStateUpdated(function (?string $state, Set $set, Get $get): void {
+                                if ($state === 'missing') {
+                                    $set('finance_type', null);
+
+                                    return;
+                                }
+
+                                if ($state === Invoice::OWN_ACCOUNT_FILTER) {
+                                    $set('finance_type', Invoice::OWN_ACCOUNT_FILTER);
+
+                                    return;
+                                }
+
+                                $type = $get('finance_type');
+                                if (! filled($type) || $state === null) {
+                                    return;
+                                }
+
+                                if ($type === Invoice::OWN_ACCOUNT_FILTER) {
+                                    $set('finance_type', null);
+
+                                    return;
+                                }
+
+                                $prefix = str_starts_with((string) $type, 'income:') ? 'income' : 'expense';
+                                if ($state !== $prefix) {
+                                    $set('finance_type', null);
+                                }
+                            }),
+
+                        Select::make('finance_type')
+                            ->label('Category')
+                            ->options(fn (): array => Invoice::financeCategorySelectOptions())
+                            ->searchable()
+                            ->preload()
+                            ->placeholder('All')
+                            ->native(false)
+                            ->live()
+                            ->visible(fn (Get $get): bool => ($get('finance_kind') ?? null) !== 'missing')
+                            ->afterStateUpdated(function (?string $state, Set $set): void {
+                                if (! filled($state)) {
+                                    return;
+                                }
+
+                                if ($state === Invoice::OWN_ACCOUNT_FILTER) {
+                                    $set('finance_kind', Invoice::OWN_ACCOUNT_FILTER);
+
+                                    return;
+                                }
+
+                                $set(
+                                    'finance_kind',
+                                    str_starts_with($state, 'income:') ? 'income' : 'expense',
+                                );
+                            }),
+                    ])
+                    ->columns(2)
+                    ->columnSpan(2)
+                    ->query(function (Builder $query, array $data): void {
+                        $financeKind = $data['finance_kind'] ?? null;
+                        $financeType = $data['finance_type'] ?? null;
+
+                        if (blank($financeKind) && blank($financeType)) {
+                            return;
+                        }
+
+                        $query->whereHas('invoices', function (Builder $invoiceQuery) use ($financeKind, $financeType): void {
+                            self::applyInvoiceFinanceFilter($invoiceQuery, $financeKind, $financeType);
+                        });
+                    }),
+
+                SelectFilter::make('private_provider')
+                    ->label('Private provider')
+                    ->options([
+                        '1' => 'Yes',
+                        '0' => 'No',
+                    ])
+                    ->native(false)
+                    ->query(function (Builder $query, array $data): void {
+                        $value = $data['value'] ?? null;
+                        if ($value === null || $value === '') {
+                            return;
+                        }
+
+                        $query->whereHas(
+                            'invoices',
+                            fn (Builder $invoiceQuery) => $invoiceQuery->where('private_provider', (bool) (int) $value),
+                        );
                     }),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(4)
+            ->deferFilters(false)
             ->recordActions([
                 Action::make('quick_view')
                     ->label('Quick view')
@@ -1097,32 +1474,114 @@ class OrderResource extends Resource
             ]);
     }
 
+    /**
+     * @return array<string, string>
+     */
+    private static function orderMonthFilterOptions(): array
+    {
+        $connection = Order::query()->getConnection();
+        $monthExpression = $connection->getDriverName() === 'sqlite'
+            ? "strftime('%Y-%m', COALESCE(order_date, created_at))"
+            : "DATE_FORMAT(COALESCE(order_date, created_at), '%Y-%m')";
+
+        $keys = Order::query()
+            ->selectRaw("{$monthExpression} as month_key")
+            ->groupBy('month_key')
+            ->orderByDesc('month_key')
+            ->pluck('month_key')
+            ->filter(fn ($key): bool => is_string($key) && preg_match('/^\d{4}-\d{2}$/', $key) === 1)
+            ->values()
+            ->all();
+
+        if ($keys === []) {
+            $keys = [now()->format('Y-m')];
+        }
+
+        $options = [];
+        foreach ($keys as $key) {
+            $options[(string) $key] = Carbon::createFromFormat('Y-m', (string) $key)->format('Y F');
+        }
+
+        return $options;
+    }
+
+    private static function applyInvoiceFinanceFilter(Builder $invoiceQuery, mixed $financeKind, mixed $financeType): void
+    {
+        if (filled($financeType) && is_string($financeType)) {
+            if ($financeType === Invoice::OWN_ACCOUNT_FILTER) {
+                $invoiceQuery->where('is_own_account', true);
+
+                return;
+            }
+
+            if (str_starts_with($financeType, 'income:')) {
+                $invoiceQuery->where('income_type_id', (int) substr($financeType, strlen('income:')))
+                    ->where('is_own_account', false);
+
+                return;
+            }
+
+            if (str_starts_with($financeType, 'expense:')) {
+                $invoiceQuery->where('expense_type_id', (int) substr($financeType, strlen('expense:')))
+                    ->where('is_own_account', false);
+
+                return;
+            }
+        }
+
+        if ($financeKind === 'income') {
+            $invoiceQuery->whereNotNull('income_type_id')->where('is_own_account', false);
+
+            return;
+        }
+
+        if ($financeKind === 'expense') {
+            $invoiceQuery->whereNotNull('expense_type_id')->where('is_own_account', false);
+
+            return;
+        }
+
+        if ($financeKind === Invoice::OWN_ACCOUNT_FILTER) {
+            $invoiceQuery->where('is_own_account', true);
+
+            return;
+        }
+
+        if ($financeKind === 'missing') {
+            $invoiceQuery
+                ->where('is_own_account', false)
+                ->whereNull('income_type_id')
+                ->whereNull('expense_type_id');
+        }
+    }
+
     public static function getEloquentQuery(): Builder
     {
         return parent::getEloquentQuery()->with([
             'user',
             'orderItems.product.color.collection',
+            'invoices',
         ]);
     }
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

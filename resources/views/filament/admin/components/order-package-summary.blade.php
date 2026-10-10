@@ -19,10 +19,21 @@
                 maximumFractionDigits: 3,
             }) + ' kg';
         },
-        totalItems() {
-            const amounts = $wire.get('data.order_amounts') ?? $wire.data?.order_amounts ?? {};
+        collectAmounts() {
+            const amounts = { ...($wire.get('data.order_amounts') ?? $wire.data?.order_amounts ?? {}) };
 
-            return Object.values(amounts).reduce((sum, amount) => {
+            document.querySelectorAll('[data-order-amount-input]').forEach((input) => {
+                const productId = input.dataset.orderAmountInput;
+
+                if (productId) {
+                    amounts[productId] = input.value;
+                }
+            });
+
+            return amounts;
+        },
+        totalItems() {
+            return Object.values(this.collectAmounts()).reduce((sum, amount) => {
                 const qty = parseInt(amount || 0, 10);
 
                 if (! Number.isFinite(qty) || qty <= 0) {
@@ -33,7 +44,7 @@
             }, 0);
         },
         selectedPackage() {
-            const amounts = $wire.get('data.order_amounts') ?? $wire.data?.order_amounts ?? {};
+            const amounts = this.collectAmounts();
             const resolveFromProducts = this.resolvePackageFromProducts;
             const productPackageIds = this.productPackageIds;
             let id = $wire.get('data.package_id') ?? $wire.data?.package_id ?? @js($initialPackageId);
@@ -103,6 +114,7 @@
             this.totals.totalWeight = this.packageCount * (parseFloat(selected.total_weight || 0) || 0) + this.totals.wood;
         },
     }"
+    x-on:order-amounts-changed.window="update()"
     x-init="
         update();
         $wire.$watch('data.order_amounts', () => update(), { deep: true });

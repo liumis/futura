@@ -9,6 +9,7 @@ use App\Models\LeaveRequestType;
 use App\Services\LeaveRequestConfirmer;
 use App\Services\LeaveRequestDocumentGenerator;
 use App\Services\LithuanianLeavePaymentCalculator;
+use App\Support\ParentalLeaveRequestGuard;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -32,6 +33,13 @@ class CreateLeaveRequest extends CreateRecord
             $data['employee_id'] = $employeeId;
         }
 
+        $dateFrom = (string) request()->query('date_from', '');
+        $dateTo = (string) request()->query('date_to', $dateFrom);
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateFrom) === 1) {
+            $data['date_from'] = $dateFrom;
+            $data['date_to'] = preg_match('/^\d{4}-\d{2}-\d{2}$/', $dateTo) === 1 ? $dateTo : $dateFrom;
+        }
+
         $this->form->fill($data);
 
         $this->callHook('afterFill');
@@ -43,6 +51,8 @@ class CreateLeaveRequest extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        ParentalLeaveRequestGuard::assertAllowed($data);
+
         return LeaveRequestConfirmer::prepareFormData($data);
     }
 
@@ -146,12 +156,14 @@ class CreateLeaveRequest extends CreateRecord
             wasRecentlyCreated: true,
         );
 
-        $leave = $this->record->fresh(['extraApprovers']);
+        $leave = $this->record->fresh(['extraApprovers', 'orderDocument']);
 
         if ($leave?->isConfirmed()) {
             Notification::make()
                 ->title('Leave request confirmed')
-                ->body('All required confirmations and extra approvals are complete.')
+                ->body(filled($leave->order_document_id)
+                    ? 'Įsakymas was created and auto-approved.'
+                    : 'All required confirmations are complete.')
                 ->success()
                 ->send();
 

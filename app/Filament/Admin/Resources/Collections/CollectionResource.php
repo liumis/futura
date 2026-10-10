@@ -4,7 +4,6 @@ namespace App\Filament\Admin\Resources\Collections;
 
 use App\Models\Collection;
 use App\Models\OriginCountry;
-use App\Models\Supplier;
 use App\Models\Warehouse;
 use App\Support\Money;
 use BackedEnum;
@@ -34,7 +33,7 @@ class CollectionResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Catalog';
 
-    protected static ?int $navigationSort = 1;
+    protected static ?int $navigationSort = 3;
 
     public static function form(Schema $schema): Schema
     {
@@ -68,7 +67,16 @@ class CollectionResource extends Resource
                     ->minValue(0)
                     ->step(0.01)
                     ->prefix(Money::prefix())
-                    ->label('Price'),
+                    ->label('Price/m'),
+
+                Forms\Components\TextInput::make('cost')
+                    ->numeric()
+                    ->required()
+                    ->minValue(0)
+                    ->step(0.01)
+                    ->prefix(Money::prefix())
+                    ->default(0)
+                    ->label('Cost/m'),
 
                 Forms\Components\Select::make('country_of_origin')
                     ->label('Country of origin')
@@ -100,7 +108,21 @@ class CollectionResource extends Resource
                     ->formatStateUsing(fn (string $state, Collection $record): string => $state.' ('.$record->colors_count.')'),
 
                 Tables\Columns\TextInputColumn::make('price')
-                    ->label('Price')
+                    ->label('Price/m')
+                    ->type('number')
+                    ->step(0.01)
+                    ->prefix(Money::prefix())
+                    ->rules(['numeric', 'min:0'])
+                    ->width('7rem')
+                    ->grow(false)
+                    ->alignEnd()
+                    ->extraInputAttributes([
+                        'style' => 'text-align: left !important;',
+                    ])
+                    ->sortable(),
+
+                Tables\Columns\TextInputColumn::make('cost')
+                    ->label('Cost/m')
                     ->type('number')
                     ->step(0.01)
                     ->prefix(Money::prefix())
@@ -154,22 +176,22 @@ class CollectionResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

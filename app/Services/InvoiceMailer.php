@@ -141,27 +141,31 @@ class InvoiceMailer
             ];
         }
 
-        if (filled($invoice->file_content)) {
-            $binary = base64_decode((string) $invoice->file_content, true);
+        if (filled($invoice->sharepoint_item_id)) {
+            $binary = SharepointGraphClient::make()->downloadItemContent((string) $invoice->sharepoint_item_id);
 
-            if ($binary !== false) {
-                return [
-                    'data' => $binary,
-                    'name' => $invoice->file_name ?: 'invoice.pdf',
-                    'mime' => $invoice->file_mime ?: 'application/octet-stream',
-                ];
-            }
-        }
-
-        if (filled($invoice->pdf_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($invoice->pdf_path)) {
             return [
-                'data' => \Illuminate\Support\Facades\Storage::disk('public')->get($invoice->pdf_path),
-                'name' => $invoice->file_name ?: basename($invoice->pdf_path),
-                'mime' => $invoice->file_mime ?: 'application/pdf',
+                'data' => $binary,
+                'name' => $invoice->file_name ?: 'invoice.pdf',
+                'mime' => $invoice->file_mime ?: 'application/octet-stream',
             ];
         }
 
-        throw new \RuntimeException('No invoice file is available to attach.');
+        $languageFile = $invoice->sharepointFileForLanguage(($language ?? InvoiceLanguage::English)->value)
+            ?? $invoice->sharepointFileForLanguage('lt')
+            ?? $invoice->sharepointFileForLanguage('en');
+
+        if (is_array($languageFile) && filled($languageFile['item_id'] ?? null)) {
+            $binary = SharepointGraphClient::make()->downloadItemContent((string) $languageFile['item_id']);
+
+            return [
+                'data' => $binary,
+                'name' => (string) ($languageFile['name'] ?? ($invoice->file_name ?: 'invoice.pdf')),
+                'mime' => 'application/pdf',
+            ];
+        }
+
+        throw new \RuntimeException('No SharePoint invoice file is available to attach.');
     }
 
     private static function applyFrom(mixed $message): void

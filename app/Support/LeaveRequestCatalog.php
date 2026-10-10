@@ -7,16 +7,37 @@ final class LeaveRequestCatalog
     /**
      * Leave / document type names shown in the leave request UI.
      *
-     * @var array<string, string> name => calendar color
+     * @var array<string, array{color: string, timesheet_code: string|null}>
      */
     public const TYPES = [
-        'Kasmetinės atostogos' => '#3b82f6',
-        'Nedarbingumas' => '#ef4444',
-        'Neapmokamos atostogos' => '#f97316',
-        'Tėvadienis / Mamadienis' => '#a855f7',
-        'Komandiruotė' => '#14b8a6',
-        'Darbas nuotoliu' => '#22c55e',
-        'Kita' => '#6b7280',
+        'Kasmetinės atostogos' => [
+            'color' => '#3b82f6',
+            'timesheet_code' => 'A',
+        ],
+        'Nedarbingumas' => [
+            'color' => '#ef4444',
+            'timesheet_code' => 'L',
+        ],
+        'Neapmokamos atostogos' => [
+            'color' => '#f97316',
+            'timesheet_code' => 'NA',
+        ],
+        'Tėvadienis / Mamadienis' => [
+            'color' => '#a855f7',
+            'timesheet_code' => 'M',
+        ],
+        'Komandiruotė' => [
+            'color' => '#14b8a6',
+            'timesheet_code' => 'K',
+        ],
+        'Darbas nuotoliu' => [
+            'color' => '#22c55e',
+            'timesheet_code' => null,
+        ],
+        'Kita' => [
+            'color' => '#6b7280',
+            'timesheet_code' => 'KR',
+        ],
     ];
 
     /**

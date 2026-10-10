@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Documents\Pages;
 
+use App\Filament\Admin\Concerns\CreatesBrandedDocumentPdf;
 use App\Filament\Admin\Concerns\HasDokobitSigningModal;
 use App\Filament\Admin\Concerns\UploadsDocumentToSharepoint;
 use App\Filament\Admin\Resources\Documents\DocumentApprovalForm;
@@ -9,14 +10,16 @@ use App\Filament\Admin\Resources\Documents\DocumentCloneAction;
 use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Filament\Admin\Resources\Documents\DocumentSignAction;
 use App\Filament\Admin\Resources\Pages\EditRecord;
+use App\Filament\Admin\Support\DocumentConfirmationActions;
+use App\Services\DocumentConfirmationService;
 use Filament\Actions\Action;
-use Filament\Actions\DeleteAction;
 use Filament\Actions\RestoreAction;
 use Filament\Notifications\Notification;
 use RuntimeException;
 
 class EditDocument extends EditRecord
 {
+    use CreatesBrandedDocumentPdf;
     use HasDokobitSigningModal;
     use UploadsDocumentToSharepoint;
 
@@ -44,6 +47,8 @@ class EditDocument extends EditRecord
 
     protected bool $shouldApproveAfterSave = false;
 
+    protected bool $shouldMarkAsSigned = false;
+
     protected bool $approvedDuringSave = false;
 
     /**
@@ -62,8 +67,13 @@ class EditDocument extends EditRecord
             $this->halt();
         }
 
-        $this->pendingLocalUploads = $this->normalizeUploadedFilePaths($data['file_path'] ?? null);
+        $this->pendingLocalUploads = array_values(array_unique([
+            ...$this->normalizeUploadedFilePaths($data['file_path'] ?? null),
+            ...$this->generatedPdfPaths,
+        ]));
         $this->sharepointFileWasUploaded = $this->pendingLocalUploads !== [];
+        $this->shouldMarkAsSigned = (bool) ($data['mark_as_signed'] ?? false);
+        unset($data['mark_as_signed']);
         $this->pendingWorkflow = DocumentApprovalForm::extractFromFormData($data);
 
         try {
@@ -72,9 +82,11 @@ class EditDocument extends EditRecord
                 $this->pendingLocalUploads,
                 $this->record,
                 $this->shouldApproveAfterSave,
+                $this->shouldMarkAsSigned,
             );
         } catch (RuntimeException $exception) {
             $this->shouldApproveAfterSave = false;
+            $this->shouldMarkAsSigned = false;
 
             Notification::make()
                 ->title('Cannot save')
@@ -106,6 +118,31 @@ class EditDocument extends EditRecord
 
         $this->sharepointFileWasUploaded = false;
         $this->pendingLocalUploads = [];
+        $this->generatedPdfPaths = [];
+
+        if ($this->record) {
+            app(DocumentConfirmationService::class)
+                ->enrollDocument($this->record->fresh(['documentType', 'confirmationUsers']));
+        }
+
+        if ($this->shouldMarkAsSigned && $this->record) {
+            $this->shouldMarkAsSigned = false;
+            $this->shouldApproveAfterSave = false;
+            $this->record = DocumentApprovalForm::markUploadedAsSignedAfterSave($this->record);
+
+            if ($this->record?->hasCompletedSignature()) {
+                $this->approvedDuringSave = true;
+            }
+
+            $this->pendingWorkflow = [
+                DocumentApprovalForm::APPROVER_IDS => [],
+                DocumentApprovalForm::SIGNER_IDS => [],
+                DocumentApprovalForm::EXTERNAL_INVITEES => [],
+            ];
+            $this->fillForm();
+
+            return;
+        }
 
         if (
             $this->record?->canStartApprovalOrSigningWorkflow()
@@ -162,6 +199,10 @@ class EditDocument extends EditRecord
         if ($this->approvedDuringSave) {
             $this->approvedDuringSave = false;
 
+            if ($this->record?->hasCompletedSignature()) {
+                return 'Document saved and marked as signed';
+            }
+
             return 'Document saved and approved';
         }
 
@@ -195,7 +236,7 @@ class EditDocument extends EditRecord
             ->modalDescription(fn (): string => 'Save "'.$this->record->name.'" and approve it now? The document will be locked after approval. Do not select other approvers/signers for this action.')
             ->modalSubmitActionLabel('Save and approve')
             ->action('saveAndApprove')
-            ->visible(fn (): bool => $this->canSaveAndApprove());
+            ->visible(fn (): bool => $this->canSaveAndApprove() && ! (bool) ($this->data['mark_as_signed'] ?? false));
     }
 
     protected function canSaveAndApprove(): bool
@@ -210,6 +251,22 @@ class EditDocument extends EditRecord
     protected function buildHeaderActions(): array
     {
         return [
+            DocumentConfirmationActions::configureConfirmReadActionForDocument(
+                Action::make('confirmRead')
+                    ->label('Confirm I have read this')
+                    ->icon('heroicon-o-clipboard-document-check')
+                    ->color('warning')
+                    ->visible(function (): bool {
+                        $user = auth()->user();
+                        if ($user === null || $this->record === null || ($this->record->trashed() ?? false)) {
+                            return false;
+                        }
+
+                        return app(DocumentConfirmationService::class)
+                            ->pendingForUser($user, $this->record) !== null;
+                    })
+            ),
+
             Action::make('approve')
                 ->label('Approve')
                 ->icon('heroicon-o-check-badge')
@@ -261,11 +318,25 @@ class EditDocument extends EditRecord
                 ->record($this->getRecord())
                 ->visible(fn (): bool => ! ($this->record?->trashed() ?? true)),
 
+            $this->previewGeneratedPdfAction(),
+
             DocumentCloneAction::make()
                 ->record($this->getRecord()),
 
-            DeleteAction::make()
-                ->visible(fn (): bool => ! ($this->record?->trashed() ?? true)),
+            Action::make('deletePermanently')
+                ->label('Delete')
+                ->icon('heroicon-o-trash')
+                ->color('danger')
+                ->requiresConfirmation()
+                ->modalHeading('Permanently delete document')
+                ->modalDescription(fn (): string => 'This will permanently delete "'.($this->record?->name ?? 'this document').'" and remove its file(s) from SharePoint. This cannot be undone.')
+                ->modalSubmitActionLabel('Delete permanently')
+                ->visible(fn (): bool => $this->record !== null)
+                ->action(function (): void {
+                    $this->record?->forceDelete();
+                })
+                ->successNotificationTitle('Document deleted')
+                ->successRedirectUrl(DocumentResource::getUrl('index')),
 
             RestoreAction::make()
                 ->visible(fn (): bool => $this->record?->trashed() ?? false),

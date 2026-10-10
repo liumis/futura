@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Database\Factories\ColorFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -21,8 +22,22 @@ class Color extends Model
         'collection_id',
         'color_code',
         'color_name',
+        'recommended_stock',
+        'default_order',
         'image',
+        'hex',
     ];
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'recommended_stock' => 'integer',
+            'default_order' => 'integer',
+        ];
+    }
 
     public static function storageDisk(): string
     {
@@ -51,6 +66,21 @@ class Color extends Model
         return $storage->url($this->image);
     }
 
+    public function normalizedHex(): ?string
+    {
+        $hex = strtoupper(trim((string) ($this->hex ?? '')));
+
+        if ($hex !== '' && ! str_starts_with($hex, '#')) {
+            $hex = '#'.$hex;
+        }
+
+        if ($hex === '' || ! preg_match('/^#[0-9A-F]{6}$/', $hex)) {
+            return null;
+        }
+
+        return $hex;
+    }
+
     public function collection(): BelongsTo
     {
         return $this->belongsTo(Collection::class);
@@ -59,5 +89,46 @@ class Color extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Total stock meters for this color (artificial leather products only).
+     */
+    public function stockMeters(): float
+    {
+        return round((float) $this->products()
+            ->artificialLeather()
+            ->get()
+            ->sum(fn (Product $product): float => $product->stockMeters()), 3);
+    }
+
+    /**
+     * SQL subquery: sum of artificial leather product stock meters for colors.id.
+     */
+    public static function stockMetersSqlExpression(): string
+    {
+        $meters = Product::stockMetersSqlExpression();
+        $leatherKey = ProductType::KEY_ARTIFICIAL_LEATHER;
+
+        return "(
+            SELECT COALESCE(SUM({$meters}), 0)
+            FROM products
+            INNER JOIN product_types ON product_types.id = products.product_type_id
+            WHERE products.color_id = colors.id
+              AND product_types.`key` = '{$leatherKey}'
+        )";
+    }
+
+    /**
+     * Artificial-leather colors whose total stock meters are below recommended_stock.
+     */
+    public function scopeBelowRecommendedStock(Builder $query): Builder
+    {
+        $meters = self::stockMetersSqlExpression();
+
+        return $query
+            ->where('recommended_stock', '>', 0)
+            ->whereHas('products', fn (Builder $products): Builder => $products->artificialLeather())
+            ->whereRaw("{$meters} < colors.recommended_stock");
     }
 }

@@ -2,16 +2,17 @@
 
 namespace App\Filament\Admin\Support;
 
+use App\Models\Invoice;
 use App\Models\OriginCountry;
 use Filament\Forms;
 use Filament\Schemas\Schema;
 
 class CompanyProfileSchema
 {
-    public static function configure(Schema $schema, ?string $statePath = null): Schema
+    public static function configure(Schema $schema, ?string $statePath = null, bool $forContact = false): Schema
     {
         $schema = $schema
-            ->components(self::components())
+            ->components(self::components($forContact))
             ->columns(2);
 
         if ($statePath !== null) {
@@ -24,9 +25,9 @@ class CompanyProfileSchema
     /**
      * @return array<int, Forms\Components\Component>
      */
-    public static function components(): array
+    public static function components(bool $forContact = false): array
     {
-        return [
+        $components = [
             Forms\Components\TextInput::make('company_name')
                 ->label('Company name')
                 ->required()
@@ -37,7 +38,9 @@ class CompanyProfileSchema
                 ->options(OriginCountry::options())
                 ->searchable()
                 ->preload()
-                ->required(),
+                ->placeholder('Select country')
+                ->default(null)
+                ->nullable(),
 
             Forms\Components\TextInput::make('company_id')
                 ->label('Company id')
@@ -63,22 +66,54 @@ class CompanyProfileSchema
                 ->label('Company phone')
                 ->tel()
                 ->maxLength(255),
+        ];
 
-            Forms\Components\TextInput::make('company_iban')
+        if ($forContact) {
+            $components[] = Forms\Components\Select::make('default_finance_type')
+                ->label('Default service category')
+                ->options(fn (): array => Invoice::financeCategorySelectOptions())
+                ->searchable()
+                ->preload()
+                ->native(false)
+                ->nullable()
+                ->helperText('Used as the Category when uploading an invoice for this contact.')
+                ->columnSpanFull();
+
+            $components[] = Forms\Components\TextInput::make('bank_account')
+                ->label('Bank account (IBAN)')
+                ->helperText('Used as the payee account for invoice bank payments (SEB).')
+                ->maxLength(34)
+                ->dehydrateStateUsing(fn (?string $state): ?string => filled($state)
+                    ? strtoupper(preg_replace('/\s+/', '', $state) ?? '')
+                    : null);
+
+            $components[] = Forms\Components\TextInput::make('bank_bic')
+                ->label('BIC')
+                ->helperText('Optional. SEB Lithuania is often CBVILT2X.')
+                ->maxLength(11)
+                ->dehydrateStateUsing(fn (?string $state): ?string => filled($state)
+                    ? strtoupper(preg_replace('/\s+/', '', $state) ?? '')
+                    : null);
+        } else {
+            $components[] = Forms\Components\TextInput::make('company_iban')
                 ->label('Company IBAN')
                 ->helperText('Used as the payer account for SEPA salary exports (e.g. SEB).')
                 ->maxLength(34)
                 ->dehydrateStateUsing(fn (?string $state): ?string => filled($state)
                     ? strtoupper(preg_replace('/\s+/', '', $state) ?? '')
-                    : null),
+                    : null);
 
-            Forms\Components\TextInput::make('company_bic')
+            $components[] = Forms\Components\TextInput::make('company_bic')
                 ->label('Company BIC')
                 ->helperText('Optional. SEB Lithuania is often CBVILT2X.')
                 ->maxLength(11)
                 ->dehydrateStateUsing(fn (?string $state): ?string => filled($state)
                     ? strtoupper(preg_replace('/\s+/', '', $state) ?? '')
-                    : null),
+                    : null);
+        }
+
+        $components = [
+            ...$components,
 
             Forms\Components\TextInput::make('contact_name')
                 ->label('Contact name')
@@ -94,5 +129,15 @@ class CompanyProfileSchema
                 ->tel()
                 ->maxLength(255),
         ];
+
+        if ($forContact) {
+            $components[] = Forms\Components\Toggle::make('private_provider')
+                ->label('Private provider')
+                ->helperText('Invoices for this contact are marked as Private provider and included in GPM312.')
+                ->default(false)
+                ->columnSpanFull();
+        }
+
+        return $components;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\EmployeeContractStatus;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -25,6 +26,9 @@ class EmployeeContract extends Model
         'status',
         'state_percentage',
         'document_id',
+        'termination_date',
+        'termination_reason',
+        'termination_document_id',
     ];
 
     /**
@@ -44,6 +48,7 @@ class EmployeeContract extends Model
             'sign_date' => 'date',
             'effective_date_from' => 'date',
             'valid_to' => 'date',
+            'termination_date' => 'date',
             'base_salary' => 'decimal:2',
             'default_bonus' => 'decimal:2',
             'status' => EmployeeContractStatus::class,
@@ -71,9 +76,43 @@ class EmployeeContract extends Model
         return $this->hasOne(EmployeeContractSigning::class)->latestOfMany();
     }
 
+    public function terminationDocument(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'termination_document_id');
+    }
+
     public function canStartSigning(): bool
     {
-        return $this->status !== EmployeeContractStatus::Inactive;
+        return $this->status !== EmployeeContractStatus::Inactive
+            && blank($this->termination_document_id);
+    }
+
+    public function isTerminated(): bool
+    {
+        return $this->status === EmployeeContractStatus::Inactive
+            && filled($this->termination_date);
+    }
+
+    public function hasPendingTermination(): bool
+    {
+        if (blank($this->termination_document_id) || $this->status === EmployeeContractStatus::Inactive) {
+            return false;
+        }
+
+        $this->loadMissing('terminationDocument');
+
+        return $this->terminationDocument?->awaitsDokobitSignature() === true
+            || $this->terminationDocument?->isApproved() !== true;
+    }
+
+    public function canEnd(): bool
+    {
+        if ($this->status === EmployeeContractStatus::Inactive) {
+            return false;
+        }
+
+        return $this->status === EmployeeContractStatus::Signed
+            || $this->hasPendingTermination();
     }
 
     /**
@@ -119,5 +158,98 @@ class EmployeeContract extends Model
                     ->whereNull('valid_to')
                     ->orWhereDate('valid_to', '>=', $start->toDateString());
             });
+    }
+
+    /**
+     * Other contracts for the same employee whose period overlaps this one.
+     *
+     * @return Collection<int, EmployeeContract>
+     */
+    public static function findOverlappingForEmployee(
+        int $employeeId,
+        Carbon|string|null $effectiveFrom,
+        Carbon|string|null $validTo = null,
+        ?int $ignoreId = null,
+    ): Collection {
+        if ($employeeId <= 0 || blank($effectiveFrom)) {
+            return new Collection;
+        }
+
+        return static::query()
+            ->overlappingPeriod($employeeId, $effectiveFrom, $validTo, $ignoreId)
+            ->orderBy('effective_date_from')
+            ->orderBy('id')
+            ->get();
+    }
+
+    public static function overlapWarningMessage(
+        int $employeeId,
+        Carbon|string|null $effectiveFrom,
+        Carbon|string|null $validTo = null,
+        ?int $ignoreId = null,
+    ): ?string {
+        $overlaps = static::findOverlappingForEmployee($employeeId, $effectiveFrom, $validTo, $ignoreId);
+
+        if ($overlaps->isEmpty()) {
+            return null;
+        }
+
+        $details = $overlaps
+            ->map(function (self $contract): string {
+                $from = $contract->effective_date_from?->toDateString() ?? '—';
+                $to = $contract->valid_to?->toDateString() ?? 'open-ended';
+
+                return '#'.$contract->getKey().' ('.$from.' – '.$to.')';
+            })
+            ->implode(', ');
+
+        return 'This contract starts while another contract is still active for the same person: '
+            .$details
+            .'. You can still save. After this contract is signed, the overlapping contract(s) will get an end date.';
+    }
+
+    /**
+     * Close overlapping contracts for the same employee by setting valid_to
+     * to the day before this contract starts.
+     */
+    public function closeOverlappingContracts(): int
+    {
+        if ($this->status !== EmployeeContractStatus::Signed) {
+            return 0;
+        }
+
+        $from = $this->effective_date_from;
+        if (! $from instanceof Carbon) {
+            return 0;
+        }
+
+        $proposedEnd = $from->copy()->subDay();
+        $closed = 0;
+
+        foreach (static::findOverlappingForEmployee(
+            employeeId: (int) $this->employee_id,
+            effectiveFrom: $from,
+            validTo: $this->valid_to,
+            ignoreId: $this->exists ? (int) $this->getKey() : null,
+        ) as $other) {
+            $endDate = $proposedEnd->copy();
+            $otherStart = $other->effective_date_from;
+
+            if ($otherStart instanceof Carbon && $endDate->lt($otherStart)) {
+                $endDate = $otherStart->copy();
+            }
+
+            if ($other->valid_to instanceof Carbon && $other->valid_to->lte($endDate)) {
+                continue;
+            }
+
+            $other->update([
+                'valid_to' => $endDate,
+                'status' => EmployeeContractStatus::Inactive,
+            ]);
+            $closed++;
+        }
+
+        return $closed;
     }
 }

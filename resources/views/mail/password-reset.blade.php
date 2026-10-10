@@ -10,7 +10,7 @@
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0f2f5;padding:32px 16px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(43,58,103,0.08);">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:560px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
                     <tr>
                         <td style="padding:32px 40px 24px;text-align:center;border-bottom:1px solid #e8ecf1;">
                             <img src="{{ $logoUrl }}" alt="{{ $appName }}" width="200" height="auto" style="display:block;margin:0 auto;max-width:200px;height:auto;">
@@ -29,7 +29,7 @@
                             </p>
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 28px;">
                                 <tr>
-                                    <td style="border-radius:8px;background-color:#2b3a67;">
+                                    <td style="border-radius:8px;background-color:#111111;">
                                         <a href="{{ $actionUrl }}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 28px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
                                             Set new password
                                         </a>

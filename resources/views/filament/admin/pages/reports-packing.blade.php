@@ -1,8 +1,14 @@
 <x-filament-panels::page>
     <section class="fi-report-filters">
-        <div class="fi-report-filters__header">
-            <h2 class="fi-report-filters__title">Filters</h2>
-            <p class="fi-report-filters__description">Filter packing data by date, package profile, and customer type.</p>
+        <div class="fi-report-filters__header flex items-start justify-between gap-4">
+            <div class="fi-report-filters__heading min-w-0">
+                <h2 class="fi-report-filters__title">Filters</h2>
+                <p class="fi-report-filters__description">Filter packing data by date, package profile, and internal vs export customers.</p>
+            </div>
+            <div class="fi-report-filters__actions shrink-0 flex flex-wrap items-center justify-end gap-2">
+                {{ $this->generateInternalReportAction }}
+                {{ $this->generateExportReportAction }}
+            </div>
         </div>
         <div class="fi-report-filters__body">
             {{ $this->form }}
@@ -15,26 +21,12 @@
 
     @php
         $totals = $this->totals();
-        $from = $this->data['from'] ?? null;
-        $until = $this->data['until'] ?? null;
-        $export = $this->data['export'] ?? 'all';
-        $packageId = $this->data['package_id'] ?? 'all';
-        $exportLabel = match ($export) {
-            'yes' => 'Export customers only',
-            'no' => 'Non-export customers only',
-            default => 'All customers',
-        };
-        $periodLabel = filled($from) && filled($until)
-            ? $from.' — '.$until
-            : 'All dates';
-        $packageLabel = $packageId === 'all' || ! filled($packageId)
-            ? 'All package profiles'
-            : 'Selected package profile only';
+        $filters = $this->filterContext();
     @endphp
 
     @include('filament.admin.components.report-stat-summary', [
         'title' => 'Packing summary',
-        'description' => $periodLabel.' · '.$packageLabel.' · '.$exportLabel,
+        'description' => $filters['period_label'].' · '.$filters['package_label'].' · '.$filters['audience_label'],
         'footer' => $totals['orders'].' order(s) included · weights calculated from order package profiles.',
         'stats' => $totals['orders'] === 0 ? [] : [
             ['label' => 'Orders', 'value' => number_format($totals['orders'])],

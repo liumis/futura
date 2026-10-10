@@ -3,29 +3,23 @@
 namespace App\Services;
 
 use App\Enums\NotificationType;
-use App\Models\Product;
-use App\Models\SystemSetting;
+use App\Models\Color;
 use App\Models\User;
 use App\Notifications\LowStockNotification;
+use Illuminate\Support\Collection;
 
 class LowStockNotifier
 {
     /**
-     * Notify eligible users about products below the low stock alert limit.
+     * Notify eligible users about colors below their recommended stock.
      *
      * @return int Number of users notified.
      */
     public static function run(): int
     {
-        $limit = SystemSetting::instance()->lowStockAlertLimit();
+        $colorCount = Color::query()->belowRecommendedStock()->count();
 
-        if ($limit <= 0) {
-            return 0;
-        }
-
-        $productCount = Product::query()->belowStockMeterLimit($limit)->count();
-
-        if ($productCount === 0) {
+        if ($colorCount === 0) {
             return 0;
         }
 
@@ -37,7 +31,7 @@ class LowStockNotifier
                 continue;
             }
 
-            $user->notify(new LowStockNotification($productCount, $limit));
+            $user->notify(new LowStockNotification($colorCount));
             $notified++;
         }
 
@@ -47,9 +41,9 @@ class LowStockNotifier
     /**
      * Users who opted in to low stock notifications.
      *
-     * @return \Illuminate\Support\Collection<int, User>
+     * @return Collection<int, User>
      */
-    private static function recipients(): \Illuminate\Support\Collection
+    private static function recipients(): Collection
     {
         return User::query()
             ->whereNotNull('notification_types')

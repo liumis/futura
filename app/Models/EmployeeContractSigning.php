@@ -69,6 +69,15 @@ class EmployeeContractSigning extends Model
         return $this->status === EmployeeContractSigningStatus::Completed;
     }
 
+    public function isTermination(): bool
+    {
+        $this->loadMissing('contract');
+
+        return $this->contract !== null
+            && filled($this->contract->termination_document_id)
+            && (int) $this->contract->termination_document_id === (int) $this->document_id;
+    }
+
     /**
      * @return list<string>
      */

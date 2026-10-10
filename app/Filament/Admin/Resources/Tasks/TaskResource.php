@@ -8,6 +8,7 @@ use App\Filament\Admin\Resources\Tasks\Pages\CreateTask;
 use App\Filament\Admin\Resources\Tasks\Pages\EditTask;
 use App\Filament\Admin\Resources\Tasks\Pages\ListTasks;
 use App\Filament\Admin\Resources\Tasks\Pages\TaskComments;
+use App\Livewire\ImageDrawAnnotator;
 use App\Models\Project;
 use App\Models\Todo;
 use App\Models\TodoComment;
@@ -27,7 +28,6 @@ use Filament\Forms\Components\Toggle;
 use Filament\Forms\Set;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
-use App\Livewire\ImageDrawAnnotator;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
 use Filament\Schemas\Components\Livewire as SchemaLivewire;
@@ -40,8 +40,10 @@ use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\HtmlString;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\URL;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
 use UnitEnum;
 
@@ -79,7 +81,7 @@ class TaskResource extends Resource
 
                         return [
                             'id' => $comment->getKey(),
-                            'author_name' => (string) ($comment->user?->name ?? $comment->user?->email ?? 'Unknown user'),
+                            'author_name' => $comment->user?->displayName() ?: 'Unknown user',
                             'created_at_label' => (string) ($comment->created_at?->format('Y-m-d H:i:s') ?? ''),
                             'content' => (string) $comment->content,
                             'attachments' => $comment->attachments ?? [],
@@ -203,7 +205,7 @@ class TaskResource extends Resource
                 'can_edit' => (int) ($record->user_id ?? 0) === (int) (auth()->id() ?? 0),
                 'title' => (string) $record->title,
                 'project_id' => $record->project_id,
-                'user_name' => (string) ($record->user?->name ?? $record->user?->email ?? '—'),
+                'user_name' => $record->user?->displayName() ?: '—',
                 'status' => (string) ($record->status?->value ?? '—'),
                 'priority' => (string) ($record->priority?->value ?? 'regular'),
                 'archived' => (bool) $record->archived,
@@ -368,15 +370,15 @@ class TaskResource extends Resource
                     ->label('Start date')
                     ->default(fn (): string => now()->addDay()->setTime(17, 0)->format('Y-m-d H:i:s')),
 
-                Forms\Components\Toggle::make('all_day')
+                Toggle::make('all_day')
                     ->label('All-day')
                     ->helperText('Synced to Outlook as an all-day event when calendar sync is enabled.'),
 
-                Forms\Components\Toggle::make('calendar_sync_enabled')
+                Toggle::make('calendar_sync_enabled')
                     ->label('Sync to Outlook Calendar')
                     ->helperText('Requires a connected Outlook calendar under System → Outlook Calendar. Scheduling changes sync both ways; deleting the Outlook event never deletes this task.'),
 
-                Forms\Components\Textarea::make('description')
+                Textarea::make('description')
                     ->rows(5)
                     ->columnSpanFull(),
 
@@ -693,7 +695,7 @@ class TaskResource extends Resource
                             ->icon('heroicon-o-chat-bubble-left-ellipsis')
                             ->extraAttributes([
                                 'class' => 'ss-new-comment-form',
-                                'style' => 'border:1px solid #cbd5e1;border-left:4px solid #2b3a67;background:linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%);border-radius:0.75rem;',
+                                'style' => 'border:1px solid #cbd5e1;border-left:4px solid #111111;background:linear-gradient(180deg,#f8fafc 0%,#eef2f7 100%);border-radius:0.75rem;',
                             ])
                             ->schema([
                                 Textarea::make('new_comment_content')
@@ -834,7 +836,7 @@ class TaskResource extends Resource
                             return null;
                         }
 
-                        $author = (string) ($comment->user?->name ?? $comment->user?->email ?? 'Unknown user');
+                        $author = $comment->user?->displayName() ?: 'Unknown user';
                         $date = (string) ($comment->created_at?->format('Y-m-d H:i:s') ?? '');
                         $content = (string) ($comment->content ?? '');
 
@@ -944,22 +946,22 @@ class TaskResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     /**
@@ -1222,7 +1224,7 @@ class TaskResource extends Resource
             $history = collect($get('comments_history') ?? [])->values()->all();
             array_unshift($history, [
                 'id' => null,
-                'author_name' => (string) (auth()->user()?->name ?? auth()->user()?->email ?? 'You'),
+                'author_name' => auth()->user()?->displayName() ?: 'You',
                 'created_at_label' => now()->format('Y-m-d H:i:s'),
                 'content' => $comment,
                 'attachments' => $attachments,
@@ -1238,7 +1240,6 @@ class TaskResource extends Resource
     }
 
     /**
-     * @param  mixed  $attachments
      * @return list<array<string, mixed>>
      */
     public static function drawableTaskImages(?Todo $record, mixed $attachments = []): array
@@ -1278,9 +1279,9 @@ class TaskResource extends Resource
 
             $uploadedAt = null;
             try {
-                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
-                    $uploadedAt = \Illuminate\Support\Carbon::createFromTimestamp(
-                        \Illuminate\Support\Facades\Storage::disk('public')->lastModified($path)
+                if (Storage::disk('public')->exists($path)) {
+                    $uploadedAt = Carbon::createFromTimestamp(
+                        Storage::disk('public')->lastModified($path)
                     )->toIso8601String();
                 }
             } catch (\Throwable) {
@@ -1292,7 +1293,7 @@ class TaskResource extends Resource
                 'key' => 'local:'.$path,
                 'label' => 'New upload: '.basename(str_replace('\\', '/', $path)),
                 'path' => $path,
-                'view_url' => \Illuminate\Support\Facades\URL::temporarySignedRoute(
+                'view_url' => URL::temporarySignedRoute(
                     'annotate.preview',
                     now()->addMinutes(60),
                     ['path' => $path],
@@ -1329,7 +1330,7 @@ class TaskResource extends Resource
     {
         return [
             'id' => $comment->getKey(),
-            'author_name' => (string) ($comment->user?->name ?? $comment->user?->email ?? 'Unknown user'),
+            'author_name' => $comment->user?->displayName() ?: 'Unknown user',
             'created_at_label' => (string) ($comment->created_at?->format('Y-m-d H:i:s') ?? ''),
             'content' => (string) $comment->content,
             'attachments' => array_values(array_filter((array) ($comment->attachments ?? []))),

@@ -10,11 +10,15 @@ use App\Models\Employee;
 use App\Models\EmployeeContract;
 use App\Models\EmployeeContractSigning;
 use App\Models\EmployeeContractSigningSigner;
+use App\Models\SharepointSetting;
 use App\Models\User;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Livewire\Features\SupportFileUploads\TemporaryUploadedFile;
 use RuntimeException;
 
 class EmployeeContractSigner
@@ -60,9 +64,7 @@ class EmployeeContractSigner
             throw new RuntimeException('No valid signers selected.');
         }
 
-        $client = DokobitGatewayClient::make();
-
-        return DB::transaction(function () use ($contract, $signerRows, $creator, $client, $employee): EmployeeContractSigning {
+        return DB::transaction(function () use ($contract, $signerRows, $creator, $employee): EmployeeContractSigning {
             $binary = EmployeeContractPdfGenerator::generate($contract);
             $document = self::storeDocument($contract, $binary, $creator);
 
@@ -74,51 +76,12 @@ class EmployeeContractSigner
                 'created_by' => $creator->getKey(),
             ]);
 
-            $dokobitSigners = [];
-            foreach ($signerRows as $index => $row) {
-                $dokobitSigners[] = [
-                    'id' => $row['signer_key'],
-                    'name' => $row['name'],
-                    'surname' => $row['surname'] !== '' ? $row['surname'] : '-',
-                    'signing_purpose' => 'signature',
-                ];
-            }
-
-            $filename = 'employee-contract-'.$contract->getKey().'.pdf';
-            $upload = $client->uploadFileContent($filename, $binary);
-            $client->waitUntilUploaded($upload['token']);
-
-            $postbackUrl = self::postbackUrl();
-
-            $created = $client->createSigning(
-                name: $signing->name,
-                signers: $dokobitSigners,
-                files: [['token' => $upload['token']]],
-                postbackUrl: $postbackUrl,
+            self::createDokobitSigning(
+                $signing,
+                $binary,
+                $signerRows,
+                'employee-contract-'.$contract->getKey().'.pdf',
             );
-
-            $signing->update([
-                'dokobit_token' => $created['token'],
-                'dokobit_file_token' => $upload['token'],
-            ]);
-
-            foreach ($signerRows as $row) {
-                $accessToken = $created['signers'][$row['signer_key']] ?? null;
-
-                EmployeeContractSigningSigner::query()->create([
-                    'employee_contract_signing_id' => $signing->getKey(),
-                    'signer_key' => $row['signer_key'],
-                    'user_id' => $row['user_id'],
-                    'employee_id' => $row['employee_id'],
-                    'name' => $row['name'],
-                    'surname' => $row['surname'],
-                    'email' => $row['email'],
-                    'dokobit_access_token' => $accessToken,
-                    'signing_url' => filled($accessToken)
-                        ? $client->signingUrl($created['token'], (string) $accessToken)
-                        : null,
-                ]);
-            }
 
             $contract->update([
                 'document_id' => $document->getKey(),
@@ -126,6 +89,69 @@ class EmployeeContractSigner
             ]);
 
             return $signing->fresh(['signers', 'document', 'contract']);
+        });
+    }
+
+    /**
+     * Start Dokobit for an already stored document without replacing the employment contract PDF.
+     *
+     * @param  list<string>  $signerKeys
+     */
+    public static function startForExistingDocument(
+        EmployeeContract $contract,
+        Document $document,
+        string $binary,
+        array $signerKeys,
+        User $creator,
+        string $signingName,
+        string $filename,
+    ): EmployeeContractSigning {
+        if ($contract->status === EmployeeContractStatus::Inactive) {
+            throw new RuntimeException('Inactive contracts cannot be signed.');
+        }
+
+        $pending = EmployeeContractSigning::query()
+            ->where('employee_contract_id', $contract->getKey())
+            ->where('status', EmployeeContractSigningStatus::Pending->value)
+            ->exists();
+
+        if ($pending) {
+            throw new RuntimeException('This contract already has a signing in progress. Finish or cancel it first.');
+        }
+
+        $keys = collect($signerKeys)
+            ->map(fn ($key): string => (string) $key)
+            ->filter(fn (string $key): bool => $key !== '')
+            ->unique()
+            ->values();
+
+        if ($keys->isEmpty()) {
+            throw new RuntimeException('Select at least one person for signing.');
+        }
+
+        $contract->loadMissing('employee');
+        $employee = $contract->employee;
+
+        if (! $employee instanceof Employee) {
+            throw new RuntimeException('Contract has no employee.');
+        }
+
+        $signerRows = self::resolveSignerRows($keys, $employee);
+
+        if ($signerRows->isEmpty()) {
+            throw new RuntimeException('No valid signers selected.');
+        }
+
+        return DB::transaction(function () use ($contract, $document, $binary, $signerRows, $creator, $signingName, $filename): EmployeeContractSigning {
+            $signing = EmployeeContractSigning::query()->create([
+                'employee_contract_id' => $contract->getKey(),
+                'document_id' => $document->getKey(),
+                'name' => $signingName,
+                'status' => EmployeeContractSigningStatus::Pending,
+                'created_by' => $creator->getKey(),
+            ]);
+
+            return self::createDokobitSigning($signing, $binary, $signerRows, $filename);
         });
     }
 
@@ -251,21 +277,26 @@ class EmployeeContractSigner
 
             $document = $signing->document;
             if ($document instanceof Document) {
-                DocumentBinaryStore::storeBinary(
+                $signedName = $signing->isTermination()
+                    ? 'employee-contract-termination-signed-'.$signing->employee_contract_id.'.pdf'
+                    : 'employee-contract-signed-'.$signing->employee_contract_id.'.pdf';
+                $localPath = 'employee-contracts/'.$signedName;
+                Storage::disk('public')->put($localPath, $signedBinary);
+
+                self::persistBinaryToDocument(
                     $document->fresh(['documentType']),
                     $signedBinary,
-                    'employee-contract-signed-'.$signing->employee_contract_id.'.pdf',
+                    $signedName,
+                    $localPath,
                 );
 
-                $document->update([
-                    'file_path' => null,
-                    'approved_file_path' => null,
+                $document->forceFill([
                     'flag_approved' => true,
                     'user_approved_id' => $signing->created_by,
                     'approval_date' => now(),
                     'content_hash' => hash('sha256', $signedBinary),
                     'pdf_hash' => hash('sha256', $signedBinary),
-                ]);
+                ])->save();
             }
 
             $signing->signers()
@@ -278,10 +309,17 @@ class EmployeeContractSigner
             ]);
 
             if ($signing->contract) {
-                $signing->contract->update([
-                    'status' => EmployeeContractStatus::Signed,
-                    'document_id' => $document?->getKey() ?? $signing->contract->document_id,
-                ]);
+                if ($signing->isTermination()) {
+                    EmployeeContractTerminator::applyTermination($signing->contract);
+                } else {
+                    $signing->contract->update([
+                        'status' => EmployeeContractStatus::Signed,
+                        'document_id' => $document?->getKey() ?? $signing->contract->document_id,
+                    ]);
+
+                    $signing->contract->refresh();
+                    $signing->contract->closeOverlappingContracts();
+                }
             }
         });
     }
@@ -395,23 +433,7 @@ class EmployeeContractSigner
 
     protected static function storeDocument(EmployeeContract $contract, string $binary, User $creator): Document
     {
-        $type = DocumentType::query()->firstOrCreate(
-            ['name' => 'Employee contract'],
-            [],
-        );
-
-        $employeeName = $contract->employee?->fullName() ?: ('#'.$contract->employee_id);
-
-        $document = Document::query()->create([
-            'document_date' => now(),
-            'name' => 'Employment contract — '.$employeeName,
-            'document_type_id' => $type->getKey(),
-            'file_path' => null,
-            'user_uploaded_id' => $creator->getKey(),
-            'flag_approved' => false,
-            'content_hash' => hash('sha256', $binary),
-            'pdf_hash' => hash('sha256', $binary),
-        ]);
+        $document = self::makeContractDocument($contract, $binary, $creator);
 
         DocumentBinaryStore::storeBinary(
             $document->fresh(['documentType']),
@@ -420,5 +442,299 @@ class EmployeeContractSigner
         );
 
         return $document->fresh(['documentType']);
+    }
+
+    /**
+     * Attach an already-signed scan/PDF to the contract (no Dokobit).
+     */
+    public static function attachSignedUpload(EmployeeContract $contract, string $localPath, User $uploader): Document
+    {
+        if (! Storage::disk('public')->exists($localPath)) {
+            throw new RuntimeException('Signed document file was not found.');
+        }
+
+        $binary = (string) Storage::disk('public')->get($localPath);
+        if ($binary === '') {
+            throw new RuntimeException('Signed document file is empty.');
+        }
+
+        $contract->loadMissing(['employee', 'document.documentType']);
+
+        $original = basename(str_replace('\\', '/', $localPath));
+        $ext = strtolower((string) pathinfo($original, PATHINFO_EXTENSION));
+        if ($ext === '') {
+            $ext = 'pdf';
+        }
+        $remoteName = 'employee-contract-'.$contract->getKey().'-signed.'.$ext;
+
+        $document = $contract->document;
+        if (! $document instanceof Document) {
+            $document = self::makeContractDocument($contract, $binary, $uploader, approved: true);
+        }
+
+        self::persistDocumentBinary($document, $binary, $remoteName, $localPath);
+
+        $document->forceFill([
+            'flag_approved' => true,
+            'user_approved_id' => $uploader->getKey(),
+            'approval_date' => now(),
+            'content_hash' => hash('sha256', $binary),
+            'pdf_hash' => hash('sha256', $binary),
+        ])->save();
+
+        if ((int) ($contract->document_id ?? 0) !== (int) $document->getKey()) {
+            $contract->update(['document_id' => $document->getKey()]);
+        }
+
+        return $document->fresh(['documentType']);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function normalizeUploadPaths(mixed $state): array
+    {
+        if ($state === null || $state === '') {
+            return [];
+        }
+
+        $items = is_array($state) ? $state : [$state];
+        $paths = [];
+
+        foreach ($items as $item) {
+            if (is_array($item)) {
+                continue;
+            }
+
+            $path = self::normalizeUploadPath($item);
+            if ($path !== null && ! in_array($path, $paths, true)) {
+                $paths[] = $path;
+            }
+        }
+
+        return $paths;
+    }
+
+    /**
+     * Store one or more local files on the document (SharePoint when configured).
+     *
+     * @param  list<string>  $localPaths
+     */
+    public static function persistDocumentFiles(Document $document, array $localPaths, bool $allowWhenLocked = false): void
+    {
+        $localPaths = array_values(array_unique(array_filter(
+            $localPaths,
+            fn ($path): bool => filled($path),
+        )));
+
+        if ($localPaths === []) {
+            return;
+        }
+
+        foreach ($localPaths as $path) {
+            if (! Storage::disk('public')->exists((string) $path)) {
+                throw new RuntimeException('Signed document file was not found.');
+            }
+        }
+
+        if (SharepointSetting::instance()->isReady()) {
+            DocumentBinaryStore::ingestLocalUploads(
+                $document->fresh(['documentType']),
+                $localPaths,
+                $allowWhenLocked,
+            );
+
+            return;
+        }
+
+        $meta = [];
+        if (is_array($document->sharepoint_files)) {
+            $meta = array_values(array_filter(
+                $document->sharepoint_files,
+                fn ($row): bool => is_array($row) && filled($row['path'] ?? null),
+            ));
+        }
+
+        if ($meta === [] && filled($document->file_path)) {
+            $meta[] = self::localFileMeta((string) $document->file_path);
+        }
+
+        $existingPaths = array_map(
+            fn (array $row): string => (string) $row['path'],
+            $meta,
+        );
+
+        foreach ($localPaths as $path) {
+            if (in_array($path, $existingPaths, true)) {
+                continue;
+            }
+
+            $meta[] = self::localFileMeta($path);
+            $existingPaths[] = $path;
+        }
+
+        $document->forceFill([
+            'file_path' => $document->file_path ?: $localPaths[0],
+            'sharepoint_files' => $meta !== [] ? $meta : null,
+        ])->save();
+    }
+
+    /**
+     * @return array{name: string, path: string, item_id: null, web_url: string}
+     */
+    protected static function localFileMeta(string $path): array
+    {
+        return [
+            'name' => basename(str_replace('\\', '/', $path)),
+            'path' => $path,
+            'item_id' => null,
+            'web_url' => Storage::disk('public')->url($path),
+        ];
+    }
+
+    public static function normalizeUploadPath(mixed $state): ?string
+    {
+        if (is_array($state)) {
+            $state = $state[0] ?? null;
+        }
+
+        if ($state instanceof TemporaryUploadedFile || $state instanceof UploadedFile) {
+            $ext = strtolower((string) $state->getClientOriginalExtension());
+            if ($ext === '') {
+                $ext = 'pdf';
+            }
+
+            $stored = $state->storeAs(
+                'employee-contracts',
+                (string) Str::ulid().'.'.$ext,
+                'public',
+            );
+
+            return is_string($stored) && $stored !== '' ? $stored : null;
+        }
+
+        if (! is_string($state) || trim($state) === '') {
+            return null;
+        }
+
+        return trim($state);
+    }
+
+    public static function persistBinaryToDocument(
+        Document $document,
+        string $binary,
+        string $fileName,
+        ?string $localPath = null,
+    ): void {
+        self::persistDocumentBinary($document, $binary, $fileName, $localPath);
+    }
+
+    /**
+     * @param  Collection<int, array{signer_key: string, user_id: int|null, employee_id: int|null, name: string, surname: string, email: string|null}>  $signerRows
+     */
+    protected static function createDokobitSigning(
+        EmployeeContractSigning $signing,
+        string $binary,
+        Collection $signerRows,
+        string $filename,
+    ): EmployeeContractSigning {
+        $client = DokobitGatewayClient::make();
+
+        $dokobitSigners = [];
+        foreach ($signerRows as $row) {
+            $dokobitSigners[] = [
+                'id' => $row['signer_key'],
+                'name' => $row['name'],
+                'surname' => $row['surname'] !== '' ? $row['surname'] : '-',
+                'signing_purpose' => 'signature',
+            ];
+        }
+
+        $upload = $client->uploadFileContent($filename, $binary);
+        $client->waitUntilUploaded($upload['token']);
+
+        $created = $client->createSigning(
+            name: $signing->name,
+            signers: $dokobitSigners,
+            files: [['token' => $upload['token']]],
+            postbackUrl: self::postbackUrl(),
+        );
+
+        $signing->update([
+            'dokobit_token' => $created['token'],
+            'dokobit_file_token' => $upload['token'],
+        ]);
+
+        foreach ($signerRows as $row) {
+            $accessToken = $created['signers'][$row['signer_key']] ?? null;
+
+            EmployeeContractSigningSigner::query()->create([
+                'employee_contract_signing_id' => $signing->getKey(),
+                'signer_key' => $row['signer_key'],
+                'user_id' => $row['user_id'],
+                'employee_id' => $row['employee_id'],
+                'name' => $row['name'],
+                'surname' => $row['surname'],
+                'email' => $row['email'],
+                'dokobit_access_token' => $accessToken,
+                'signing_url' => filled($accessToken)
+                    ? $client->signingUrl($created['token'], (string) $accessToken)
+                    : null,
+            ]);
+        }
+
+        return $signing->fresh(['signers', 'document', 'contract']);
+    }
+
+    protected static function makeContractDocument(
+        EmployeeContract $contract,
+        string $binary,
+        User $creator,
+        bool $approved = false,
+    ): Document {
+        $type = DocumentType::query()->firstOrCreate(
+            ['name' => 'Employee contract'],
+            [],
+        );
+
+        $employeeName = $contract->employee?->fullName() ?: ('#'.$contract->employee_id);
+
+        return Document::query()->create([
+            'document_date' => $contract->sign_date?->toDateString() ?? now(),
+            'name' => 'Employment contract — '.$employeeName,
+            'document_type_id' => $type->getKey(),
+            'file_path' => null,
+            'user_uploaded_id' => $creator->getKey(),
+            'flag_approved' => $approved,
+            'user_approved_id' => $approved ? $creator->getKey() : null,
+            'approval_date' => $approved ? now() : null,
+            'content_hash' => hash('sha256', $binary),
+            'pdf_hash' => hash('sha256', $binary),
+        ]);
+    }
+
+    protected static function persistDocumentBinary(
+        Document $document,
+        string $binary,
+        string $fileName,
+        ?string $localPath = null,
+    ): void {
+        if (SharepointSetting::instance()->isReady()) {
+            DocumentBinaryStore::storeBinary(
+                $document->fresh(['documentType']),
+                $binary,
+                $fileName,
+            );
+
+            if (filled($localPath)) {
+                DocumentBinaryStore::deleteLocalPaths([(string) $localPath]);
+            }
+
+            return;
+        }
+
+        $document->forceFill([
+            'file_path' => $localPath,
+        ])->save();
     }
 }

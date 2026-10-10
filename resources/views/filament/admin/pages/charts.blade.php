@@ -42,18 +42,18 @@
                     },
                     {
                         label: "Income total",
-                        backgroundColor: "rgba(43, 58, 103, 0.85)",
-                        borderColor: "rgba(43, 58, 103, 1)",
+                        backgroundColor: "rgba(17, 17, 17, 0.85)",
+                        borderColor: "rgba(17, 17, 17, 1)",
                     },
                     {
                         label: "Income left",
-                        backgroundColor: "rgba(96, 165, 250, 0.95)",
-                        borderColor: "rgba(59, 130, 246, 1)",
+                        backgroundColor: "rgba(115, 115, 115, 0.95)",
+                        borderColor: "rgba(82, 82, 82, 1)",
                     },
                     {
                         label: "Income paid",
-                        backgroundColor: "rgba(30, 64, 175, 0.65)",
-                        borderColor: "rgba(29, 78, 216, 1)",
+                        backgroundColor: "rgba(38, 38, 38, 0.65)",
+                        borderColor: "rgba(23, 23, 23, 1)",
                     },
                 ],
                 datePresets: [
@@ -354,8 +354,8 @@
                             {
                                 label: "Tasks count",
                                 data: taskValues,
-                                backgroundColor: "rgba(43, 58, 103, 0.85)",
-                                borderColor: "rgba(43, 58, 103, 1)",
+                                backgroundColor: "rgba(17, 17, 17, 0.85)",
+                                borderColor: "rgba(17, 17, 17, 1)",
                                 borderWidth: 1,
                             },
                         ]
@@ -612,21 +612,21 @@
                 <span>Expences paid</span>
             </span>
             <span class="chart-legend__item">
-                <span class="chart-legend__dot" style="background-color: rgba(43, 58, 103, 0.85);"></span>
+                <span class="chart-legend__dot" style="background-color: rgba(17, 17, 17, 0.85);"></span>
                 <span>Income total</span>
             </span>
             <span class="chart-legend__item">
-                <span class="chart-legend__dot" style="background-color: rgba(96, 165, 250, 0.95);"></span>
+                <span class="chart-legend__dot" style="background-color: rgba(115, 115, 115, 0.95);"></span>
                 <span>Income left</span>
             </span>
             <span class="chart-legend__item">
-                <span class="chart-legend__dot" style="background-color: rgba(30, 64, 175, 0.65);"></span>
+                <span class="chart-legend__dot" style="background-color: rgba(38, 38, 38, 0.65);"></span>
                 <span>Income paid</span>
             </span>
         </div>
         <div class="chart-legend" x-show="filters.chartMode === 'tasks'" x-cloak>
             <span class="chart-legend__item">
-                <span class="chart-legend__dot" style="background-color: rgba(43, 58, 103, 0.85);"></span>
+                <span class="chart-legend__dot" style="background-color: rgba(17, 17, 17, 0.85);"></span>
                 <span>Tasks count</span>
             </span>
         </div>

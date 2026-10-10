@@ -22,6 +22,9 @@ class ColorFactory extends Factory
             'collection_id' => Collection::factory(),
             'color_code' => strtoupper(fake()->bothify('??##')),
             'color_name' => fake()->colorName(),
+            'recommended_stock' => 200,
+            'default_order' => 10,
+            'hex' => null,
         ];
     }
 }

@@ -63,6 +63,6 @@ class InvoiceSeries extends Model
 
     public function formatNumber(int $seriesNumber): string
     {
-        return $this->prefix.$seriesNumber;
+        return $this->prefix.str_pad((string) $seriesNumber, 4, '0', STR_PAD_LEFT);
     }
 }

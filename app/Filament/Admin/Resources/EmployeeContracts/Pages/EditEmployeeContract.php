@@ -2,16 +2,17 @@
 
 namespace App\Filament\Admin\Resources\EmployeeContracts\Pages;
 
-use App\Enums\EmployeeContractStatus;
 use App\Filament\Admin\Concerns\HasDokobitSigningModal;
+use App\Filament\Admin\Resources\EmployeeContracts\Concerns\AttachesSignedContractDocument;
+use App\Filament\Admin\Resources\EmployeeContracts\EmployeeContractEndAction;
 use App\Filament\Admin\Resources\EmployeeContracts\EmployeeContractResource;
 use App\Filament\Admin\Resources\EmployeeContracts\EmployeeContractSignAction;
 use App\Filament\Admin\Resources\Pages\EditRecord;
-use App\Models\EmployeeContract;
 use Filament\Actions\DeleteAction;
 
 class EditEmployeeContract extends EditRecord
 {
+    use AttachesSignedContractDocument;
     use HasDokobitSigningModal;
 
     protected static string $resource = EmployeeContractResource::class;
@@ -22,32 +23,26 @@ class EditEmployeeContract extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        $employeeId = (int) ($data['employee_id'] ?? 0);
-        $effectiveFrom = $data['effective_date_from'] ?? null;
-        $recordId = (int) ($this->record?->getKey() ?? 0);
+        return $this->extractSignedDocumentUpload($data);
+    }
 
-        if ($employeeId > 0 && filled($effectiveFrom)) {
-            $overlaps = EmployeeContract::query()
-                ->overlappingPeriod(
-                    employeeId: $employeeId,
-                    effectiveFrom: (string) $effectiveFrom,
-                    validTo: $data['valid_to'] ?? null,
-                    ignoreId: $recordId > 0 ? $recordId : null,
-                )
-                ->exists();
+    protected function afterSave(): void
+    {
+        $this->storeCapturedSignedDocument($this->record);
 
-            if ($overlaps) {
-                $data['status'] = EmployeeContractStatus::Inactive->value;
-            }
+        $closed = EmployeeContractResource::closeOverlapsIfSigned($this->record);
+
+        if ($closed === 0) {
+            EmployeeContractResource::notifyOverlapOnSave($this->record);
         }
-
-        return $data;
     }
 
     protected function buildHeaderActions(): array
     {
         return [
             EmployeeContractSignAction::make()
+                ->record($this->getRecord()),
+            EmployeeContractEndAction::make()
                 ->record($this->getRecord()),
             DeleteAction::make(),
         ];

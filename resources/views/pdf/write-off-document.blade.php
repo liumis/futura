@@ -15,14 +15,14 @@
         }
         .header {
             width: 100%;
-            border-bottom: 2px solid #2b3a67;
+            border-bottom: 2px solid #111111;
             padding-bottom: 12px;
             margin-bottom: 18px;
         }
         .title {
             font-size: 20px;
             font-weight: 700;
-            color: #2b3a67;
+            color: #111111;
             margin: 0 0 4px;
         }
         .meta {
@@ -74,7 +74,7 @@
             {{ $t['date'] }} {{ $document->document_date?->format('Y-m-d') }}
             @if ($document->user)
                 &nbsp;|&nbsp;
-                {{ $t['prepared_by'] }} {{ $document->user->name ?? $document->user->email }}
+                {{ $t['prepared_by'] }} {{ $document->user->displayName() }}
             @endif
         </div>
     </div>

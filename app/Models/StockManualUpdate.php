@@ -18,6 +18,7 @@ class StockManualUpdate extends Model
         'write_off_document_id',
         'old_amount',
         'new_amount',
+        'comment',
     ];
 
     /**

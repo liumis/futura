@@ -2,8 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
-use App\Models\Product;
-use App\Models\SystemSetting;
+use App\Models\Color;
 use BackedEnum;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -22,9 +21,9 @@ class ReportsLowStock extends Page implements HasTable
 
     protected static ?string $navigationLabel = 'Low stock';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Reports';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 16;
 
     protected static ?string $title = 'Low stock';
 
@@ -32,99 +31,90 @@ class ReportsLowStock extends Page implements HasTable
 
     public function table(Table $table): Table
     {
-        $limit = $this->alertLimit();
+        $metersSql = Color::stockMetersSqlExpression();
 
         return $table
-            ->query(fn (): Builder => $this->productsQuery())
+            ->query(fn (): Builder => $this->colorsQuery())
             ->columns([
-                Tables\Columns\TextColumn::make('color.collection.name')
+                Tables\Columns\TextColumn::make('collection.name')
                     ->label('Collection')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('color.color_name')
+                Tables\Columns\TextColumn::make('color_name')
                     ->label('Color')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('color.color_code')
+                Tables\Columns\TextColumn::make('color_code')
                     ->label('Color code')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('product_code')
-                    ->label('Product code')
-                    ->searchable()
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Size (m)')
-                    ->sortable(),
-
-                Tables\Columns\TextColumn::make('current_amount')
-                    ->label('Units')
-                    ->numeric()
-                    ->alignEnd()
-                    ->sortable(),
-
                 Tables\Columns\TextColumn::make('stock_meters')
-                    ->label('Stock (m)')
-                    ->getStateUsing(fn (Product $record): float => $record->stockMeters())
+                    ->label('Total stock (m)')
+                    ->getStateUsing(fn (Color $record): float => (float) ($record->stock_meters_total ?? $record->stockMeters()))
                     ->formatStateUsing(fn (float $state): string => self::formatMeters($state))
                     ->alignEnd()
-                    ->sortable(query: function (Builder $query, string $direction): Builder {
-                        return $query->orderByRaw(Product::stockMetersSqlExpression().' '.$direction);
+                    ->sortable(query: function (Builder $query, string $direction) use ($metersSql): Builder {
+                        return $query->orderByRaw($metersSql.' '.$direction);
                     })
                     ->color('danger')
                     ->weight('semibold'),
+
+                Tables\Columns\TextColumn::make('recommended_stock')
+                    ->label('Recommended (m)')
+                    ->numeric()
+                    ->alignEnd()
+                    ->sortable(),
             ])
             ->filters([
-                Tables\Filters\SelectFilter::make('collection')
+                Tables\Filters\SelectFilter::make('collection_id')
                     ->label('Collection')
-                    ->relationship('color.collection', 'name')
+                    ->relationship('collection', 'name')
                     ->searchable()
                     ->preload(),
             ])
             ->filtersLayout(FiltersLayout::AboveContent)
             ->deferFilters(false)
             ->paginated([25, 50, 100])
-            ->emptyStateHeading($limit > 0 ? 'No low stock products' : 'Alert limit not configured')
-            ->emptyStateDescription($limit > 0
-                ? 'All products are at or above the configured alert limit.'
-                : 'Set the low stock alert limit under System → Other.');
+            ->emptyStateHeading('No low stock colors')
+            ->emptyStateDescription('All colors are at or above their recommended stock.');
     }
 
-    public function alertLimit(): float
+    private function colorsQuery(): Builder
     {
-        return SystemSetting::instance()->lowStockAlertLimit();
-    }
+        $metersSql = Color::stockMetersSqlExpression();
 
-    private function productsQuery(): Builder
-    {
-        return Product::query()
-            ->with(['color.collection'])
-            ->belowStockMeterLimit($this->alertLimit())
-            ->orderByRaw(Product::stockMetersSqlExpression().' asc');
+        return Color::query()
+            ->with('collection')
+            ->belowRecommendedStock()
+            ->select('colors.*')
+            ->selectRaw("{$metersSql} as stock_meters_total")
+            ->orderByRaw("{$metersSql} asc");
     }
 
     /**
-     * @return array{products: int, total_meters: float, alert_limit: float}
+     * @return array{colors: int, total_meters: float, total_recommended: float, total_deficit: float}
      */
     public function summary(): array
     {
-        $limit = $this->alertLimit();
-        $products = $this->getFilteredTableQuery()?->get() ?? collect();
+        $colors = $this->getFilteredTableQuery()?->get() ?? collect();
+
+        $totalMeters = (float) $colors->sum(fn (Color $color): float => (float) ($color->stock_meters_total ?? $color->stockMeters()));
+        $totalRecommended = (float) $colors->sum(fn (Color $color): float => (float) max(0, (int) $color->recommended_stock));
 
         return [
-            'products' => $products->count(),
-            'total_meters' => (float) $products->sum(fn (Product $product): float => $product->stockMeters()),
-            'alert_limit' => $limit,
+            'colors' => $colors->count(),
+            'total_meters' => $totalMeters,
+            'total_recommended' => $totalRecommended,
+            'total_deficit' => max(0, $totalRecommended - $totalMeters),
         ];
     }
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function formatMeters(float $quantity): string

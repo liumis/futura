@@ -27,6 +27,11 @@ class CreateOvertimeRequest extends CreateRecord
             $data['employee_id'] = $employeeId;
         }
 
+        $date = (string) request()->query('date', '');
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) === 1) {
+            $data['date'] = $date;
+        }
+
         $this->form->fill($data);
 
         $this->callHook('afterFill');

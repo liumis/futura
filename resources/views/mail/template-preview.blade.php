@@ -9,10 +9,10 @@
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0f2f5;padding:32px 16px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(43,58,103,0.08);">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
                     <tr>
                         <td style="padding:24px 32px;border-bottom:1px solid #e8ecf1;">
-                            <img src="{{ $logoUrl ?? asset('images/logo.svg') }}" alt="{{ $appName ?? config('app.name') }}" width="180" style="display:block;max-width:180px;height:auto;">
+                            <img src="{{ $logoUrl ?? asset('images/logo.png') }}" alt="{{ $appName ?? config('app.name') }}" width="180" style="display:block;max-width:180px;height:auto;">
                         </td>
                     </tr>
                     <tr>

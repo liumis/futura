@@ -2,14 +2,18 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Concerns\HasReportMonthQuickFilter;
+use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Models\Contact;
 use App\Models\InvoiceFinanceLine;
+use App\Services\DebitCreditReportDocumentGenerator;
 use App\Support\Money;
 use BackedEnum;
-use Filament\Forms\Components\DatePicker;
+use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -17,10 +21,13 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Collection;
+use Throwable;
 use UnitEnum;
 
 class ReportsDebitCredit extends Page implements HasForms, HasTable
 {
+    use HasReportMonthQuickFilter;
     use InteractsWithForms;
     use InteractsWithTable;
 
@@ -30,9 +37,9 @@ class ReportsDebitCredit extends Page implements HasForms, HasTable
 
     protected static ?string $title = 'Debit/credit report';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Invoices';
+    protected static string|UnitEnum|null $navigationGroup = 'Finances';
 
-    protected static ?int $navigationSort = 4;
+    protected static ?int $navigationSort = 7;
 
     protected string $view = 'filament.admin.pages.reports-debit-credit';
 
@@ -43,14 +50,13 @@ class ReportsDebitCredit extends Page implements HasForms, HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public function mount(): void
     {
         $this->form->fill([
-            'from' => now()->startOfMonth()->toDateString(),
-            'until' => now()->endOfMonth()->toDateString(),
+            ...$this->defaultReportMonthRangeFill(),
             'contact_id' => null,
         ]);
     }
@@ -60,15 +66,7 @@ class ReportsDebitCredit extends Page implements HasForms, HasTable
         return $schema
             ->statePath('data')
             ->components([
-                DatePicker::make('from')
-                    ->label('From')
-                    ->native(false)
-                    ->live(),
-
-                DatePicker::make('until')
-                    ->label('Until')
-                    ->native(false)
-                    ->live(),
+                ...$this->reportMonthRangeFilters(),
 
                 Select::make('contact_id')
                     ->label('Supplier')
@@ -78,7 +76,7 @@ class ReportsDebitCredit extends Page implements HasForms, HasTable
                     ->native(false)
                     ->live(),
             ])
-            ->columns(3);
+            ->columns(4);
     }
 
     public function table(Table $table): Table
@@ -130,6 +128,118 @@ class ReportsDebitCredit extends Page implements HasForms, HasTable
             ])
             ->defaultSort('id', 'desc')
             ->paginated([25, 50, 100]);
+    }
+
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->generateReportAction(),
+        ];
+    }
+
+    public function generateReportAction(): Action
+    {
+        return Action::make('generateReport')
+            ->label('Generate report')
+            ->icon('heroicon-o-document-arrow-down')
+            ->color('primary')
+            ->requiresConfirmation()
+            ->modalHeading('Generate debit/credit report')
+            ->modalDescription(function (): string {
+                $totals = $this->totals();
+                $filters = $this->filterContext();
+
+                return sprintf(
+                    'Save a PDF of the current filters (%s · %s · %s line(s)) to Documents and SharePoint?',
+                    $filters['period_label'],
+                    $filters['supplier_label'],
+                    number_format($totals['lines']),
+                );
+            })
+            ->modalSubmitActionLabel('Generate')
+            ->action(function (): void {
+                $this->generateReport();
+            });
+    }
+
+    public function generateReport(): void
+    {
+        try {
+            $document = DebitCreditReportDocumentGenerator::create(
+                $this->reportLines(),
+                $this->filterContext(),
+                auth()->user(),
+            );
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->title('Could not generate report')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Report saved')
+            ->body('The PDF was stored in Documents and uploaded to SharePoint.')
+            ->success()
+            ->actions([
+                Action::make('openDocument')
+                    ->label('Open document')
+                    ->url(DocumentResource::getUrl('edit', ['record' => $document]))
+                    ->openUrlInNewTab(),
+            ])
+            ->send();
+    }
+
+    /**
+     * @return array{from: ?string, until: ?string, contact_id: mixed, period_label: string, supplier_label: string}
+     */
+    public function filterContext(): array
+    {
+        $from = $this->data['from'] ?? null;
+        $until = $this->data['until'] ?? null;
+        $contactId = $this->data['contact_id'] ?? null;
+        $supplierLabel = filled($contactId)
+            ? (Contact::query()->find($contactId)?->company_name ?? 'Selected supplier')
+            : 'All suppliers';
+
+        if (filled($from) && filled($until)) {
+            $periodLabel = $from.' — '.$until;
+        } elseif (filled($from)) {
+            $periodLabel = 'From '.$from;
+        } elseif (filled($until)) {
+            $periodLabel = 'Until '.$until;
+        } else {
+            $periodLabel = 'All dates';
+        }
+
+        return [
+            'from' => $from,
+            'until' => $until,
+            'contact_id' => $contactId,
+            'period_label' => $periodLabel,
+            'supplier_label' => $supplierLabel,
+        ];
+    }
+
+    /**
+     * @return Collection<int, InvoiceFinanceLine>
+     */
+    private function reportLines(): Collection
+    {
+        return $this->linesQuery()
+            ->get()
+            ->sortBy(function (InvoiceFinanceLine $line): string {
+                $date = $line->invoice?->invoice_date?->format('Y-m-d') ?? '0000-00-00';
+                $number = (string) ($line->invoice?->invoice_number ?? '');
+                $order = str_pad((string) ((int) $line->sort_order), 6, '0', STR_PAD_LEFT);
+                $id = str_pad((string) ((int) $line->getKey()), 12, '0', STR_PAD_LEFT);
+
+                return $date.'|'.$number.'|'.$order.'|'.$id;
+            })
+            ->values();
     }
 
     private function linesQuery(): Builder

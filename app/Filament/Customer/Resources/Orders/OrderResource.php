@@ -4,12 +4,12 @@ namespace App\Filament\Customer\Resources\Orders;
 
 use App\Enums\OrderStatus;
 use App\Filament\Admin\Resources\Orders\OrderResource as AdminOrderResource;
-use App\Filament\Customer\Resources\Orders\Pages;
 use App\Models\Order;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\EditAction;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -69,7 +69,7 @@ class OrderResource extends Resource
 
                 Tables\Columns\TextColumn::make('order_date')
                     ->label('Order date')
-                    ->dateTime()
+                    ->date()
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
@@ -92,7 +92,24 @@ class OrderResource extends Resource
                     ->modalCancelActionLabel('Close')
                     ->modalWidth('5xl'),
                 EditAction::make()
-                    ->visible(fn (Order $record): bool => $record->status === OrderStatus::Pending),
+                    ->visible(fn (Order $record): bool => $record->status->isCustomerEditable()),
+                Action::make('submitOrder')
+                    ->label('Submit')
+                    ->icon('heroicon-o-paper-airplane')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->modalHeading('Submit this order?')
+                    ->modalDescription('Staff with Customer orders notifications will be notified.')
+                    ->visible(fn (Order $record): bool => $record->status === OrderStatus::Draft)
+                    ->action(function (Order $record): void {
+                        $record->update(['status' => OrderStatus::Pending]);
+
+                        Notification::make()
+                            ->title('Order submitted')
+                            ->body('Order #'.$record->id.' is now pending review.')
+                            ->success()
+                            ->send();
+                    }),
             ])
             ->toolbarActions([]);
     }
@@ -124,7 +141,7 @@ class OrderResource extends Resource
         }
 
         return (int) $record->user_id === (int) auth()->id()
-            && $record->status === OrderStatus::Pending;
+            && $record->status->isCustomerEditable();
     }
 
     public static function canDelete($record): bool

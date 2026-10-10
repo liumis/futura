@@ -2,15 +2,25 @@
 
 namespace App\Filament\Admin\Resources\EmployeeContracts\Pages;
 
-use App\Enums\EmployeeContractStatus;
+use App\Filament\Admin\Resources\EmployeeContracts\Concerns\AttachesSignedContractDocument;
 use App\Filament\Admin\Resources\EmployeeContracts\EmployeeContractResource;
 use App\Models\Employee;
-use App\Models\EmployeeContract;
 use Filament\Resources\Pages\CreateRecord;
 
 class CreateEmployeeContract extends CreateRecord
 {
+    use AttachesSignedContractDocument;
+
     protected static string $resource = EmployeeContractResource::class;
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array<string, mixed>
+     */
+    protected function mutateFormDataBeforeCreate(array $data): array
+    {
+        return $this->extractSignedDocumentUpload($data);
+    }
 
     protected function fillForm(): void
     {
@@ -28,29 +38,14 @@ class CreateEmployeeContract extends CreateRecord
         $this->callHook('afterFill');
     }
 
-    /**
-     * @param  array<string, mixed>  $data
-     * @return array<string, mixed>
-     */
-    protected function mutateFormDataBeforeCreate(array $data): array
+    protected function afterCreate(): void
     {
-        $employeeId = (int) ($data['employee_id'] ?? 0);
-        $effectiveFrom = $data['effective_date_from'] ?? null;
+        $this->storeCapturedSignedDocument($this->record);
 
-        if ($employeeId > 0 && filled($effectiveFrom)) {
-            $overlaps = EmployeeContract::query()
-                ->overlappingPeriod(
-                    employeeId: $employeeId,
-                    effectiveFrom: (string) $effectiveFrom,
-                    validTo: $data['valid_to'] ?? null,
-                )
-                ->exists();
+        $closed = EmployeeContractResource::closeOverlapsIfSigned($this->record);
 
-            if ($overlaps) {
-                $data['status'] = EmployeeContractStatus::Inactive->value;
-            }
+        if ($closed === 0) {
+            EmployeeContractResource::notifyOverlapOnSave($this->record);
         }
-
-        return $data;
     }
 }

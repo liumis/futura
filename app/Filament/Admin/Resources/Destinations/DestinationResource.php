@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\Destinations;
 
-use App\Filament\Admin\Resources\Destinations\Pages;
 use App\Models\Destination;
 use App\Models\ShippingSetting;
 use App\Support\Money;
@@ -31,11 +30,11 @@ class DestinationResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Destinations';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Warehouse & shipping';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
     protected static ?string $navigationParentItem = 'Shipping settings';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 12;
 
     public static function form(Schema $schema): Schema
     {
@@ -138,22 +137,22 @@ class DestinationResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

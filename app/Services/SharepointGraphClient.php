@@ -76,6 +76,95 @@ class SharepointGraphClient
     }
 
     /**
+     * List children of a drive folder path (relative to drive root).
+     *
+     * @return list<array{id: string, name: string, webUrl: ?string, isFolder: bool, size: ?int, lastModified: ?string}>
+     */
+    public function listFolderChildren(string $folderPath, int $top = 200): array
+    {
+        $driveId = $this->resolveDriveId();
+        $folderPath = $this->normalizePath($folderPath);
+
+        $baseUrl = $folderPath === ''
+            ? self::GRAPH_BASE.'/drives/'.$driveId.'/root/children'
+            : self::GRAPH_BASE.'/drives/'.$driveId.'/root:/'.$this->encodePath($folderPath).':/children';
+
+        $items = [];
+        $url = $baseUrl.'?$select=id,name,webUrl,size,lastModifiedDateTime,folder,file&$top='.$top;
+
+        while ($url !== '') {
+            $response = $this->http()->get($url);
+            if (! $response->successful()) {
+                throw new RuntimeException($this->errorMessage(
+                    $response->json(),
+                    $response->status(),
+                    'SharePoint folder listing failed for "'.$folderPath.'".',
+                ));
+            }
+
+            foreach ($response->json('value') ?? [] as $item) {
+                if (! is_array($item) || blank($item['id'] ?? null) || blank($item['name'] ?? null)) {
+                    continue;
+                }
+
+                $items[] = [
+                    'id' => (string) $item['id'],
+                    'name' => (string) $item['name'],
+                    'webUrl' => filled($item['webUrl'] ?? null) ? (string) $item['webUrl'] : null,
+                    'isFolder' => isset($item['folder']),
+                    'size' => isset($item['size']) ? (int) $item['size'] : null,
+                    'lastModified' => filled($item['lastModifiedDateTime'] ?? null)
+                        ? (string) $item['lastModifiedDateTime']
+                        : null,
+                ];
+            }
+
+            $next = $response->json('@odata.nextLink');
+            $url = filled($next) ? (string) $next : '';
+        }
+
+        return $items;
+    }
+
+    /**
+     * @return array{id: string, name: string, webUrl: ?string, size: ?int}|null
+     */
+    public function getItemByPath(string $itemPath): ?array
+    {
+        $driveId = $this->resolveDriveId();
+        $itemPath = $this->normalizePath($itemPath);
+        if ($itemPath === '') {
+            return null;
+        }
+
+        $response = $this->http()->get(
+            self::GRAPH_BASE.'/drives/'.$driveId.'/root:/'.$this->encodePath($itemPath)
+            .'?$select=id,name,webUrl,size,folder,file'
+        );
+
+        if ($response->status() === 404) {
+            return null;
+        }
+
+        if (! $response->successful() || blank($response->json('id'))) {
+            throw new RuntimeException($this->errorMessage(
+                $response->json(),
+                $response->status(),
+                'SharePoint path lookup failed for "'.$itemPath.'".',
+            ));
+        }
+
+        $json = $response->json() ?? [];
+
+        return [
+            'id' => (string) $json['id'],
+            'name' => (string) ($json['name'] ?? basename($itemPath)),
+            'webUrl' => filled($json['webUrl'] ?? null) ? (string) $json['webUrl'] : null,
+            'size' => isset($json['size']) ? (int) $json['size'] : null,
+        ];
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function getItem(string $itemId): array

@@ -2,23 +2,26 @@
 
 namespace App\Filament\Admin\Resources\Documents;
 
-use App\Filament\Admin\Resources\Documents\Pages;
+use App\Enums\DocumentConfirmationAudience;
+use App\Filament\Admin\Concerns\CreatesBrandedDocumentPdf;
+use App\Filament\Admin\Support\DokobitSigningUi;
 use App\Models\Document;
 use App\Models\Project;
 use App\Models\User;
+use App\Services\DividendPaymentReportApprover;
 use App\Services\DocumentApprover;
 use App\Services\DocumentDokobitSigner;
 use App\Services\DocumentWorkflow;
 use App\Services\EmployeeContractSigner;
 use App\Services\EmployeePaymentReportApprover;
-use App\Services\DividendPaymentReportApprover;
-use App\Support\UploadLimits;
 use App\Services\SharepointDocumentUploader;
+use App\Support\UploadLimits;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\ForceDeleteAction;
 use Filament\Actions\ForceDeleteBulkAction;
 use Filament\Actions\RestoreAction;
 use Filament\Actions\RestoreBulkAction;
@@ -26,6 +29,7 @@ use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -36,6 +40,7 @@ use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\HtmlString;
+use Livewire\Component;
 use UnitEnum;
 
 class DocumentResource extends Resource
@@ -58,12 +63,18 @@ class DocumentResource extends Resource
     {
         return $schema
             ->components([
-                Forms\Components\DateTimePicker::make('document_date')
+                DatePicker::make('document_date')
                     ->label('Document date')
                     ->required()
-                    ->default(fn (): \Carbon\CarbonInterface => now())
+                    ->default(fn (): string => now()->toDateString())
                     ->native(false)
+                    ->displayFormat('Y-m-d')
                     ->live()
+                    ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
+
+                DatePicker::make('valid_to')
+                    ->label('Valid to')
+                    ->native(false)
                     ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
 
                 Forms\Components\TextInput::make('name')
@@ -93,6 +104,41 @@ class DocumentResource extends Resource
                     ->searchable(['name', 'code'])
                     ->preload()
                     ->native(false)
+                    ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
+
+                Forms\Components\Select::make('watchers')
+                    ->label('Notify watchers about expiration')
+                    ->relationship('watchers', 'name')
+                    ->getOptionLabelFromRecordUsing(fn (User $record): string => filled(trim($record->fullName())) !== ''
+                        ? $record->fullName()
+                        : (string) ($record->email ?? ''))
+                    ->multiple()
+                    ->searchable(['name', 'surname', 'email'])
+                    ->preload()
+                    ->native(false)
+                    ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
+
+                Forms\Components\Select::make('confirmation_audience')
+                    ->label('Confirmation audience')
+                    ->options(DocumentConfirmationAudience::options())
+                    ->default(DocumentConfirmationAudience::None->value)
+                    ->required()
+                    ->native(false)
+                    ->live()
+                    ->helperText('Who must periodically confirm they have read this document (when the type has revalidation months).')
+                    ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
+
+                Forms\Components\Select::make('confirmationUsers')
+                    ->label('Specific confirmation users')
+                    ->relationship('confirmationUsers', 'name')
+                    ->getOptionLabelFromRecordUsing(fn (User $record): string => filled(trim($record->fullName())) !== ''
+                        ? $record->fullName()
+                        : (string) ($record->email ?? ''))
+                    ->multiple()
+                    ->searchable(['name', 'surname', 'email'])
+                    ->preload()
+                    ->native(false)
+                    ->visible(fn (Get $get): bool => $get('confirmation_audience') === DocumentConfirmationAudience::SpecificUsers->value)
                     ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
 
                 Forms\Components\Placeholder::make('owner')
@@ -160,20 +206,52 @@ class DocumentResource extends Resource
                     ->downloadable(false)
                     ->openable(false)
                     ->live()
-                    ->helperText(fn (?Document $record): string => UploadLimits::withExistingNote(
-                        match (true) {
-                            $record === null => 'Optional on save. Required to approve or sign. Files are stored on SharePoint only (temporary local upload is removed after save).',
-                            $record->hasStoredFile() => 'Upload additional file(s). Existing SharePoint files are kept. A file is required to approve or sign.',
-                            default => 'Optional on save. Required to approve or sign. Files are stored on SharePoint only (temporary local upload is removed after save).',
-                        },
-                    ))
+                    ->helperText(function (Get $get, ?Document $record): string {
+                        if ((bool) $get('mark_as_signed')) {
+                            return UploadLimits::withExistingNote(
+                                $record?->hasStoredFile()
+                                    ? 'Required. Keep the existing file or upload the signed scan/PDF. The file is stored as-is (no approval stamp, no Dokobit).'
+                                    : 'Required. Upload the signed scan or PDF. The file is stored as-is (no approval stamp, no Dokobit).',
+                            );
+                        }
+
+                        return UploadLimits::withExistingNote(
+                            match (true) {
+                                $record === null => 'Optional on save. Required to approve or sign. Files are stored on SharePoint only (temporary local upload is removed after save).',
+                                $record->hasStoredFile() => 'Upload additional file(s). Existing SharePoint files are kept. A file is required to approve or sign.',
+                                default => 'Optional on save. Required to approve or sign. Files are stored on SharePoint only (temporary local upload is removed after save).',
+                            },
+                        );
+                    })
                     ->visible(fn (?Document $record): bool => $record === null || $record->canAttachFiles())
                     ->dehydrated(fn (?Document $record): bool => $record === null || $record->canAttachFiles())
+                    ->required(fn (Get $get, ?Document $record): bool => (bool) $get('mark_as_signed') && ! ($record?->hasStoredFile() ?? false))
                     ->rules([
                         fn (Get $get, ?Document $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($get, $record): void {
                             DocumentApprovalForm::validateWorkflowSelection($get, $record, $fail);
                         },
                     ])
+                    ->columnSpanFull(),
+
+                Forms\Components\Toggle::make('mark_as_signed')
+                    ->label('Mark as signed')
+                    ->helperText('Turn on if you are uploading a paper-signed or already-signed file. The original file is kept (no approval stamp, no Dokobit). The document will be locked.')
+                    ->default(false)
+                    ->live()
+                    ->dehydrated()
+                    ->visible(fn (?Document $record): bool => $record === null || $record->canAttachFiles())
+                    ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false)
+                    ->rules([
+                        fn (Get $get, ?Document $record): \Closure => function (string $attribute, mixed $value, \Closure $fail) use ($get, $record): void {
+                            DocumentApprovalForm::validateMarkAsSigned($get, $record, $fail);
+                        },
+                    ])
+                    ->columnSpanFull(),
+
+                Actions::make([
+                    CreatesBrandedDocumentPdf::createPdfFormAction(),
+                ])
+                    ->visible(fn (?Document $record): bool => $record === null || $record->canAttachFiles())
                     ->columnSpanFull(),
 
                 Forms\Components\Placeholder::make('filename')
@@ -194,7 +272,6 @@ class DocumentResource extends Resource
                 Tables\Columns\TextColumn::make('document_date')
                     ->label('Date')
                     ->date('Y-m-d')
-                    ->description(fn (Document $record): ?string => $record->document_date?->format('H:i:s'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('name')
@@ -202,7 +279,10 @@ class DocumentResource extends Resource
                     ->searchable()
                     ->sortable()
                     ->description(fn (Document $record): ?string => $record->trashed() ? 'Deleted' : null)
-                    ->color(fn (Document $record): ?string => $record->trashed() ? 'danger' : null),
+                    ->color(fn (Document $record): ?string => $record->trashed() ? 'danger' : null)
+                    ->url(fn (Document $record): ?string => $record->displayFileUrl())
+                    ->openUrlInNewTab()
+                    ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('documentType.name')
                     ->label('Document type')
@@ -239,14 +319,9 @@ class DocumentResource extends Resource
                     ->sortable()
                     ->toggleable(),
 
-                Tables\Columns\TextColumn::make('attached_files_display')
+                Tables\Columns\ViewColumn::make('attached_files_display')
                     ->label('Files')
-                    ->html()
-                    ->getStateUsing(function (Document $record): string {
-                        return view('filament.admin.tables.columns.document-files-count', [
-                            'record' => $record,
-                        ])->render();
-                    })
+                    ->view('filament.admin.tables.columns.document-files-count')
                     ->alignCenter()
                     ->sortable(query: function (Builder $query, string $direction): Builder {
                         return $query->orderByRaw(
@@ -259,33 +334,9 @@ class DocumentResource extends Resource
                         );
                     }),
 
-                Tables\Columns\TextColumn::make('view_file')
+                Tables\Columns\ViewColumn::make('view_file')
                     ->label('View file')
-                    ->html()
-                    ->getStateUsing(function (Document $record): string {
-                        $files = $record->attachedFileLinks();
-
-                        if ($files === []) {
-                            return '—';
-                        }
-
-                        $links = [];
-                        $multiple = count($files) > 1;
-
-                        foreach ($files as $file) {
-                            $label = $multiple
-                                ? e(\Illuminate\Support\Str::limit((string) $file['name'], 28))
-                                : 'View file';
-
-                            if (filled($file['url'] ?? null)) {
-                                $links[] = '<a href="'.e((string) $file['url']).'" target="_blank" rel="noopener" class="text-primary-600 hover:underline dark:text-primary-400">'.$label.'</a>';
-                            } else {
-                                $links[] = '<span class="text-gray-400 dark:text-gray-500" title="Link unavailable">'.$label.'</span>';
-                            }
-                        }
-
-                        return implode('<br>', $links);
-                    })
+                    ->view('filament.admin.tables.columns.document-view-file')
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('approver_full_name')
@@ -344,11 +395,11 @@ class DocumentResource extends Resource
                         $column = $query->getModel()->qualifyColumn('document_date');
 
                         if (filled($from)) {
-                            $query->where($column, '>=', $from.' 00:00:00');
+                            $query->whereDate($column, '>=', $from);
                         }
 
                         if (filled($until)) {
-                            $query->where($column, '<=', $until.' 23:59:59');
+                            $query->whereDate($column, '<=', $until);
                         }
                     }),
 
@@ -478,7 +529,7 @@ class DocumentResource extends Resource
                     ->modalSubmitActionLabel('Sign')
                     ->visible(fn (Document $record): bool => ! $record->trashed())
                     ->disabled(fn (Document $record): bool => ! $record->currentUserCanSign())
-                    ->action(function (Document $record, \Livewire\Component $livewire) {
+                    ->action(function (Document $record, Component $livewire) {
                         return static::signDocument($record, $livewire);
                     }),
 
@@ -499,6 +550,30 @@ class DocumentResource extends Resource
                     ->tooltip('Edit')
                     ->visible(fn (Document $record): bool => ! $record->trashed()),
 
+                Action::make('deletePermanently')
+                    ->label('Delete')
+                    ->icon('heroicon-o-trash')
+                    ->iconButton()
+                    ->tooltip('Delete permanently (incl. SharePoint)')
+                    ->color('danger')
+                    ->requiresConfirmation()
+                    ->modalHeading('Permanently delete document')
+                    ->modalDescription(fn (Document $record): string => 'This will permanently delete "'.$record->name.'" and remove its file(s) from SharePoint. This cannot be undone.')
+                    ->modalSubmitActionLabel('Delete permanently')
+                    ->visible(fn (Document $record): bool => ! $record->trashed())
+                    ->action(function (Document $record): void {
+                        $record->forceDelete();
+                    })
+                    ->successNotificationTitle('Document deleted'),
+
+                ForceDeleteAction::make()
+                    ->iconButton()
+                    ->tooltip('Delete permanently (incl. SharePoint)')
+                    ->modalHeading('Permanently delete document')
+                    ->modalDescription(fn (Document $record): string => 'This will permanently delete "'.$record->name.'" and remove its file(s) from SharePoint. This cannot be undone.')
+                    ->modalSubmitActionLabel('Delete permanently')
+                    ->successNotificationTitle('Document deleted'),
+
                 RestoreAction::make()
                     ->iconButton()
                     ->tooltip('Restore'),
@@ -507,7 +582,10 @@ class DocumentResource extends Resource
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                     RestoreBulkAction::make(),
-                    ForceDeleteBulkAction::make(),
+                    ForceDeleteBulkAction::make()
+                        ->modalHeading('Permanently delete selected')
+                        ->modalDescription('Selected documents and their SharePoint file(s) will be permanently deleted. This cannot be undone.')
+                        ->modalSubmitActionLabel('Delete permanently'),
                 ]),
             ])
             ->checkIfRecordIsSelectableUsing(
@@ -737,7 +815,7 @@ class DocumentResource extends Resource
         return true;
     }
 
-    public static function signDocument(Document $record, ?\Livewire\Component $livewire = null): mixed
+    public static function signDocument(Document $record, ?Component $livewire = null): mixed
     {
         $user = auth()->user();
         if (! $user instanceof User) {
@@ -769,7 +847,7 @@ class DocumentResource extends Resource
             ->send();
 
         if ($livewire !== null && $document !== null && method_exists($livewire, 'openDokobitSigningFrame')) {
-            \App\Filament\Admin\Support\DokobitSigningUi::openForDocument($livewire, $document, $user);
+            DokobitSigningUi::openForDocument($livewire, $document, $user);
 
             return null;
         }
@@ -779,10 +857,10 @@ class DocumentResource extends Resource
         return filled($url) ? redirect()->away($url) : null;
     }
 
-    public static function resumeDokobitSigning(Document $record, User $user, ?\Livewire\Component $livewire = null): mixed
+    public static function resumeDokobitSigning(Document $record, User $user, ?Component $livewire = null): mixed
     {
         if ($livewire !== null && method_exists($livewire, 'openDokobitSigningFrame')) {
-            \App\Filament\Admin\Support\DokobitSigningUi::openForDocument(
+            DokobitSigningUi::openForDocument(
                 $livewire,
                 $record->fresh(['documentSigning.signers', 'contractSigning.signers']),
                 $user,
@@ -856,32 +934,32 @@ class DocumentResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canForceDelete(Model $record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canRestore(Model $record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

@@ -2,7 +2,7 @@
 
 namespace App\Filament\Admin\Support;
 
-use App\Filament\Admin\Pages\AbsenceCalendar;
+use App\Filament\Admin\Resources\BusinessTripRequests\BusinessTripRequestResource;
 use App\Filament\Admin\Resources\EmployeeContracts\EmployeeContractResource;
 use App\Filament\Admin\Resources\LeaveRequests\LeaveRequestResource;
 use App\Filament\Admin\Resources\OvertimeRequests\OvertimeRequestResource;
@@ -49,6 +49,23 @@ final class EmployeeRelatedLinks
                 ],
             ],
             [
+                'label' => 'Leave',
+                'links' => [
+                    [
+                        'label' => 'View',
+                        'variant' => 'view',
+                        'url' => LeaveRequestResource::getUrl('index', $employeeFilter),
+                        'title' => "View leave requests for {$name}",
+                    ],
+                    [
+                        'label' => 'Add',
+                        'variant' => 'add',
+                        'url' => LeaveRequestResource::getUrl('create', ['employee_id' => $employeeId]),
+                        'title' => "Add leave request for {$name}",
+                    ],
+                ],
+            ],
+            [
                 'label' => 'Schedule',
                 'links' => [
                     [
@@ -66,24 +83,24 @@ final class EmployeeRelatedLinks
                 ],
             ],
             [
-                'label' => 'Leave requests',
+                'label' => 'Trips',
                 'links' => [
                     [
                         'label' => 'View',
                         'variant' => 'view',
-                        'url' => LeaveRequestResource::getUrl('index', $employeeFilter),
-                        'title' => "View leave requests for {$name}",
+                        'url' => BusinessTripRequestResource::getUrl('index', $employeeFilter),
+                        'title' => "View business trips for {$name}",
                     ],
                     [
                         'label' => 'Add',
                         'variant' => 'add',
-                        'url' => LeaveRequestResource::getUrl('create', ['employee_id' => $employeeId]),
-                        'title' => "Add leave request for {$name}",
+                        'url' => BusinessTripRequestResource::getUrl('create', ['employee_id' => $employeeId]),
+                        'title' => "Add business trip for {$name}",
                     ],
                 ],
             ],
             [
-                'label' => 'Overtime requests',
+                'label' => 'Overtime',
                 'links' => [
                     [
                         'label' => 'View',
@@ -96,17 +113,6 @@ final class EmployeeRelatedLinks
                         'variant' => 'add',
                         'url' => OvertimeRequestResource::getUrl('create', ['employee_id' => $employeeId]),
                         'title' => "Add overtime request for {$name}",
-                    ],
-                ],
-            ],
-            [
-                'label' => 'Work calendar',
-                'links' => [
-                    [
-                        'label' => 'View',
-                        'variant' => 'view',
-                        'url' => AbsenceCalendar::getUrl(['employee_id' => $employeeId]),
-                        'title' => "Open work calendar for {$name}",
                     ],
                 ],
             ],

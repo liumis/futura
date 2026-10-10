@@ -25,7 +25,9 @@
                 let total = 0;
 
                 for (const productId of productIds) {
-                    const input = section.querySelector('[data-order-amount-input="' + productId + '"]');
+                    const input = section.querySelector(
+                        '[data-order-amount-input="' + productId + '"], [data-cargo-product-amount="' + productId + '"]',
+                    );
 
                     if (! input) {
                         continue;
@@ -57,7 +59,7 @@
             function handleAmountChange(event) {
                 const target = event.target;
 
-                if (! target?.matches?.('[data-order-amount-input]')) {
+                if (! target?.matches?.('[data-order-amount-input], [data-cargo-product-amount]')) {
                     return;
                 }
 
@@ -78,6 +80,45 @@
                     });
                 });
             }
+        })();
+
+        (function () {
+            if (window.__fiSectionCollapseGuardInitialized) {
+                return;
+            }
+
+            window.__fiSectionCollapseGuardInitialized = true;
+
+            // Filament select dropdowns close on mousedown. The following click can
+            // land on the collection header and collapse the open section.
+            let ignoreHeaderClickUntil = 0;
+            const dropdownSelector = [
+                '[role="combobox"]',
+                '[role="listbox"]',
+                '[role="option"]',
+                '.fi-dropdown-panel',
+                '.fi-select-input',
+                '.fi-fo-select',
+            ].join(', ');
+
+            document.addEventListener('mousedown', function (event) {
+                if (event.target?.closest?.(dropdownSelector)) {
+                    ignoreHeaderClickUntil = Date.now() + 500;
+                }
+            }, true);
+
+            document.addEventListener('click', function (event) {
+                if (Date.now() > ignoreHeaderClickUntil) {
+                    return;
+                }
+
+                if (! event.target?.closest?.('.fi-section-header')) {
+                    return;
+                }
+
+                event.stopImmediatePropagation();
+                event.stopPropagation();
+            }, true);
         })();
     </script>
 </div>

@@ -2,12 +2,13 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Concerns\HasReportMonthQuickFilter;
+use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Models\Order;
 use App\Services\ActivityLogger;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\Action as TableAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
@@ -23,16 +24,19 @@ use UnitEnum;
 
 class ReportsOrders extends Page implements HasForms, HasTable
 {
+    use HasReportMonthQuickFilter;
     use InteractsWithForms;
     use InteractsWithTable;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-clipboard-document-list';
 
-    protected static ?string $navigationLabel = 'Orders';
+    protected static ?string $navigationLabel = 'Orders list';
 
     protected static string|UnitEnum|null $navigationGroup = 'Reports';
 
     protected static ?int $navigationSort = 1;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     protected string $view = 'filament.admin.pages.reports-orders';
 
@@ -41,13 +45,9 @@ class ReportsOrders extends Page implements HasForms, HasTable
      */
     public ?array $data = [];
 
-    public function mount(): void
+    public function mount(): mixed
     {
-        $this->form->fill([
-            'from' => now()->startOfMonth()->toDateString(),
-            'until' => now()->endOfMonth()->toDateString(),
-            'export' => 'all',
-        ]);
+        return redirect()->to(OrderResource::getUrl('index'));
     }
 
     public function form(Schema $schema): Schema
@@ -55,15 +55,7 @@ class ReportsOrders extends Page implements HasForms, HasTable
         return $schema
             ->statePath('data')
             ->components([
-                DatePicker::make('from')
-                    ->label('From')
-                    ->native(false)
-                    ->live(),
-
-                DatePicker::make('until')
-                    ->label('Until')
-                    ->native(false)
-                    ->live(),
+                ...$this->reportMonthRangeFilters(),
 
                 Select::make('export')
                     ->label('Export customer')
@@ -76,7 +68,7 @@ class ReportsOrders extends Page implements HasForms, HasTable
                     ->native(false)
                     ->live(),
             ])
-            ->columns(3);
+            ->columns(4);
     }
 
     public function table(Table $table): Table
@@ -242,6 +234,6 @@ class ReportsOrders extends Page implements HasForms, HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup('Orders') ?? false;
     }
 }

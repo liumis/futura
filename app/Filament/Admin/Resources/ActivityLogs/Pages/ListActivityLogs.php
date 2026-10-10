@@ -11,7 +11,7 @@ class ListActivityLogs extends ListRecords
 
     public function getSubheading(): ?string
     {
-        return 'All model changes and report generation/downloads. Entries older than 3 years are removed daily.';
+        return 'Model create/update/delete, file uploads and opens, stock Excel imports, and report generation/downloads. Entries older than 3 years are removed daily.';
     }
 
     protected function getHeaderActions(): array

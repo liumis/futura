@@ -52,7 +52,14 @@ class EmailLogResource extends Resource
 
                 Tables\Columns\TextColumn::make('to')
                     ->label('To')
-                    ->formatStateUsing(fn (?array $state): string => EmailLog::formatAddressList($state))
+                    ->formatStateUsing(function (mixed $state): string {
+                        if (is_string($state)) {
+                            $decoded = json_decode($state, true);
+                            $state = is_array($decoded) ? $decoded : [$state];
+                        }
+
+                        return EmailLog::formatAddressList(is_array($state) ? $state : null);
+                    })
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('subject')
@@ -103,7 +110,7 @@ class EmailLogResource extends Resource
                     ->searchable()
                     ->preload()
                     ->native(false)
-                    ->getOptionLabelFromRecordUsing(fn (User $record): string => (string) ($record->name ?? $record->email ?? '')),
+                    ->getOptionLabelFromRecordUsing(fn (User $record): string => $record->displayName()),
             ])
             ->defaultSort('created_at', 'desc')
             ->recordActions([
@@ -136,7 +143,7 @@ class EmailLogResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool

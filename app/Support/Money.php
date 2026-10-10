@@ -19,8 +19,15 @@ class Money
         return self::symbol();
     }
 
-    public static function format(float|string|null $amount, int $decimals = 2): string
+    public static function format(float|string|null $amount, int $decimals = 2, ?string $currency = null): string
     {
-        return self::symbol().number_format((float) ($amount ?? 0), $decimals, '.', '');
+        $formatted = number_format((float) ($amount ?? 0), $decimals, '.', ' ');
+        $code = strtoupper(trim((string) ($currency ?: self::currency())));
+
+        if ($code === '' || $code === strtoupper(self::currency())) {
+            return self::symbol().$formatted;
+        }
+
+        return $code.' '.$formatted;
     }
 }

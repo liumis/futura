@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\AdminModule;
 use App\Enums\LeaveRequestStatus;
 use App\Filament\Admin\Resources\LeaveRequests\LeaveRequestResource;
+use App\Models\Document;
 use App\Models\LeaveRequest;
 use App\Models\User;
 use App\Notifications\LeaveRequestCancellationNotification;
@@ -158,7 +160,7 @@ final class LeaveRequestConfirmer
         }
 
         if ((int) ($leave->confirmed_by ?? 0) !== (int) $user->getKey()
-            && ! $user->hasRole('admin')) {
+            && ! $user->canAccessModule(AdminModule::EmployeesContracts)) {
             return false;
         }
 
@@ -222,7 +224,7 @@ final class LeaveRequestConfirmer
         }
 
         if ((int) ($leave->confirmed_by ?? 0) !== (int) $user->getKey()
-            && ! $user->hasRole('admin')) {
+            && ! $user->canAccessModule(AdminModule::EmployeesContracts)) {
             return false;
         }
 
@@ -240,7 +242,7 @@ final class LeaveRequestConfirmer
         }
 
         if ((int) ($leave->confirmed_by ?? 0) !== (int) $user->getKey()
-            && ! $user->hasRole('admin')) {
+            && ! $user->canAccessModule(AdminModule::EmployeesContracts)) {
             return false;
         }
 
@@ -267,6 +269,32 @@ final class LeaveRequestConfirmer
         $leave->forceFill([
             'status' => LeaveRequestStatus::Confirmed,
         ])->save();
+
+        self::ensureOrderDocument($leave->fresh(['confirmedBy', 'employee', 'leaveRequestType', 'document']));
+    }
+
+    public static function ensureOrderDocument(LeaveRequest $leave): ?Document
+    {
+        if ($leave->status !== LeaveRequestStatus::Confirmed) {
+            return null;
+        }
+
+        if (filled($leave->order_document_id)) {
+            return $leave->orderDocument;
+        }
+
+        try {
+            return LeaveRequestOrderDocumentGenerator::createAndApprove($leave);
+        } catch (Throwable $exception) {
+            Log::warning('Leave request Įsakymas creation failed', [
+                'leave_request_id' => $leave->getKey(),
+                'message' => $exception->getMessage(),
+            ]);
+
+            report($exception);
+
+            return null;
+        }
     }
 
     protected static function autoApproveActorAsExtra(LeaveRequest $leave): void

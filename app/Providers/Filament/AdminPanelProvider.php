@@ -2,16 +2,23 @@
 
 namespace App\Providers\Filament;
 
+use App\Enums\AdminModule;
 use App\Filament\Admin\Auth\Login;
-use App\Filament\Admin\Pages\EditProfile;
 use App\Filament\Admin\Pages\AbsenceCalendar;
-use App\Filament\Admin\Pages\Callendar;
+use App\Filament\Admin\Pages\Calendar;
 use App\Filament\Admin\Pages\Charts;
+use App\Filament\Admin\Pages\ContactsBoard;
+use App\Filament\Admin\Pages\Dashboard;
+use App\Filament\Admin\Pages\EditProfile;
 use App\Filament\Admin\Pages\Kanban;
 use App\Filament\Admin\Pages\MonthlyPayment;
 use App\Filament\Admin\Pages\NewInvoice;
 use App\Filament\Admin\Pages\OrderCharts;
 use App\Filament\Admin\Pages\PaymentReports;
+use App\Filament\Admin\Pages\ProjectsBoard;
+use App\Filament\Admin\Pages\ReportsBankPayments;
+use App\Filament\Admin\Pages\ReportsOrdersChart;
+use App\Filament\Admin\Pages\ReportsStockChart;
 use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Filament\Admin\Resources\Tasks\TaskResource;
@@ -22,13 +29,15 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationGroup;
 use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
-use Filament\View\PanelsRenderHook;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\IconSize;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 use Filament\Widgets\AccountWidget;
 use Filament\Widgets\FilamentInfoWidget;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -53,7 +62,7 @@ class AdminPanelProvider extends PanelProvider
         $panel = PanelHosts::applyAdmin($panel);
 
         return $panel
-            ->homeUrl(fn (): string => OrderResource::getUrl('index'))
+            ->homeUrl(fn (): string => Dashboard::getUrl())
             ->profile(EditProfile::class)
             ->userMenuItems([
                 'profile' => fn (Action $action): Action => $action
@@ -88,13 +97,22 @@ class AdminPanelProvider extends PanelProvider
             ->passwordReset()
             ->login(Login::class)
             ->brandName('FuturaTextiles SS')
-            ->brandLogo(asset('images/logo.svg'))
-            ->favicon(asset('images/logo.svg'))
+            ->brandLogo(asset('images/logo.png'))
+            ->brandLogoHeight('2.35rem')
+            ->favicon(asset('images/favicon.png'))
             ->colors([
-                'primary' => Color::hex('#2b3a67'),
+                'primary' => Color::hex('#23262A'),
+                'danger' => Color::hex('#A93226'),
             ])
             ->darkMode(false)
+            ->maxContentWidth(Width::Full)
+            ->sidebarWidth('15rem')
+            ->sidebarFullyCollapsibleOnDesktop()
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.components.darbai-fonts')->render(),
+            )
             ->renderHook(
                 PanelsRenderHook::TOPBAR_BEFORE,
                 fn (): HtmlString => EmailTestMode::isEnabled()
@@ -110,36 +128,40 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
                 fn (): string => '<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.css" rel="stylesheet">',
-                scopes: [Callendar::class, AbsenceCalendar::class],
+                scopes: [Calendar::class, AbsenceCalendar::class],
             )
             ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,
                 fn (): string => '<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>',
-                scopes: [Callendar::class, AbsenceCalendar::class],
+                scopes: [Calendar::class, AbsenceCalendar::class],
             )
             ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,
-                fn (): string => '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>',
-                scopes: [Charts::class, OrderCharts::class],
+                fn (): string => '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>'
+                    .'<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>',
+                scopes: [Charts::class, OrderCharts::class, ReportsStockChart::class, ReportsOrdersChart::class, ReportsBankPayments::class],
+            )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => '<script src="'.asset('js/cargo-order-picker.js').'?v=7"></script>',
             )
             ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,
                 fn (): string => '<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>',
-                scopes: [Kanban::class],
+                scopes: [Kanban::class, ContactsBoard::class, ProjectsBoard::class],
             )
             ->navigationGroups([
-                'Orders',
-                'Warehouse & shipping',
-                'Reports',
-                'Catalog',
-                'Payments',
-                'Financial options',
-                'Invoices',
-                'Documents',
-                'Tasks',
-                'Employees & contracts',
-                'Users',
-                'System',
+                NavigationGroup::make('Orders')->collapsed(),
+                NavigationGroup::make('Stock')->collapsed(),
+                NavigationGroup::make('Finances')->collapsed(),
+                NavigationGroup::make('Reports')->collapsed(),
+                NavigationGroup::make('Catalog')->collapsed(),
+                NavigationGroup::make('Contacts')->collapsed(),
+                NavigationGroup::make('Documents')->collapsed(),
+                NavigationGroup::make('Tasks')->collapsed(),
+                NavigationGroup::make('Employees & contracts')->collapsed(),
+                NavigationGroup::make('System')->collapsed(),
+                NavigationGroup::make('Financial options')->collapsed(),
             ])
             ->navigationItems([
                 NavigationItem::make('New order')
@@ -148,26 +170,18 @@ class AdminPanelProvider extends PanelProvider
                     ->url(fn (): string => OrderResource::getUrl('create'))
                     ->group('Orders')
                     ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Orders) ?? false)
                     ->isActiveWhen(fn (): bool => request()->routeIs(OrderResource::getRouteBaseName().'.create'))
                     ->extraAttributes([
                         'class' => 'fi-sidebar-new-order',
                     ]),
-                NavigationItem::make('Charts')
-                    ->label('Charts')
-                    ->icon('heroicon-o-chart-bar')
-                    ->url(fn (): string => OrderCharts::getUrl())
-                    ->group('Orders')
-                    ->sort(98)
-                    ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
-                    ->isActiveWhen(fn (): bool => request()->routeIs(OrderCharts::getRouteName())),
                 NavigationItem::make('TASK')
                     ->label('TASK')
                     ->icon('heroicon-o-plus-circle')
                     ->url(fn (): string => TaskResource::getUrl('create'))
                     ->group('Tasks')
                     ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Tasks) ?? false)
                     ->isActiveWhen(fn (): bool => request()->routeIs(TaskResource::getRouteBaseName().'.create'))
                     ->extraAttributes([
                         'class' => 'fi-sidebar-new-order',
@@ -176,9 +190,9 @@ class AdminPanelProvider extends PanelProvider
                     ->label('New invoice')
                     ->icon('heroicon-o-plus-circle')
                     ->url(fn (): string => NewInvoice::getUrl())
-                    ->group('Invoices')
+                    ->group('Finances')
                     ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Finances) ?? false)
                     ->isActiveWhen(fn (): bool => request()->routeIs(NewInvoice::getRouteName()))
                     ->extraAttributes([
                         'class' => 'fi-sidebar-new-order',
@@ -189,7 +203,7 @@ class AdminPanelProvider extends PanelProvider
                     ->url(fn (): string => DocumentResource::getUrl('create'))
                     ->group('Documents')
                     ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Documents) ?? false)
                     ->isActiveWhen(fn (): bool => request()->routeIs(DocumentResource::getRouteBaseName().'.create'))
                     ->extraAttributes([
                         'class' => 'fi-sidebar-new-order',
@@ -200,7 +214,7 @@ class AdminPanelProvider extends PanelProvider
                     ->url(fn (): string => MonthlyPayment::getUrl())
                     ->group('Employees & contracts')
                     ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->hasRole('admin') ?? false)
+                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
                     ->isActiveWhen(fn (): bool => request()->routeIs(MonthlyPayment::getRouteName())
                         || request()->routeIs(PaymentReports::getRouteName()))
                     ->extraAttributes([

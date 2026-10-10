@@ -16,7 +16,9 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Support\Enums\IconSize;
+use Filament\Support\Enums\Width;
 use Filament\Support\Icons\Heroicon;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -73,13 +75,21 @@ class CustomerPanelProvider extends PanelProvider
             ->passwordReset()
             ->login(Login::class)
             ->brandName('FuturaTextiles')
-            ->brandLogo(asset('images/logo.svg'))
-            ->favicon(asset('images/logo.svg'))
+            ->brandLogo(asset('images/logo.png'))
+            ->brandLogoHeight('2.85rem')
+            ->favicon(asset('images/favicon.png'))
             ->colors([
-                'primary' => Color::hex('#2b3a67'),
+                'primary' => Color::hex('#23262A'),
+                'danger' => Color::hex('#A93226'),
             ])
             ->darkMode(false)
+            ->maxContentWidth(Width::Full)
             ->viteTheme('resources/css/filament/admin/theme.css')
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn (): string => view('filament.components.darbai-fonts')->render()
+                    .'<script src="'.asset('js/cargo-order-picker.js').'?v=7"></script>',
+            )
             ->navigationGroups([
                 'Orders',
             ])

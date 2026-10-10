@@ -4,18 +4,24 @@ namespace App\Filament\Admin\Resources\Orders\Pages;
 
 use App\Enums\ActivityLogEvent;
 use App\Enums\OrderStatus;
+use App\Filament\Admin\Resources\Orders\Concerns\HandlesOrderQuickOrder;
 use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\FulfillmentOrderMailer;
+use App\Services\OrderNotifier;
+use App\Services\OrderStockAllocator;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
-use Illuminate\Support\Facades\Schema;
+use Filament\Schemas\Schema;
+use Illuminate\Support\Facades\Schema as SchemaFacade;
 
 class CreateOrder extends CreateRecord
 {
+    use HandlesOrderQuickOrder;
+
     protected static string $resource = OrderResource::class;
 
     /**
@@ -25,7 +31,25 @@ class CreateOrder extends CreateRecord
 
     protected bool $sendEmailAfterCreate = false;
 
+    protected bool $saveAsDraft = false;
+
     protected ?string $pendingEmailBody = null;
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->quickOrderAction(),
+            $this->expandOrderCartAction(),
+        ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $this->orderPageContent($schema);
+    }
 
     public function confirmOrderApprovalAction(): Action
     {
@@ -60,6 +84,7 @@ class CreateOrder extends CreateRecord
             Action::make('create')
                 ->label(__('filament-panels::resources/pages/create-record.form.actions.create.label'))
                 ->action(function (): void {
+                    $this->saveAsDraft = false;
                     $this->form->validate();
 
                     if ($this->isApprovedStatus()) {
@@ -73,6 +98,15 @@ class CreateOrder extends CreateRecord
                     $this->create();
                 })
                 ->keyBindings(['mod+s']),
+            Action::make('saveAsDraft')
+                ->label('Save as draft')
+                ->color('gray')
+                ->action(function (): void {
+                    $this->saveAsDraft = true;
+                    $this->sendEmailAfterCreate = false;
+                    $this->pendingEmailBody = null;
+                    $this->create();
+                }),
             $this->getCancelFormAction(),
         ];
     }
@@ -83,24 +117,28 @@ class CreateOrder extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->pendingOrderAmounts = $data['order_amounts'] ?? [];
+        $this->pendingOrderAmounts = is_array($this->data['order_amounts'] ?? null)
+            ? $this->data['order_amounts']
+            : ($data['order_amounts'] ?? []);
         unset($data['order_amounts']);
         $data['amount'] = '0.00';
 
-        if (auth()->user()?->hasRole('customer')) {
+        if ($this->saveAsDraft) {
+            $data['status'] = OrderStatus::Draft->value;
+        } elseif (auth()->user()?->hasRole('customer')) {
             $data['status'] = OrderStatus::Pending->value;
             $data['user_id'] = auth()->id();
         }
 
-        if (Schema::hasColumn('orders', 'order_date')) {
+        if (SchemaFacade::hasColumn('orders', 'order_date')) {
             $data['order_date'] = now();
         }
 
-        if (Schema::hasColumn('orders', 'name')) {
+        if (SchemaFacade::hasColumn('orders', 'name')) {
             $data['name'] = '';
         }
 
-        if (! Schema::hasColumn('orders', 'shipping_cost')) {
+        if (! SchemaFacade::hasColumn('orders', 'shipping_cost')) {
             unset($data['shipping_cost']);
         }
 
@@ -113,6 +151,7 @@ class CreateOrder extends CreateRecord
             $this->record,
             is_array($this->pendingOrderAmounts) ? $this->pendingOrderAmounts : [],
         );
+        OrderStockAllocator::applyCreated($this->record->fresh(['orderItems']));
         OrderResource::recalculateOrderAmount($this->record->fresh());
 
         $order = $this->record->fresh();
@@ -123,7 +162,9 @@ class CreateOrder extends CreateRecord
             $order,
         );
 
-        \App\Services\OrderNotifier::created($order);
+        OrderNotifier::created($order);
+
+        $this->saveAsDraft = false;
 
         if (! $this->sendEmailAfterCreate) {
             $this->pendingEmailBody = null;
@@ -160,7 +201,9 @@ class CreateOrder extends CreateRecord
     {
         $data = $this->form->getRawState();
         $amounts = OrderResource::normalizeAmounts(
-            is_array($data['order_amounts'] ?? null) ? $data['order_amounts'] : [],
+            is_array($this->data['order_amounts'] ?? null)
+                ? $this->data['order_amounts']
+                : (is_array($data['order_amounts'] ?? null) ? $data['order_amounts'] : []),
         );
         $customer = User::query()->find($data['user_id'] ?? null);
 
@@ -169,7 +212,7 @@ class CreateOrder extends CreateRecord
 
     protected function isApprovedStatus(): bool
     {
-        $status = $this->form->getRawState()['status'] ?? OrderStatus::Pending->value;
+        $status = $this->form->getRawState()['status'] ?? OrderStatus::Placed->value;
 
         return OrderResource::isApprovedStatus($status);
     }

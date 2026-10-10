@@ -9,7 +9,7 @@ class NotifyLowStock extends Command
 {
     protected $signature = 'app:notify-low-stock';
 
-    protected $description = 'Notify opted-in users about products below the low stock alert limit';
+    protected $description = 'Notify opted-in users about colors below their recommended stock';
 
     public function handle(): int
     {

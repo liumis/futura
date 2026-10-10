@@ -1,22 +1,26 @@
 <?php
 
 // Root path is handled by Filament panel (path: '').
+Route::permanentRedirect('/callendar', '/calendar');
 
+use App\Enums\InvoiceLanguage;
 use App\Http\Controllers\DokobitPostbackController;
 use App\Http\Controllers\MicrosoftCalendarOAuthController;
 use App\Http\Controllers\MicrosoftCalendarWebhookController;
+use App\Models\BankStatementImport;
 use App\Models\Document;
 use App\Models\Invoice;
 use App\Models\MailTemplate;
 use App\Models\User;
 use App\Models\WriteOffDocument;
-use App\Enums\InvoiceLanguage;
-use App\Services\DocumentBinaryStore;
 use App\Services\ActivityLogger;
+use App\Services\DocumentBinaryStore;
 use App\Services\InvoicePdfGenerator;
+use App\Services\SharepointGraphClient;
 use App\Services\WriteOffDocumentPdfGenerator;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 
 Route::post('/dokobit/postback', DokobitPostbackController::class)
     ->name('dokobit.postback');
@@ -38,11 +42,11 @@ Route::middleware('auth')->group(function (): void {
             abort(404);
         }
 
-        if (! \Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
+        if (! Storage::disk('public')->exists($path)) {
             abort(404);
         }
 
-        $absolute = \Illuminate\Support\Facades\Storage::disk('public')->path($path);
+        $absolute = Storage::disk('public')->path($path);
         $mime = match (strtolower(pathinfo($path, PATHINFO_EXTENSION))) {
             'png' => 'image/png',
             'jpg', 'jpeg' => 'image/jpeg',
@@ -61,7 +65,7 @@ Route::get('/email-template-preview', function () {
 
     return response()->view('mail.branded-template', [
         'appName' => config('app.name', 'FuturaTextiles SS'),
-        'logoUrl' => asset('images/logo.svg'),
+        'logoUrl' => asset('images/logo.png'),
         'subject' => 'Branded email template preview',
         'heading' => 'Order update',
         'recipientName' => auth()->user()?->name ?? 'Customer',
@@ -84,7 +88,7 @@ Route::get('/mail-templates/{mailTemplate}/preview', function (MailTemplate $mai
 
     return response()->view('mail.template-preview', [
         'appName' => config('app.name', 'FuturaTextiles SS'),
-        'logoUrl' => asset('images/logo.svg'),
+        'logoUrl' => asset('images/logo.png'),
         'templateName' => (string) $mailTemplate->name,
         'subject' => str_replace('{order_id}', '123', trim((string) $mailTemplate->subject)),
         'fromName' => $templateFromName !== '' ? $templateFromName.' | '.$userName : $userName,
@@ -98,7 +102,7 @@ Route::get('/documents/{document}/file', function (Document $document) {
 
     try {
         $binary = DocumentBinaryStore::getBinary($document);
-    } catch (\Throwable) {
+    } catch (Throwable) {
         abort(404);
     }
 
@@ -131,13 +135,44 @@ Route::get('/invoices/{invoice}/file', function (Invoice $invoice, Request $requ
 
     $lang = InvoiceLanguage::tryFrom((string) $request->query('lang', ''));
 
-    if ($lang !== null && $invoice->order_id && $invoice->file_mime === 'application/pdf') {
-        $pdf = InvoicePdfGenerator::generateForInvoice($invoice, $lang);
+    if ($lang !== null && $invoice->canOpenLanguagePdf()) {
+        $stored = $invoice->sharepointFileForLanguage($lang->value);
         $fileName = ($invoice->invoice_number ?? 'invoice-'.$invoice->id).'-'.strtoupper($lang->value).'.pdf';
 
-        ActivityLogger::logReportDownloaded('Invoice PDF', 'pdf', $invoice, [
+        if (is_array($stored) && filled($stored['item_id'] ?? null)) {
+            try {
+                $binary = SharepointGraphClient::make()->downloadItemContent((string) $stored['item_id']);
+
+                ActivityLogger::logReportDownloaded('Invoice PDF '.$invoice->displayNumber(), 'pdf', $invoice, [
+                    'file_name' => $stored['name'] ?? $fileName,
+                    'language' => $lang->value,
+                    'invoice_id' => $invoice->getKey(),
+                    'invoice_number' => $invoice->invoice_number,
+                    'sharepoint_item_id' => $stored['item_id'],
+                    'source' => 'sharepoint',
+                ]);
+
+                return response($binary, 200, [
+                    'Content-Type' => 'application/pdf',
+                    'Content-Disposition' => 'inline; filename="'.($stored['name'] ?? $fileName).'"',
+                    'Cache-Control' => 'private, no-store',
+                ]);
+            } catch (Throwable) {
+                if (filled($stored['web_url'] ?? null)) {
+                    return redirect((string) $stored['web_url']);
+                }
+            }
+        }
+
+        // Fallback: generate on the fly if SharePoint copy is missing.
+        $pdf = InvoicePdfGenerator::generateForInvoice($invoice, $lang);
+
+        ActivityLogger::logReportDownloaded('Invoice PDF '.$invoice->displayNumber(), 'pdf', $invoice, [
             'file_name' => $fileName,
             'language' => $lang->value,
+            'invoice_id' => $invoice->getKey(),
+            'invoice_number' => $invoice->invoice_number,
+            'source' => 'generated',
         ]);
 
         return response($pdf, 200, [
@@ -146,27 +181,43 @@ Route::get('/invoices/{invoice}/file', function (Invoice $invoice, Request $requ
         ]);
     }
 
-    if (filled($invoice->file_content)) {
-        $binary = base64_decode((string) $invoice->file_content, true);
-        abort_if($binary === false, 404);
+    if (filled($invoice->sharepoint_item_id)) {
+        try {
+            $binary = SharepointGraphClient::make()->downloadItemContent((string) $invoice->sharepoint_item_id);
+        } catch (Throwable) {
+            if (filled($invoice->sharepoint_web_url)) {
+                ActivityLogger::logFileOpened(
+                    'Invoice '.$invoice->displayNumber().' (SharePoint)',
+                    pathinfo((string) ($invoice->file_name ?: $invoice->sharepoint_path ?: 'invoice'), PATHINFO_EXTENSION) ?: 'bin',
+                    $invoice,
+                    [
+                        'file_name' => $invoice->file_name,
+                        'invoice_id' => $invoice->getKey(),
+                        'invoice_number' => $invoice->invoice_number,
+                        'sharepoint_web_url' => $invoice->sharepoint_web_url,
+                    ],
+                );
 
-        ActivityLogger::logReportDownloaded('Invoice file', (string) ($invoice->file_mime ?? 'bin'), $invoice, [
-            'file_name' => $invoice->file_name ?? 'invoice-file',
+                return redirect($invoice->sharepoint_web_url);
+            }
+
+            abort(404);
+        }
+
+        $fileName = $invoice->file_name ?: basename((string) ($invoice->sharepoint_path ?: 'invoice-file'));
+
+        ActivityLogger::logReportDownloaded('Invoice '.$invoice->displayNumber().' (SharePoint)', (string) ($invoice->file_mime ?? 'bin'), $invoice, [
+            'file_name' => $fileName,
+            'invoice_id' => $invoice->getKey(),
+            'invoice_number' => $invoice->invoice_number,
+            'sharepoint_item_id' => $invoice->sharepoint_item_id,
         ]);
 
         return response($binary, 200, [
             'Content-Type' => (string) ($invoice->file_mime ?? 'application/octet-stream'),
-            'Content-Disposition' => 'inline; filename="'.($invoice->file_name ?? 'invoice-file').'"',
+            'Content-Disposition' => 'inline; filename="'.$fileName.'"',
+            'Cache-Control' => 'private, no-store',
         ]);
-    }
-
-    // Backward compatibility for records saved before DB file storage.
-    if (filled($invoice->pdf_path) && \Illuminate\Support\Facades\Storage::disk('public')->exists($invoice->pdf_path)) {
-        ActivityLogger::logReportDownloaded('Invoice PDF (storage)', 'pdf', $invoice, [
-            'pdf_path' => $invoice->pdf_path,
-        ]);
-
-        return redirect(\Illuminate\Support\Facades\Storage::url($invoice->pdf_path));
     }
 
     abort(404);
@@ -176,7 +227,7 @@ Route::get('/write-off-documents/{writeOffDocument}/file', function (WriteOffDoc
     abort_unless(auth()->check() && (auth()->user()?->hasRole('admin') ?? false), 403);
 
     $language = InvoiceLanguage::tryFrom((string) $request->query('lang', '')) ?? InvoiceLanguage::English;
-    $pdf = WriteOffDocumentPdfGenerator::generate($writeOffDocument, $language);
+    $pdf = WriteOffDocumentPdfGenerator::generate($writeOffDocument, $language, logDownload: false);
     $fileName = ($writeOffDocument->document_number ?? 'write-off-'.$writeOffDocument->id).'-'.strtoupper($language->value).'.pdf';
 
     ActivityLogger::logReportDownloaded('Write-off document PDF', 'pdf', $writeOffDocument, [
@@ -189,3 +240,21 @@ Route::get('/write-off-documents/{writeOffDocument}/file', function (WriteOffDoc
         'Content-Disposition' => 'inline; filename="'.$fileName.'"',
     ]);
 })->middleware('auth')->name('write-off-documents.file');
+
+Route::get('/bank-statement-imports/{import}/file', function (BankStatementImport $import) {
+    abort_unless(auth()->check(), 403);
+    abort_unless(filled($import->sharepoint_web_url), 404);
+
+    $format = strtolower((string) pathinfo(
+        (string) ($import->original_filename ?: $import->sharepoint_path ?: 'file'),
+        PATHINFO_EXTENSION,
+    )) ?: 'bin';
+
+    ActivityLogger::logFileOpened('Bank statement', $format, $import, [
+        'file_name' => $import->original_filename,
+        'sharepoint_path' => $import->sharepoint_path,
+        'sharepoint_web_url' => $import->sharepoint_web_url,
+    ]);
+
+    return redirect()->away((string) $import->sharepoint_web_url);
+})->middleware('auth')->name('bank-statement-imports.file');

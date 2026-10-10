@@ -169,6 +169,31 @@
 
                             window.alert('Could not open hours editor. Please refresh the page.');
                         },
+                        openAddRequest(dateKey) {
+                            if (! dateKey) {
+                                return;
+                            }
+
+                            this.hideTooltip();
+
+                            const wire = this.$wire;
+                            if (! wire) {
+                                window.alert('Could not open add request. Please refresh the page.');
+                                return;
+                            }
+
+                            if (typeof wire.openAddDayRequest === 'function') {
+                                wire.openAddDayRequest(dateKey);
+                                return;
+                            }
+
+                            if (typeof wire.mountAction === 'function') {
+                                wire.mountAction('addDayRequest', { date: dateKey });
+                                return;
+                            }
+
+                            window.alert('Could not open add request. Please refresh the page.');
+                        },
                         renderWorkHours(info) {
                             const frame = info.el.querySelector('.fc-daygrid-day-frame');
                             if (! frame) {
@@ -176,19 +201,43 @@
                             }
 
                             frame.querySelectorAll('.absence-calendar-hours').forEach((node) => node.remove());
+                            frame.querySelectorAll('.absence-calendar-add').forEach((node) => node.remove());
 
                             const dateKey = info.el.getAttribute('data-date') ?? this.localDateKey(info.date);
                             const workDay = this.payload.workDays?.[dateKey];
+
+                            info.el.classList.add('absence-calendar-day--addable');
+                            info.el.title = 'Click empty area to add leave, trip, or overtime';
+
+                            const addBtn = document.createElement('button');
+                            addBtn.type = 'button';
+                            addBtn.className = 'absence-calendar-add';
+                            addBtn.title = 'Add leave / trip / overtime';
+                            addBtn.setAttribute('aria-label', 'Add leave, business trip, or overtime');
+                            addBtn.innerHTML = '<span aria-hidden="true">+</span>';
+                            addBtn.addEventListener('click', (event) => {
+                                event.preventDefault();
+                                event.stopPropagation();
+                                this.openAddRequest(dateKey);
+                            });
+
+                            const dayTop = frame.querySelector('.fc-daygrid-day-top');
+                            if (dayTop) {
+                                dayTop.appendChild(addBtn);
+                            } else {
+                                frame.prepend(addBtn);
+                            }
+
                             if (! workDay) {
                                 info.el.classList.remove('absence-calendar-day--editable');
                                 return;
                             }
 
                             info.el.classList.add('absence-calendar-day--editable');
-                            info.el.title = 'Click to edit plan and actual hours';
 
                             const hoursEl = document.createElement('div');
                             hoursEl.className = 'absence-calendar-hours';
+                            hoursEl.title = 'Click to edit plan and actual hours';
 
                             if (Math.abs(Number(workDay.hours) - Number(workDay.actual_hours)) > 0.001) {
                                 hoursEl.classList.add('absence-calendar-hours--variance');
@@ -207,11 +256,10 @@
                                 node.addEventListener('click', openEditor);
                             });
 
-                            const dayTop = frame.querySelector('.fc-daygrid-day-top');
                             if (dayTop) {
                                 dayTop.insertAdjacentElement('afterend', hoursEl);
                             } else {
-                                frame.prepend(hoursEl);
+                                addBtn.insertAdjacentElement('afterend', hoursEl);
                             }
                         },
                         refreshAllWorkHourBadges() {
@@ -260,7 +308,8 @@
                                 },
                                 dateClick: (info) => {
                                     const dateKey = info.dateStr || this.localDateKey(info.date);
-                                    this.openHoursEditor(dateKey);
+                                    // Hours block stops propagation; empty cell / date opens add-request.
+                                    this.openAddRequest(dateKey);
                                 },
                                 dayCellDidMount: (info) => {
                                     this.renderWorkHours(info);
@@ -331,8 +380,12 @@
                     Calculate annual leave
                 </h3>
                 <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                    Accrues {{ \App\Services\AnnualLeaveCalculator::DAYS_PER_YEAR }} working days per year from the earliest non-draft contract start,
-                    minus confirmed / cancellation-pending
+                    Base {{ \App\Services\AnnualLeaveCalculator::DAYS_PER_YEAR }} working days/year from the earliest non-draft contract start,
+                    plus seniority (DK): +{{ \App\Services\AnnualLeaveCalculator::SENIORITY_BASE_EXTRA_DAYS }} days after
+                    {{ \App\Services\AnnualLeaveCalculator::SENIORITY_THRESHOLD_YEARS }} years continuous service,
+                    then +{{ \App\Services\AnnualLeaveCalculator::SENIORITY_STEP_EXTRA_DAYS }} day each further
+                    {{ \App\Services\AnnualLeaveCalculator::SENIORITY_STEP_YEARS }} years.
+                    Minus confirmed / cancellation-pending
                     {{ \App\Services\AnnualLeaveCalculator::ANNUAL_LEAVE_TYPE_NAME }} working days up to the selected date.
                 </p>
 
@@ -367,6 +420,9 @@
                                 {{ number_format((float) $annualLeaveResult['available_days'], 2) }}
                                 <span class="text-base font-medium text-gray-500 dark:text-gray-400">days available</span>
                             </div>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                {{ $annualLeaveResult['seniority_rule_label'] ?? '' }}
+                            </p>
                             <dl class="mt-3 grid gap-2 text-sm text-gray-700 dark:text-gray-200 sm:grid-cols-2">
                                 <div>
                                     <dt class="text-gray-500 dark:text-gray-400">Contract start</dt>
@@ -377,12 +433,97 @@
                                     <dd>{{ $annualLeaveResult['as_of'] ?? '—' }}</dd>
                                 </div>
                                 <div>
+                                    <dt class="text-gray-500 dark:text-gray-400">Continuous service</dt>
+                                    <dd>{{ (int) ($annualLeaveResult['completed_years'] ?? 0) }} years</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-500 dark:text-gray-400">Days / year (base + seniority)</dt>
+                                    <dd>
+                                        {{ (int) ($annualLeaveResult['base_days_per_year'] ?? 20) }}
+                                        + {{ (int) ($annualLeaveResult['seniority_extra_days'] ?? 0) }}
+                                        = {{ (int) ($annualLeaveResult['days_per_year'] ?? 20) }}
+                                    </dd>
+                                </div>
+                                <div>
                                     <dt class="text-gray-500 dark:text-gray-400">Accrued</dt>
                                     <dd>{{ number_format((float) $annualLeaveResult['accrued_days'], 2) }} days</dd>
                                 </div>
                                 <div>
                                     <dt class="text-gray-500 dark:text-gray-400">Used (annual leave)</dt>
                                     <dd>{{ number_format((float) $annualLeaveResult['used_days'], 2) }} working days</dd>
+                                </div>
+                            </dl>
+                        @endif
+                    </div>
+                @endif
+            </div>
+
+            <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                <h3 class="text-base font-semibold text-gray-950 dark:text-white">
+                    Calculate tėvadienis / mamadienis
+                </h3>
+                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                    Lithuanian DK 138§3: based on children under 12 (or disabled under 18) from Employee → Children.
+                    Unused days do not carry over to the next month/quarter.
+                </p>
+
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+                    <div class="w-full max-w-xs">
+                        <label for="parental-leave-as-of" class="mb-2 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                            Date
+                        </label>
+                        <input
+                            id="parental-leave-as-of"
+                            type="date"
+                            wire:model="parentalLeaveAsOf"
+                            class="fi-input block w-full rounded-lg border-gray-300 text-sm shadow-sm focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-white"
+                        />
+                    </div>
+
+                    <div>
+                        <x-filament::button wire:click="calculateParentalLeave" color="primary">
+                            Calculate
+                        </x-filament::button>
+                    </div>
+                </div>
+
+                @if (is_array($parentalLeaveResult))
+                    <div class="mt-4 rounded-lg border border-gray-200 bg-gray-50 p-4 dark:border-gray-700 dark:bg-gray-800/60">
+                        @if (! ($parentalLeaveResult['ok'] ?? false))
+                            <p class="text-sm text-warning-600 dark:text-warning-400">
+                                {{ $parentalLeaveResult['message'] ?? 'Could not calculate.' }}
+                            </p>
+                        @else
+                            <div class="text-2xl font-semibold text-gray-950 dark:text-white">
+                                {{ number_format((float) $parentalLeaveResult['available_days'], 0) }}
+                                <span class="text-base font-medium text-gray-500 dark:text-gray-400">days available</span>
+                            </div>
+                            <p class="mt-2 text-sm text-gray-600 dark:text-gray-300">
+                                {{ $parentalLeaveResult['rule_label'] ?? '' }}
+                            </p>
+                            <dl class="mt-3 grid gap-2 text-sm text-gray-700 dark:text-gray-200 sm:grid-cols-2">
+                                <div>
+                                    <dt class="text-gray-500 dark:text-gray-400">Children under 12</dt>
+                                    <dd>{{ $parentalLeaveResult['children_under_12'] ?? 0 }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-500 dark:text-gray-400">Disabled under 18</dt>
+                                    <dd>{{ $parentalLeaveResult['children_disabled_under_18'] ?? 0 }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-500 dark:text-gray-400">Period</dt>
+                                    <dd>
+                                        {{ $parentalLeaveResult['period_label'] ?? '—' }}
+                                        ({{ $parentalLeaveResult['period_from'] ?? '—' }} – {{ $parentalLeaveResult['period_to'] ?? '—' }})
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt class="text-gray-500 dark:text-gray-400">Entitled / used</dt>
+                                    <dd>
+                                        {{ number_format((float) ($parentalLeaveResult['entitlement_days'] ?? 0), 0) }}
+                                        /
+                                        {{ number_format((float) ($parentalLeaveResult['used_days'] ?? 0), 0) }}
+                                    </dd>
                                 </div>
                             </dl>
                         @endif
@@ -409,9 +550,9 @@
                     @endforeach
                 </div>
                 <div class="mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    Each day with a timetable shows Plan and Act hours. Click <span class="font-medium">Act</span>,
-                    <span class="font-medium">Edit actuals</span>, or the day cell to open the edit modal.
-                    Colored bars are leave and overtime requests.
+                    Click the gray <span class="font-medium">Plan / Act</span> block to edit hours.
+                    Click empty day space, the date, or <span class="font-medium">+</span> to add leave, a business trip, or overtime.
+                    Colored bars are existing requests.
                 </div>
             </div>
         </div>

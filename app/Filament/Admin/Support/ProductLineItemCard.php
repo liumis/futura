@@ -45,7 +45,12 @@ class ProductLineItemCard
             ->minValue(0)
             ->default(0)
             ->step(1)
-            ->live()
+            ->live(debounce: 300)
+            ->afterStateUpdated(function ($state, $livewire) use ($product, $recalculateCosts): void {
+                if ($recalculateCosts && method_exists($livewire, 'onCargoAmountInputUpdated')) {
+                    $livewire->onCargoAmountInputUpdated((int) $product->id, (int) $state);
+                }
+            })
             ->extraInputAttributes($amountInputAttributes);
 
         $inputs = [$amountInput];
@@ -66,13 +71,13 @@ class ProductLineItemCard
                     ->schema([
                         $amountInput,
                         Forms\Components\TextInput::make($costField)
-                            ->label('Cost')
+                            ->label($product->isCatalog() ? 'Cost' : 'Cost / m')
                             ->numeric()
                             ->minValue(0)
-                            ->default((float) $product->default_cost)
+                            ->default($product->collectionUnitCost())
                             ->afterStateHydrated(function (Forms\Components\TextInput $component, $state) use ($product): void {
                                 if ($state === null || $state === '') {
-                                    $component->state((float) $product->default_cost);
+                                    $component->state($product->collectionUnitCost());
                                 }
                             })
                             ->step(0.01)
@@ -141,9 +146,11 @@ class ProductLineItemCard
         $label = e(trim(($product->color?->color_name ?? 'Color').' '.($product->color?->color_code ?? '')));
 
         if (filled($imageUrl)) {
+            $safeUrl = e($imageUrl);
+
             return sprintf(
                 '<div class="fi-order-product-swatch" style="background-image: url(\'%s\');" role="img" aria-label="%s"></div>',
-                e($imageUrl),
+                $safeUrl,
                 $label,
             );
         }

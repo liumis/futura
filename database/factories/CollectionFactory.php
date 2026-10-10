@@ -20,6 +20,7 @@ class CollectionFactory extends Factory
         return [
             'name' => fake()->words(2, true),
             'price' => fake()->randomFloat(2, 5, 500),
+            'cost' => fake()->randomFloat(2, 1, 200),
         ];
     }
 }

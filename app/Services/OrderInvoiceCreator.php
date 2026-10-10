@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Models\CompanySetting;
+use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\InvoiceSeries;
 use App\Models\Order;
@@ -22,8 +23,12 @@ class OrderInvoiceCreator
         OrderResource::recalculateOrderAmount($order->fresh());
         $order = $order->fresh(['user']);
 
+        if ($order->user === null) {
+            throw new \RuntimeException('Order has no customer; cannot create a sales invoice.');
+        }
+
         $company = CompanySetting::instance();
-        $contact = $company->syncContact();
+        $contact = Contact::syncFromCustomer($order->user);
         $series = InvoiceSeries::default();
 
         if ($series === null) {
@@ -33,7 +38,7 @@ class OrderInvoiceCreator
         $seriesNumber = $series->nextSeriesNumber();
         $invoiceNumber = $series->formatNumber($seriesNumber);
         $vatRate = VatRateResolver::forUser($order->user);
-        [$sumWithoutVat, $vat, $sumIncVat] = VatRateResolver::calculateAmounts((float) $order->amount, $vatRate);
+        [$sumWithoutVat, $vat, $sumIncVat] = VatRateResolver::calculateFromNet((float) $order->amount, $vatRate);
 
         $invoice = Invoice::query()->create([
             'order_id' => $order->id,
@@ -46,6 +51,9 @@ class OrderInvoiceCreator
             'vat' => $vat,
             'sum_inc_vat' => $sumIncVat,
             'vat_rate_id' => $vatRate?->id,
+            'payment_term' => Invoice::paymentTermFromCustomer($order->user),
+            'paid_amount' => 0,
+            'paid' => false,
             'upload_date' => now()->toDateString(),
             'uploaded_by' => auth()->id(),
             'pdf_path' => null,
@@ -69,8 +77,8 @@ class OrderInvoiceCreator
         OrderResource::recalculateOrderAmount($order->fresh());
         $order = $order->fresh(['user']);
 
-        $vatRate = VatRateResolver::forInvoice($invoice, $order->user);
-        [$sumWithoutVat, $vat, $sumIncVat] = VatRateResolver::calculateAmounts((float) $order->amount, $vatRate);
+        $vatRate = VatRateResolver::forUser($order->user);
+        [$sumWithoutVat, $vat, $sumIncVat] = VatRateResolver::calculateFromNet((float) $order->amount, $vatRate);
 
         $invoice->update([
             'sum_without_vat' => $sumWithoutVat,

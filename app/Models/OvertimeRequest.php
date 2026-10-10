@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdminModule;
 use App\Enums\OvertimeRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -142,6 +143,6 @@ class OvertimeRequest extends Model
     {
         return $user !== null
             && $this->status === OvertimeRequestStatus::Confirmed
-            && ($user->hasRole('admin') || (int) $user->getKey() === (int) ($this->confirmed_by ?? 0));
+            && ($user->canAccessModule(AdminModule::EmployeesContracts) || (int) $user->getKey() === (int) ($this->confirmed_by ?? 0));
     }
 }

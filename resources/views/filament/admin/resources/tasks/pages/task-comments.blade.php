@@ -16,7 +16,7 @@
             @forelse ($this->getComments() as $comment)
                 <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900">
                     <div class="mb-2 flex items-center justify-between gap-3 text-xs text-gray-500 dark:text-gray-400">
-                        <span>{{ $comment->user?->name ?? $comment->user?->email ?? 'Unknown user' }}</span>
+                        <span>{{ $comment->user?->displayName() ?: 'Unknown user' }}</span>
                         <span>{{ $comment->created_at?->format('Y-m-d H:i:s') }}</span>
                     </div>
 

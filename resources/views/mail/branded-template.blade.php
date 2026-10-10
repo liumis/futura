@@ -10,10 +10,10 @@
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color:#f0f2f5;padding:32px 16px;">
         <tr>
             <td align="center">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(43,58,103,0.08);">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:620px;background-color:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
                     <tr>
                         <td style="padding:28px 36px 20px;text-align:center;border-bottom:1px solid #e8ecf1;">
-                            <img src="{{ $logoUrl ?? asset('images/logo.svg') }}" alt="{{ $appName ?? config('app.name') }}" width="210" height="auto" style="display:block;margin:0 auto;max-width:210px;height:auto;">
+                            <img src="{{ $logoUrl ?? asset('images/logo.png') }}" alt="{{ $appName ?? config('app.name') }}" width="210" height="auto" style="display:block;margin:0 auto;max-width:210px;height:auto;">
                         </td>
                     </tr>
                     <tr>
@@ -43,7 +43,7 @@
 
                             <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin:0 auto 20px;">
                                 <tr>
-                                    <td style="border-radius:8px;background-color:#2b3a67;">
+                                    <td style="border-radius:8px;background-color:#111111;">
                                         <a href="{{ $actionUrl ?? url('/') }}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:13px 26px;font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:8px;">
                                             {{ $actionText ?? 'Open dashboard' }}
                                         </a>

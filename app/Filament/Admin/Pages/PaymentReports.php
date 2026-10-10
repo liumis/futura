@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Enums\AdminModule;
 use Filament\Pages\Page;
 
 class PaymentReports extends Page
@@ -12,7 +13,7 @@ class PaymentReports extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessModule(AdminModule::EmployeesContracts) ?? false;
     }
 
     public function mount(): void

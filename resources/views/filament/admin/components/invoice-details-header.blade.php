@@ -1,5 +1,7 @@
 @php
     use App\Support\Money;
+
+    $currency = $currency ?? Money::currency();
 @endphp
 
 <div class="mb-4 space-y-4 text-sm">
@@ -59,6 +61,10 @@
             <span class="text-gray-500 dark:text-gray-400">Invoice date:</span>
             <strong style="margin-left:0.35rem;">{{ $invoiceDate }}</strong>
         </div>
+        <div>
+            <span class="text-gray-500 dark:text-gray-400">Currency:</span>
+            <strong style="margin-left:0.35rem;">{{ $currency }}</strong>
+        </div>
         @if (filled($orderNumber))
             <div>
                 <span class="text-gray-500 dark:text-gray-400">Order:</span>
@@ -89,8 +95,8 @@
                             <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $line['product_code'] }}</td>
                             <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $line['size'] }}</td>
                             <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ $line['amount'] }}</td>
-                            <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ Money::format($line['unit_price']) }}</td>
-                            <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ Money::format($line['line_total']) }}</td>
+                            <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ Money::format($line['unit_price'], 2, $currency) }}</td>
+                            <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ Money::format($line['line_total'], 2, $currency) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -105,24 +111,24 @@
                     @if ($hasOrderTotals)
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="px-3 py-2 text-gray-600 dark:text-gray-300">Subtotal</td>
-                            <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($subtotal) }}</td>
+                            <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($subtotal, 2, $currency) }}</td>
                         </tr>
                         <tr class="border-b border-gray-100 dark:border-gray-700">
                             <td class="px-3 py-2 text-gray-600 dark:text-gray-300">Delivery</td>
-                            <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($shipping) }}</td>
+                            <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($shipping, 2, $currency) }}</td>
                         </tr>
                     @endif
                     <tr class="border-b border-gray-100 dark:border-gray-700">
                         <td class="px-3 py-2 text-gray-600 dark:text-gray-300">Sum without VAT</td>
-                        <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($sumWithoutVat) }}</td>
+                        <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($sumWithoutVat, 2, $currency) }}</td>
                     </tr>
                     <tr class="border-b border-gray-100 dark:border-gray-700">
                         <td class="px-3 py-2 text-gray-600 dark:text-gray-300">VAT</td>
-                        <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($vat) }}</td>
+                        <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($vat, 2, $currency) }}</td>
                     </tr>
                     <tr class="bg-gray-50 dark:bg-gray-800">
                         <td class="px-3 py-2 font-semibold text-gray-900 dark:text-white">Total to pay</td>
-                        <td class="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">{{ Money::format($sumIncVat) }}</td>
+                        <td class="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">{{ Money::format($sumIncVat, 2, $currency) }}</td>
                     </tr>
                 </tbody>
             </table>

@@ -23,7 +23,7 @@
         }
         .company-name {
             font-weight: 700;
-            color: #2b3a67;
+            color: #111111;
             font-size: 13px;
         }
         .title {
@@ -31,7 +31,7 @@
             font-size: 20px;
             font-weight: 700;
             letter-spacing: 0.08em;
-            color: #2b3a67;
+            color: #111111;
             margin: 28px 0 32px;
             text-transform: uppercase;
         }
@@ -54,7 +54,7 @@
         .meta-table th {
             width: 36%;
             background: #f1f5f9;
-            font-weight: 600;
+            font-weight: 700;
             color: #334155;
         }
         .comment {

@@ -15,7 +15,6 @@
             @endphp
             <li class="ss-employee-related__row">
                 <span class="ss-employee-related__label">{{ $group['label'] }}</span>
-
                 <span class="ss-employee-related__slot ss-employee-related__slot--view">
                     @if ($viewLink)
                         <a
@@ -24,11 +23,10 @@
                             title="{{ $viewLink['title'] }}"
                         >
                             <x-heroicon-m-eye class="ss-employee-related__btn-icon" aria-hidden="true" />
-                            <span>{{ $viewLink['label'] }}</span>
+                            <span>View</span>
                         </a>
                     @endif
                 </span>
-
                 <span class="ss-employee-related__slot ss-employee-related__slot--add">
                     @if ($addLink)
                         <a
@@ -37,7 +35,7 @@
                             title="{{ $addLink['title'] }}"
                         >
                             <x-heroicon-m-plus class="ss-employee-related__btn-icon" aria-hidden="true" />
-                            <span>{{ $addLink['label'] }}</span>
+                            <span>Add</span>
                         </a>
                     @endif
                 </span>

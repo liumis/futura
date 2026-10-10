@@ -5,18 +5,90 @@ namespace App\Filament\Admin\Resources\Cargos\Pages;
 use App\Enums\ActivityLogEvent;
 use App\Enums\CargoStatus;
 use App\Filament\Admin\Resources\Cargos\CargoResource;
+use App\Filament\Admin\Resources\Cargos\Concerns\HandlesCargoQuickOrder;
 use App\Services\ActivityLogger;
 use App\Services\WarehouseOrderMailer;
 use Filament\Actions\Action;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Schemas\Schema;
 
 class CreateCargo extends CreateRecord
 {
+    use HandlesCargoQuickOrder;
+
     protected static string $resource = CargoResource::class;
 
     protected static bool $canCreateAnother = false;
+
+    protected function fillForm(): void
+    {
+        $this->callHook('beforeFill');
+
+        $this->form->fill();
+
+        $supplierId = (int) request()->query('supplier_id');
+        $autoOrder = request()->boolean('auto_order');
+
+        if ($supplierId <= 0 && $autoOrder) {
+            $supplierId = (int) (CargoResource::defaultSupplierId() ?? 0);
+        }
+
+        if ($supplierId <= 0 && ! $autoOrder) {
+            $this->callHook('afterFill');
+
+            return;
+        }
+
+        $data = $this->form->getRawState();
+
+        if ($supplierId > 0) {
+            $data['supplier_id'] = $supplierId;
+        }
+
+        if ($autoOrder && $supplierId > 0) {
+            $amounts = CargoResource::lowStockDefaultOrderAmounts($supplierId);
+            $data['cargo_amounts'] = $amounts;
+
+            if ($amounts !== []) {
+                $this->orderCartOpen = true;
+            }
+        }
+
+        $this->form->fill($data);
+
+        $this->callHook('afterFill');
+
+        if ($autoOrder) {
+            $count = count($data['cargo_amounts'] ?? []);
+
+            Notification::make()
+                ->title($count > 0 ? 'Low stock order prefilled' : 'Nothing to auto-order')
+                ->body($count > 0
+                    ? "Set default order on {$count} low-stock item(s)."
+                    : 'No products are below recommended stock for this supplier.')
+                ->{$count > 0 ? 'success' : 'warning'}()
+                ->send();
+        }
+    }
+
+    /**
+     * @return array<Action>
+     */
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->quickOrderAction(),
+            $this->autoOrderAction(),
+            $this->expandOrderCartAction(),
+        ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $this->cargoPageContent($schema);
+    }
 
     protected bool $sendEmailAfterCreate = false;
 

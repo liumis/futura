@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\SharepointSetting;
 use App\Models\Todo;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use RuntimeException;
@@ -124,6 +125,15 @@ class SharepointTaskUploader
             'folder' => $folderPath,
         ]);
 
+        ActivityLogger::logFileUploaded('Task attachments', 'multi', $todo, [
+            'count' => count($meta),
+            'sharepoint_folder' => $folderPath,
+            'file_names' => array_values(array_filter(array_map(
+                fn (array $row): ?string => isset($row['name']) ? (string) $row['name'] : null,
+                $meta,
+            ))),
+        ]);
+
         return $meta;
     }
 
@@ -195,6 +205,13 @@ class SharepointTaskUploader
             'sharepoint_files' => $files,
         ])->save();
 
+        $format = strtolower((string) pathinfo($remoteName, PATHINFO_EXTENSION)) ?: 'bin';
+        ActivityLogger::logFileUploaded('Task attachment (replaced)', $format, $todo, [
+            'file_name' => $remoteName,
+            'sharepoint_path' => $updated['path'],
+            'sharepoint_item_id' => $updated['item_id'],
+        ]);
+
         return $updated;
     }
 
@@ -264,7 +281,7 @@ class SharepointTaskUploader
 
             if (filled($value)) {
                 try {
-                    return \Illuminate\Support\Carbon::parse((string) $value)->toIso8601String();
+                    return Carbon::parse((string) $value)->toIso8601String();
                 } catch (\Throwable) {
                     continue;
                 }

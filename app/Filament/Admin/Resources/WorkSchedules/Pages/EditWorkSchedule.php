@@ -5,8 +5,11 @@ namespace App\Filament\Admin\Resources\WorkSchedules\Pages;
 use App\Filament\Admin\Resources\Pages\EditRecord;
 use App\Filament\Admin\Resources\WorkSchedules\Concerns\TogglesWorkScheduleWeekdays;
 use App\Filament\Admin\Resources\WorkSchedules\WorkScheduleResource;
+use App\Services\ActivityLogger;
 use App\Services\WorkScheduleGenerator;
+use App\Services\WorkTimeTimesheetPdfGenerator;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Notifications\Notification;
 
 class EditWorkSchedule extends EditRecord
@@ -80,11 +83,52 @@ class EditWorkSchedule extends EditRecord
     }
 
     /**
-     * @return array<\Filament\Actions\Action | \Filament\Actions\ActionGroup>
+     * @return array<Action | ActionGroup>
      */
     protected function buildHeaderActions(): array
     {
         return [
+            Action::make('timesheetPdf')
+                ->label('Timesheet PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('gray')
+                ->action(function (): mixed {
+                    $record = $this->record;
+                    $record->loadMissing('employee');
+
+                    if ($record->employee === null) {
+                        Notification::make()
+                            ->title('Employee not found')
+                            ->warning()
+                            ->send();
+
+                        return null;
+                    }
+
+                    $year = (int) $record->year;
+                    $month = (int) $record->month;
+                    $employeeId = (int) $record->employee_id;
+
+                    $binary = WorkTimeTimesheetPdfGenerator::generate($year, $month, [$employeeId]);
+
+                    ActivityLogger::logReportDownloaded('Work time timesheet PDF', 'pdf', $record, [
+                        'year' => $year,
+                        'month' => $month,
+                        'employee_id' => $employeeId,
+                        'employee' => $record->employee->fullName(),
+                    ]);
+
+                    $filename = sprintf(
+                        'darbo-laiko-ziniarastis-%04d-%02d-%s.pdf',
+                        $year,
+                        $month,
+                        str_replace(' ', '-', mb_strtolower($record->employee->fullName())),
+                    );
+
+                    return response()->streamDownload(function () use ($binary): void {
+                        echo $binary;
+                    }, $filename, ['Content-Type' => 'application/pdf']);
+                }),
             Action::make('copyPlanToActual')
                 ->label('Copy plan → actual')
                 ->icon('heroicon-o-clipboard-document-check')

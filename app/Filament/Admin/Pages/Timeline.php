@@ -26,7 +26,7 @@ class Timeline extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     /**
@@ -52,7 +52,7 @@ class Timeline extends Page
                     'display_title' => $todo->displayTitle(),
                     'project_id' => $todo->project_id ? (int) $todo->project_id : null,
                     'user_id' => $todo->user_id,
-                    'user_label' => (string) ($todo->user?->name ?? $todo->user?->email ?? ('User #'.$todo->user_id)),
+                    'user_label' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
                     'start' => $start?->toIso8601String(),
                     'end' => $end?->toIso8601String(),
                     'start_label' => $start?->format('Y-m-d H:i:s') ?? '—',
@@ -82,7 +82,7 @@ class Timeline extends Page
                                 'user_id' => $comment->user_id,
                                 'is_owner' => (int) ($comment->user_id ?? 0) === (int) (auth()->id() ?? 0),
                                 'delete' => false,
-                                'user' => (string) ($comment->user?->name ?? $comment->user?->email ?? 'Unknown user'),
+                                'user' => $comment->user?->displayName() ?: 'Unknown user',
                                 'date' => (string) ($comment->created_at?->format('Y-m-d H:i:s') ?? ''),
                                 'content' => (string) ($comment->content ?? ''),
                             ];

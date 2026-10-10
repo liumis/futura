@@ -2,11 +2,17 @@
 
 namespace App\Filament\Admin\Resources\Employees\Pages;
 
+use App\Filament\Admin\Concerns\HasDokobitSigningModal;
+use App\Filament\Admin\Resources\EmployeeContracts\EmployeeContractEndAction;
 use App\Filament\Admin\Resources\Employees\EmployeeResource;
 use App\Filament\Admin\Resources\Pages\EditRecord;
+use Filament\Actions\Action;
+use Filament\Actions\DeleteAction;
 
 class EditEmployee extends EditRecord
 {
+    use HasDokobitSigningModal;
+
     protected static string $resource = EmployeeResource::class;
 
     /**
@@ -21,5 +27,17 @@ class EditEmployee extends EditRecord
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<int, Action>
+     */
+    protected function buildHeaderActions(): array
+    {
+        return [
+            EmployeeContractEndAction::make()
+                ->record($this->getRecord()),
+            DeleteAction::make(),
+        ];
     }
 }

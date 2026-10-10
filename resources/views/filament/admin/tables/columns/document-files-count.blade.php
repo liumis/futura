@@ -21,14 +21,14 @@
                     title="{{ $file['name'] }}"
                     class="inline-flex text-primary-600 hover:text-primary-500 dark:text-primary-400"
                 >
-                    <x-heroicon-o-cloud class="h-5 w-5" />
+                    <x-heroicon-o-document-text class="h-5 w-5" />
                 </a>
             @else
                 <span
                     title="{{ $file['name'] }} (link unavailable)"
                     class="inline-flex text-gray-400 dark:text-gray-500"
                 >
-                    <x-heroicon-o-cloud class="h-5 w-5" />
+                    <x-heroicon-o-document-text class="h-5 w-5" />
                 </span>
             @endif
         @endforeach

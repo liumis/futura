@@ -2,10 +2,12 @@
 
 namespace App\Filament\Admin\Resources\Documents\Pages;
 
+use App\Filament\Admin\Concerns\CreatesBrandedDocumentPdf;
 use App\Filament\Admin\Concerns\HasDokobitSigningModal;
 use App\Filament\Admin\Concerns\UploadsDocumentToSharepoint;
 use App\Filament\Admin\Resources\Documents\DocumentApprovalForm;
 use App\Filament\Admin\Resources\Documents\DocumentResource;
+use App\Services\DocumentConfirmationService;
 use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Resources\Pages\CreateRecord;
@@ -13,6 +15,7 @@ use RuntimeException;
 
 class CreateDocument extends CreateRecord
 {
+    use CreatesBrandedDocumentPdf;
     use HasDokobitSigningModal;
     use UploadsDocumentToSharepoint;
 
@@ -38,14 +41,22 @@ class CreateDocument extends CreateRecord
 
     protected bool $shouldApproveAfterCreate = false;
 
+    protected bool $shouldMarkAsSigned = false;
+
     /**
      * @param  array<string, mixed>  $data
      * @return array<string, mixed>
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->pendingLocalUploads = $this->normalizeUploadedFilePaths($data['file_path'] ?? null);
+        $this->pendingLocalUploads = array_values(array_unique([
+            ...$this->normalizeUploadedFilePaths($data['file_path'] ?? null),
+            ...$this->generatedPdfPaths,
+        ]));
         unset($data['file_path']);
+
+        $this->shouldMarkAsSigned = (bool) ($data['mark_as_signed'] ?? false);
+        unset($data['mark_as_signed']);
 
         $this->pendingWorkflow = DocumentApprovalForm::extractFromFormData($data);
 
@@ -55,9 +66,11 @@ class CreateDocument extends CreateRecord
                 $this->pendingLocalUploads,
                 null,
                 $this->shouldApproveAfterCreate,
+                $this->shouldMarkAsSigned,
             );
         } catch (RuntimeException $exception) {
             $this->shouldApproveAfterCreate = false;
+            $this->shouldMarkAsSigned = false;
 
             Notification::make()
                 ->title('Cannot save')
@@ -90,6 +103,7 @@ class CreateDocument extends CreateRecord
             ->modalHeading('Save and approve')
             ->modalDescription('Save this document and approve it now? The document will be locked after approval. Do not select other approvers/signers for this action.')
             ->modalSubmitActionLabel('Save and approve')
+            ->hidden(fn (): bool => (bool) ($this->data['mark_as_signed'] ?? false))
             ->action('createAndApprove');
     }
 
@@ -102,6 +116,8 @@ class CreateDocument extends CreateRecord
     protected function getFormActions(): array
     {
         return [
+            $this->createPdfFormAction(),
+            $this->previewGeneratedPdfAction(),
             $this->getCreateFormAction(),
             $this->getCreateAndApproveFormAction(),
             ...($this->canCreateAnother() ? [$this->getCreateAnotherFormAction()] : []),
@@ -120,9 +136,25 @@ class CreateDocument extends CreateRecord
     {
         if ($this->record) {
             $this->uploadDocumentFilesToSharepoint($this->record, $this->pendingLocalUploads);
+            app(DocumentConfirmationService::class)
+                ->enrollDocument($this->record->fresh(['documentType', 'confirmationUsers']));
         }
 
         $this->pendingLocalUploads = [];
+        $this->generatedPdfPaths = [];
+
+        if ($this->shouldMarkAsSigned && $this->record) {
+            $this->shouldMarkAsSigned = false;
+            $this->shouldApproveAfterCreate = false;
+            $this->record = DocumentApprovalForm::markUploadedAsSignedAfterSave($this->record);
+            $this->pendingWorkflow = [
+                DocumentApprovalForm::APPROVER_IDS => [],
+                DocumentApprovalForm::SIGNER_IDS => [],
+                DocumentApprovalForm::EXTERNAL_INVITEES => [],
+            ];
+
+            return;
+        }
 
         if ($this->record && DocumentApprovalForm::hasSelection($this->pendingWorkflow)) {
             $result = DocumentApprovalForm::startAfterSave(
@@ -162,6 +194,10 @@ class CreateDocument extends CreateRecord
 
     protected function getCreatedNotificationTitle(): ?string
     {
+        if ($this->record?->hasCompletedSignature()) {
+            return 'Document saved and marked as signed';
+        }
+
         if ($this->record?->isApproved()) {
             return 'Document saved and approved';
         }

@@ -56,4 +56,7 @@ enum ActivityLogEvent: string
 
     case ReportGenerated = 'report.generated';
     case ReportDownloaded = 'report.downloaded';
+    case FileUploaded = 'file.uploaded';
+    case FileOpened = 'file.opened';
+    case StockImportedFromExcel = 'stock.imported_from_excel';
 }

@@ -13,12 +13,20 @@ use RuntimeException;
 
 class SepaPain001Exporter
 {
-    private const NS = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.09';
+    /**
+     * SEB Internet Bank still XSD-validates uploads primarily against pain.001.001.03
+     * (pain.001.001.09 is accepted in parallel, but mismatched namespace →
+     * "no declaration found for element Document").
+     */
+    private const NS = 'urn:iso:std:iso:20022:tech:xsd:pain.001.001.03';
+
+    private const XSI_NS = 'http://www.w3.org/2001/XMLSchema-instance';
 
     /**
-     * Build a SEB-compatible ISO 20022 pain.001.001.09 credit transfer file.
+     * Build a SEB-compatible ISO 20022 pain.001.001.03 credit transfer file.
+     * Salary batches include CategoryPurpose SALA; dividends use DIVI.
      *
-     * @param  Collection<int, EmployeeMonthlyPayment>  $payments
+     * @param  Collection<int, EmployeeMonthlyPayment|Dividend>  $payments
      */
     public function buildXml(
         Collection $payments,
@@ -30,7 +38,10 @@ class SepaPain001Exporter
 
         $debtorName = trim((string) ($company->company_name ?? ''));
         $debtorIban = $this->normalizeIban((string) ($company->company_iban ?? ''));
-        $debtorBic = $this->normalizeBic((string) ($company->company_bic ?? ''));
+        $debtorBic = $this->resolveDebtorBic(
+            $this->normalizeBic((string) ($company->company_bic ?? '')),
+            $debtorIban,
+        );
 
         if ($debtorName === '') {
             throw new RuntimeException('Company name is missing. Set it under System → My company.');
@@ -42,6 +53,12 @@ class SepaPain001Exporter
 
         if (! $this->isValidIban($debtorIban)) {
             throw new RuntimeException('Company IBAN is invalid.');
+        }
+
+        if ($debtorBic === '') {
+            throw new RuntimeException(
+                'Company BIC is missing. Set it under System → My company (SEB Lithuania is usually CBVILT2X).',
+            );
         }
 
         $transactions = [];
@@ -76,7 +93,7 @@ class SepaPain001Exporter
             $dateLabel = $payment->payment_date?->format('Y-m-d') ?? $executionDate->toDateString();
             $remittance = filled($payment->comment)
                 ? (string) $payment->comment
-                : ($payment instanceof \App\Models\Dividend
+                : ($payment instanceof Dividend
                     ? 'Dividend '.$dateLabel
                     : 'Salary '.$dateLabel);
 
@@ -93,7 +110,13 @@ class SepaPain001Exporter
             throw new RuntimeException('No payments selected for export.');
         }
 
-        return $this->buildXmlFromTransactions($transactions, $company, $executionDate, 'SAL');
+        return $this->buildXmlFromTransactions(
+            $transactions,
+            $company,
+            $executionDate,
+            $payments->first() instanceof Dividend ? 'DIV' : 'SAL',
+            $payments->first() instanceof Dividend ? 'DIVI' : 'SALA',
+        );
     }
 
     /**
@@ -104,13 +127,17 @@ class SepaPain001Exporter
         ?CompanySetting $company = null,
         ?Carbon $executionDate = null,
         string $msgPrefix = 'PMT',
+        ?string $categoryPurpose = null,
     ): string {
         $company ??= CompanySetting::instance();
         $executionDate ??= now()->startOfDay();
 
         $debtorName = trim((string) ($company->company_name ?? ''));
         $debtorIban = $this->normalizeIban((string) ($company->company_iban ?? ''));
-        $debtorBic = $this->normalizeBic((string) ($company->company_bic ?? ''));
+        $debtorBic = $this->resolveDebtorBic(
+            $this->normalizeBic((string) ($company->company_bic ?? '')),
+            $debtorIban,
+        );
 
         if ($debtorName === '') {
             throw new RuntimeException('Company name is missing. Set it under System → My company.');
@@ -122,6 +149,12 @@ class SepaPain001Exporter
 
         if (! $this->isValidIban($debtorIban)) {
             throw new RuntimeException('Company IBAN is invalid.');
+        }
+
+        if ($debtorBic === '') {
+            throw new RuntimeException(
+                'Company BIC is missing. Set it under System → My company (SEB Lithuania is usually CBVILT2X).',
+            );
         }
 
         if ($transactions === []) {
@@ -148,6 +181,8 @@ class SepaPain001Exporter
         $xml->formatOutput = true;
 
         $document = $this->el($xml, 'Document');
+        $document->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns', self::NS);
+        $document->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:xsi', self::XSI_NS);
         $xml->appendChild($document);
 
         $root = $this->el($xml, 'CstmrCdtTrfInitn');
@@ -177,9 +212,14 @@ class SepaPain001Exporter
         $pmtTpInf->appendChild($svcLvl);
         $this->appendText($xml, $svcLvl, 'Cd', 'SEPA');
 
-        $reqdExctnDt = $this->el($xml, 'ReqdExctnDt');
-        $pmtInf->appendChild($reqdExctnDt);
-        $this->appendText($xml, $reqdExctnDt, 'Dt', $executionDate->toDateString());
+        if (filled($categoryPurpose)) {
+            $ctgyPurp = $this->el($xml, 'CtgyPurp');
+            $pmtTpInf->appendChild($ctgyPurp);
+            $this->appendText($xml, $ctgyPurp, 'Cd', strtoupper((string) $categoryPurpose));
+        }
+
+        // pain.001.001.03: ReqdExctnDt is a plain ISODate (not <Dt> wrapper from .09).
+        $this->appendText($xml, $pmtInf, 'ReqdExctnDt', $executionDate->toDateString());
 
         $dbtr = $this->el($xml, 'Dbtr');
         $pmtInf->appendChild($dbtr);
@@ -192,13 +232,12 @@ class SepaPain001Exporter
         $this->appendText($xml, $dbtrAcctId, 'IBAN', $debtorIban);
         $this->appendText($xml, $dbtrAcct, 'Ccy', $currency);
 
-        if ($debtorBic !== '') {
-            $dbtrAgt = $this->el($xml, 'DbtrAgt');
-            $pmtInf->appendChild($dbtrAgt);
-            $finInstnId = $this->el($xml, 'FinInstnId');
-            $dbtrAgt->appendChild($finInstnId);
-            $this->appendText($xml, $finInstnId, 'BICFI', $debtorBic);
-        }
+        // DbtrAgt is mandatory in SEB pain.001.001.03 before ChrgBr / CdtTrfTxInf.
+        $dbtrAgt = $this->el($xml, 'DbtrAgt');
+        $pmtInf->appendChild($dbtrAgt);
+        $finInstnId = $this->el($xml, 'FinInstnId');
+        $dbtrAgt->appendChild($finInstnId);
+        $this->appendText($xml, $finInstnId, 'BIC', $debtorBic);
 
         $this->appendText($xml, $pmtInf, 'ChrgBr', 'SLEV');
 
@@ -226,7 +265,7 @@ class SepaPain001Exporter
                 $cdtTrfTxInf->appendChild($cdtrAgt);
                 $cdtrFinInstnId = $this->el($xml, 'FinInstnId');
                 $cdtrAgt->appendChild($cdtrFinInstnId);
-                $this->appendText($xml, $cdtrFinInstnId, 'BICFI', $creditorBic);
+                $this->appendText($xml, $cdtrFinInstnId, 'BIC', $creditorBic);
             }
 
             $cdtr = $this->el($xml, 'Cdtr');
@@ -291,6 +330,34 @@ class SepaPain001Exporter
     public function normalizeBic(string $bic): string
     {
         return strtoupper(preg_replace('/\s+/', '', $bic) ?? '');
+    }
+
+    /**
+     * Prefer configured BIC; otherwise derive from Lithuanian IBAN bank code.
+     */
+    public function resolveDebtorBic(string $bic, string $iban): string
+    {
+        $bic = $this->normalizeBic($bic);
+
+        if ($bic !== '') {
+            return $bic;
+        }
+
+        $iban = $this->normalizeIban($iban);
+
+        if (! str_starts_with($iban, 'LT') || strlen($iban) < 9) {
+            return '';
+        }
+
+        // LT + 2 check digits + 5-digit bank code
+        return match (substr($iban, 4, 5)) {
+            '70440' => 'CBVILT2X', // SEB
+            '40100' => 'AGBLLT2X', // Luminor
+            '73000' => 'HABALT22', // Swedbank
+            '71800' => 'CBSBLT26', // Šiaulių bankas
+            '21400' => 'INDULT2X', // Citadele
+            default => '',
+        };
     }
 
     public function isValidIban(string $iban): bool

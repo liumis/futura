@@ -1,0 +1,142 @@
+SEB	
+UAB FUTURA TEXTILES	SĄSKAITOS IŠRAŠAS	AB SEB bankas	
+EUROPE	
+306740042	LT117044090110985504	Konstitucijos pr. 24, LT-08131 Vilnius	
+RINGUVOS G. 30-2, ŠIAULIAI,	2026-08-01 - 2026-08-31	Imonés kodas 112021238	
+78415	
+2026-09-16 11:44:58	PVM mokétojo kodas LT 120212314	
+SWIFT/BIC CBVILT2X	
+Suma,	
+Data	Operacijos tipas	Mokétojas arba gavejas / Sąskaita / Mokéjimo paskirtis	saskaitos	
+valiuta	
+Pradinis likutis	EUR	14526,04	
+2026-08-03 Mokej. banko viduje	VALSTYBINÉ MOKESČIU INSPEKCIJA PRIE LR FINANSY	14761,00	
+MINISTERIJOS LT057044060007887175	
+CBVILT2X AB SEB BANKAS	
+Valstybinés mokesčiu inspekcijos administruojami deklaruojami	
+mokesčiai, nuo 2015-07-01 paskirtos baudos už	
+administracinius nusižengimus ir, dok. nr. 1233943287, unik.	
+mokej. kodas 1233943287, mok. ident. kodas 188659752, gav.	
+ident. kodas 306740042, galut. gav. UAB Futura Textiles	
+Europe, galut. gav. ident. kodas 306740042, operacijos nr.	
+RO2383776265L02R	
+2026-08-03 Tarpt. mokejimas	DSV ROAD UAB F12316603001244048	-177,89	
+NDEAFIHH NORDEA BANK ABP	
+1014031, mok. ident. kodas 306740042, gav. ident. kodas	
+111552645, operacijos nr. RMO27278810	
+2026-08-03 Tarpt. mokejimas	Mayur Uniquoters LTD 142103000001748	-11418,00	
+IBKLINBB013 IDBI BANK LIMITED	
+9600000254DT, mok. ident. kodas 306740042, operacijos nr.	
+RMO27278811	
+2026-08-03 Komisinis atlyginimas	SEB bankas	-13,00	
+Mokestis RM027278811, operacijos nr. RO2384081985L03	
+2026-08-03 Mokej. banko viduje	SEB bankas	-5720,28	
+Atlyginimas už 07 mèn. (salary), dok. nr. 347, operacijos nr.	
+RO2384356748L01	
+2026-08-03 Komisinis atlyginimas	SEB bankas	-1,50	
+Mokestis, operacijos nr. RO2384356748L03	
+2026-08-03 Europinis mokejimas	SEB bankas	-0,33	
+Už grupini pinigy pervedima i kita banką, data 03/08/26, nr.347,	
+suma 5720.28 Eur, operacijos nr. RO2384357161L01	
+2026-08-03 Mokej. banko viduje	VALSTYBINÉ MOKESČIU INSPEKCIJA PRIE LR FINANSU	-1891,00	
+MINISTERIJOS LT057044060007887175	
+CBVILT2X AB SEB BANKAS	
+, 1311, dok. nr. 348, mok. ident. kodas 306740042, operacijos	
+nr. RO2384358373L01	
+2026-08-03 Mokej. banko viduje	VSDFV PRIE SADM LT337044060007740589	-2039,88	
+CBVILT2X AB SEB BANKAS	
+, 252, dok. nr. 349, mok. ident. kodas 306740042, operacijos nr.	
+RO2384358383L01	
+Puslapis 1(3)	
+
+
+2026-08-04 Komisinis atlyginimas	SEB bankas	-17,00	
+1812940-KASDIENIS+ paslaugu planas - ménesio mokestis už	
+rugpjučio mèn., operacijos nr. RO2385180930L01	
+2026-08-04 Europinis mokéjimas	UAB METIDA LT767290099086247689	-1273,50	
+INDULT2X AS CITADELE BANKA LIETUVOS FILIALAS	
+126-1970, dok. nr. 350, mok. ident. kodas 306740042, operacijos	
+nr. RD297638819	
+2026-08-04 Mokej. banko viduje	UAB FUTURA TEXTILES EUROPE LT677044090113979371	-300,00	
+CBVILT2X AB SEB BANKAS	
+Tarp savo sąskaity (Between account), dok. nr. 351, mok. ident.	
+kodas 306740042, operacijos nr. RO2385536328L01	
+2026-08-06 Tarpt. mokéjimas	Achilles Prasentationsprodukte GmbH	-1403,56	
+DE21269513110092067065	
+NOLADE21GFW SPARKASSE	
+CELLE-GIFHORN-WOLFSBURG	
+114RG2601126, mok. ident. kodas 306740042, operacijos nr.	
+RMO27319293	
+2026-08-06 Mokej. banko viduje	DPD LIETUVA UAB LT977044060001677907	-329,24	
+CBVILT2X AB SEB BANKAS	
+530126229, mok. ident. kodas 306740042, gav. ident. kodas	
+111639299, operacijos nr. RO2387754111L01	
+2026-08-06 Tarpt. mokéjimas	DSV ROAD UAB F12316603001244048	-2569,94	
+NDEAFIHH NORDEA BANK ABP	
+1016335,1016571,1016681,1017154, mok. ident. kodas	
+306740042, gav. ident. Kodas 111552645, operacijos nr.	
+RM027319294	
+2026-08-06 Mokej. banko viduje	UAB FINANSU VALDYMO SISTEMOS	-139,15	
+LT957044060001111463	
+CBVILT2X AB SEB BANKAS	
+EFVS2607849, mok. ident. kodas 306740042, gav. ident, kodas	
+123619023, operacijos nr. RO2387754120L01	
+2026-08-07 Mokej. banko viduje	UAB FUTURA TEXTILES EUROPE LT357044090113587970	3255,00	
+CBVILT2X AB SEB BANKAS	
+Tarp savo sąskaitu (Between account), dok. nr. 352, mok. ident.	
+kodas 306740042, operacijos nr. RO2389279506L02	
+2026-08-17 Mokej. banko viduje	UAB FUTURA TEXTILES EUROPE LT357044090113587970	2774,00	
+CBVILT2X AB SEB BANKAS	
+Tarp savo sąskaity (Between accounts), dok. nr. 353, mok.	
+ident. kodas 306740042, operacijos nr. RO2401906677L02	
+2026-08-17 Tarpt. mokéjimas	DSV ROAD UAB F12316603001244048	-207,35	
+NDEAFIHH NORDEA BANK ABP	
+1018023,1018315, mok. ident. kodas 306740042, gav. ident.	
+kodas 111552645, operacijos nr. RMO27462855	
+2026-08-17 Europinis mokéjimas	Rasa Baltrimaité LT104010051001390323	-120,00	
+AGBLLT2X LUMINOR BANK AS LITHUANIAN BRANCH	
+0280, mok. ident. kodas 306740042, gav. ident. kodas IV	
+pažymos nr.759964, operacijos nr. RD299153241	
+2026-08-17 Mokej. banko viduje	UAB "EUROBIURAS" LT727044060002373556	-37,35	
+CBVILT2X AB SEB BANKAS	
+EDV1105620, mok. ident. kodas 306740042, gav. ident. kodas	
+176556043, operacijos nr. RO2402072463L01	
+2026-08-17 Europinis mokéjimas	Muitinés departamentas prie Lietuvos Respublikos Finansu	-498,00	
+ministerijos LT374010042400369573	
+AGBLLT2X LUMINOR BANK AS LITHUANIAN BRANCH	
+Puslapis 2 (3)	
+
+
+, 800, dok. nr. 354, mok. ident. kodas 306740042, operacijos nr.	
+RD299195741	
+2026-08-20 Mokej. banko viduje	UAB FUTURA TEXTILES EUROPE LT357044090113587970	3557,07	
+CBVILT2X AB SEB BANKAS	
+Tarp savo sąskaitu (Between account), dok. nr. 357, mok. ident.	
+kodas 306740042, operacijos nr. RO2405693822L02	
+2026-08-24 Mokej. banko viduje	TEXTELITA MB LT887044090114031276	-77,66	
+CBVILT2X AB SEB BANKAS	
+TEX00001262, mok. ident. kodas 306740042, gav. ident. kodas	
+307135904, operacijos nr. RO2410030554L01	
+2026-08-24 Mokej. banko viduje	UAB VINILAS LT807044060008216886	-10000,00	
+CBVILT2X AB SEB BANKAS	
+KAR13135, dok. nr. 358, mok. ident. kodas 306740042,	
+operacijos nr. RO2410031491L01	
+2026-08-27 Europinis mokejimas	Vš[ Šiauliu regiono atlieky tvarkymo centras	-8,22	
+LT824010044200521438	
+AGBLLT2X LUMINOR BANK AS LITHUANIAN BRANCH	
+2020217092254, mok. ident. kodas 306740042, gav. ident.	
+kodas 145787276, operacijos nr. RD300158548	
+2026-08-31 Mokej. banko viduje	UAB FUTURA TEXTILES EUROPE LT357044090113587970	5594,20	
+CBVILT2X AB SEB BANKAS	
+Tarp savo sąskaitu (Between account), dok. nr. 359, mok. ident.	
+kodas 306740042, operacijos nr. RO2417745530L02	
+Is viso išlaidu (22)	EUR	-38242,85	
+Iš viso plauky (5)	EUR	29941,27	
+Galutinis likutis	EUR	6224,46	
+Informuojame, kad Jüsy lešos banko sąskaitoje (-ose) ir / arba indélio (-i) sąskaitoje (-ose) yra tinkamos drausti indeliu draudimu. Daugiau informacijos rasite	
+https://www.seb.lt/sites/default/files/document/Informacijos_ indelininkui_ formos_santrauka.pdf.	
+Puslapis 3(3	
+
+
+
+

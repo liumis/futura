@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\ManualImports;
 
-use App\Filament\Admin\Resources\ManualImports\Pages;
 use App\Models\Contact;
 use App\Models\ManualImport;
 use App\Models\Product;
@@ -34,9 +33,9 @@ class ManualImportResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Manual imports';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Warehouse & shipping';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 6;
 
     public static function form(Schema $schema): Schema
     {
@@ -107,10 +106,10 @@ class ManualImportResource extends Resource
                             return;
                         }
 
-                        $price = Product::query()->whereKey($state)->value('default_cost');
+                        $product = Product::query()->with('color.collection')->find($state);
 
-                        if ($price !== null) {
-                            $set('price', (float) $price);
+                        if ($product !== null) {
+                            $set('price', $product->collectionUnitCost());
                         }
                     }),
 
@@ -130,7 +129,7 @@ class ManualImportResource extends Resource
                     ->minValue(0)
                     ->step(0.01)
                     ->prefix(Money::prefix())
-                    ->helperText('Updates the product price.'),
+                    ->helperText('Line price for this import. Collection Price/m is set on Collections.'),
 
                 Forms\Components\DatePicker::make('imported_at')
                     ->label('Import date')
@@ -219,14 +218,14 @@ class ManualImportResource extends Resource
                     ->label('Invoice')
                     ->alignCenter()
                     ->icon(fn (?string $state): string => filled($state)
-                        ? 'heroicon-o-check-circle'
+                        ? 'heroicon-o-document-text'
                         : 'heroicon-o-x-circle')
-                    ->color(fn (?string $state): string => filled($state) ? 'success' : 'danger')
+                    ->color(fn (?string $state): string => filled($state) ? 'primary' : 'danger')
                     ->url(fn (ManualImport $record): ?string => filled($record->invoice_path)
                         ? Storage::disk('public')->url($record->invoice_path)
                         : null)
                     ->openUrlInNewTab()
-                    ->tooltip(fn (?string $state): string => filled($state) ? 'Open invoice' : 'No invoice attached'),
+                    ->tooltip(fn (?string $state): string => filled($state) ? 'Open PDF' : 'No invoice attached'),
 
                 Tables\Columns\TextColumn::make('invoice_id')
                     ->label('Invoices #')
@@ -266,7 +265,7 @@ class ManualImportResource extends Resource
                 ]),
             ])
             ->paginationPageOptions([20, 50, 100])
-            ->defaultPaginationPageOption(20);
+            ->defaultPaginationPageOption(50);
     }
 
     public static function getEloquentQuery(): Builder
@@ -276,22 +275,22 @@ class ManualImportResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

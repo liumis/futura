@@ -7,7 +7,7 @@
 
         <div>
             <p class="font-medium text-gray-500 dark:text-gray-400">Sent by</p>
-            <p>{{ $record->user?->name ?? '—' }}</p>
+            <p>{{ $record->user?->displayName() ?: '—' }}</p>
         </div>
 
         <div>

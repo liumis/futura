@@ -10,21 +10,23 @@ use UnitEnum;
 
 class OrderCharts extends Page
 {
-    protected static bool $shouldRegisterNavigation = false;
-
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-chart-bar';
 
-    protected static ?string $navigationLabel = 'Charts';
+    protected static ?string $navigationLabel = 'Orders chart';
+
+    protected static ?string $title = 'Orders chart';
 
     protected static string|UnitEnum|null $navigationGroup = 'Orders';
 
-    protected static ?int $navigationSort = 98;
+    protected static ?int $navigationSort = 2;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     protected string $view = 'filament.admin.pages.order-charts';
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup('Orders') ?? false;
     }
 
     /**

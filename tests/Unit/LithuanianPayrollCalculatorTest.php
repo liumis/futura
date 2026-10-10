@@ -128,4 +128,14 @@ class LithuanianPayrollCalculatorTest extends TestCase
         $this->assertSame(0.0249, $result['employer_sodra_rate']);
         $this->assertSame(28.71, $result['sodra_employer']); // 2.49% of 1153
     }
+
+    public function test_calculate_from_net_recovers_gross_for_standard_salary(): void
+    {
+        $fromGross = $this->calculator->calculate(2000.00, EmployeeNpdType::Standard, year: 2026);
+        $fromNet = $this->calculator->calculateFromNet($fromGross['net'], EmployeeNpdType::Standard, year: 2026);
+
+        $this->assertSame($fromGross['net'], $fromNet['net']);
+        $this->assertEqualsWithDelta(2000.00, $fromNet['gross'], 0.05);
+        $this->assertEqualsWithDelta($fromGross['gpm'], $fromNet['gpm'], 0.05);
+    }
 }

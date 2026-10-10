@@ -13,6 +13,11 @@ class EmployeeContractPdfGenerator
     {
         $contract->loadMissing('employee');
 
+        ActivityLogger::logReportDownloaded('Employee contract PDF', 'pdf', $contract, [
+            'employee' => $contract->employee?->fullName(),
+            'contract_id' => $contract->getKey(),
+        ]);
+
         return Pdf::loadView('pdf.employee-contract', [
             'contract' => $contract,
             'employee' => $contract->employee,

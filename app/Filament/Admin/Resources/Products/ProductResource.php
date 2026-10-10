@@ -2,16 +2,17 @@
 
 namespace App\Filament\Admin\Resources\Products;
 
-use App\Filament\Admin\Resources\Products\Pages;
 use App\Models\Color;
 use App\Models\Product;
 use App\Models\ProductType;
 use App\Support\Money;
 use BackedEnum;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Utilities\Get;
-use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Enums\FiltersLayout;
@@ -33,7 +34,7 @@ class ProductResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Catalog';
 
-    protected static ?int $navigationSort = 3;
+    protected static ?int $navigationSort = 1;
 
     public static function form(Schema $schema): Schema
     {
@@ -47,13 +48,7 @@ class ProductResource extends Resource
                     ->required()
                     ->live()
                     ->native(false)
-                    ->default(fn (): ?int => ProductType::artificialLeatherId())
-                    ->afterStateUpdated(function ($state, Set $set): void {
-                        $type = ProductType::query()->find($state);
-                        if ($type?->isCatalog()) {
-                            $set('color_id', null);
-                        }
-                    }),
+                    ->default(fn (): ?int => ProductType::artificialLeatherId()),
 
                 Forms\Components\Select::make('color_id')
                     ->relationship(
@@ -72,7 +67,6 @@ class ProductResource extends Resource
                     ->searchable(['color_name', 'color_code'])
                     ->preload()
                     ->required(fn (Get $get): bool => self::typeRequiresColor($get('product_type_id')))
-                    ->visible(fn (Get $get): bool => self::typeRequiresColor($get('product_type_id')))
                     ->label('Color'),
 
                 Forms\Components\TextInput::make('name')
@@ -97,13 +91,13 @@ class ProductResource extends Resource
                     ->maxLength(255)
                     ->label('DSV code'),
 
-                Forms\Components\TextInput::make('default_cost')
-                    ->label(fn (Get $get): string => self::typeRequiresColor($get('product_type_id')) ? 'Price m' : 'Price')
+                Forms\Components\TextInput::make('cost')
                     ->numeric()
                     ->minValue(0)
-                    ->default(0)
                     ->step(0.01)
-                    ->prefix(Money::prefix()),
+                    ->prefix(Money::prefix())
+                    ->default(0)
+                    ->label(fn (Get $get): string => self::typeRequiresColor($get('product_type_id')) ? 'Cost/m' : 'Cost'),
             ]);
     }
 
@@ -137,7 +131,7 @@ class ProductResource extends Resource
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable()
-                    ->label('Name / Size'),
+                    ->label('Size (m)'),
 
                 Tables\Columns\TextColumn::make('product_code')
                     ->searchable()
@@ -150,14 +144,6 @@ class ProductResource extends Resource
                     ->placeholder('—')
                     ->label('Alternative code')
                     ->toggleable(isToggledHiddenByDefault: true),
-
-                Tables\Columns\TextInputColumn::make('default_cost')
-                    ->label('Price')
-                    ->type('number')
-                    ->step(0.01)
-                    ->prefix(Money::prefix())
-                    ->rules(['numeric', 'min:0'])
-                    ->sortable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
@@ -187,15 +173,15 @@ class ProductResource extends Resource
             ->filtersLayout(FiltersLayout::AboveContent)
             ->deferFilters(false)
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ])
             ->paginationPageOptions([20, 50, 100])
-            ->defaultPaginationPageOption(20);
+            ->defaultPaginationPageOption(50);
     }
 
     public static function getEloquentQuery(): Builder
@@ -205,22 +191,22 @@ class ProductResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

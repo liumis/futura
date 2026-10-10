@@ -2,11 +2,27 @@
 
 namespace App\Models;
 
+use App\Support\Money;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Http;
 
 class Currency extends Model
 {
+    /**
+     * @var array<string, string>
+     */
+    private const COMMON_NAMES = [
+        'EUR' => 'Euro',
+        'USD' => 'US Dollar',
+        'GBP' => 'Pound Sterling',
+        'PLN' => 'Polish Zloty',
+        'CHF' => 'Swiss Franc',
+        'SEK' => 'Swedish Krona',
+        'NOK' => 'Norwegian Krone',
+        'DKK' => 'Danish Krone',
+        'CZK' => 'Czech Koruna',
+    ];
+
     /**
      * @var list<string>
      */
@@ -26,6 +42,125 @@ class Currency extends Model
             'rate' => 'decimal:6',
             'rate_date' => 'date',
         ];
+    }
+
+    public static function defaultCode(): string
+    {
+        $code = strtoupper(preg_replace('/[^A-Za-z]/', '', Money::currency()) ?? '');
+
+        return strlen($code) === 3 ? $code : 'EUR';
+    }
+
+    public static function normalize(?string $code): string
+    {
+        $normalized = strtoupper(preg_replace('/[^A-Za-z]/', '', (string) $code) ?? '');
+
+        return strlen($normalized) === 3 ? $normalized : self::defaultCode();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function selectOptions(?string $include = null): array
+    {
+        $default = self::defaultCode();
+        $options = [];
+
+        foreach (self::COMMON_NAMES as $code => $name) {
+            $options[$code] = self::optionLabel($code, $name);
+        }
+
+        foreach (static::query()->orderBy('code')->get(['code', 'name']) as $currency) {
+            $code = strtoupper(trim((string) $currency->code));
+            if (strlen($code) !== 3) {
+                continue;
+            }
+
+            $options[$code] = self::optionLabel($code, $currency->name ?: (self::COMMON_NAMES[$code] ?? null));
+        }
+
+        if (filled($include)) {
+            $include = self::normalize($include);
+            $options[$include] ??= self::optionLabel($include, self::COMMON_NAMES[$include] ?? null);
+        }
+
+        $rest = $options;
+        unset($rest[$default]);
+        ksort($rest);
+
+        $options[$default] ??= self::optionLabel($default, self::COMMON_NAMES[$default] ?? null);
+
+        return [$default => $options[$default]] + $rest;
+    }
+
+    private static function optionLabel(string $code, ?string $name): string
+    {
+        $name = trim((string) $name);
+
+        return $name !== '' && strtoupper($name) !== $code
+            ? $code.' — '.$name
+            : $code;
+    }
+
+    /**
+     * Foreign units per 1 EUR from the currencies list (EUR → 1).
+     */
+    public static function rateFor(?string $code): ?float
+    {
+        $code = self::normalize($code);
+        if ($code === 'EUR') {
+            return 1.0;
+        }
+
+        $rate = static::query()->where('code', $code)->value('rate');
+        if ($rate === null) {
+            return null;
+        }
+
+        $rate = (float) $rate;
+
+        return $rate > 0 ? $rate : null;
+    }
+
+    /**
+     * Convert an amount in $code to EUR using the currencies list (or an explicit rate).
+     * Rate meaning: foreign units per 1 EUR.
+     */
+    public static function toEur(float $amount, ?string $code, ?float $rate = null): ?float
+    {
+        $code = self::normalize($code);
+        $amount = round($amount, 2);
+
+        if ($code === 'EUR') {
+            return $amount;
+        }
+
+        $rate ??= self::rateFor($code);
+        if ($rate === null || $rate <= 0) {
+            return null;
+        }
+
+        return round($amount / $rate, 2);
+    }
+
+    /**
+     * Convert an EUR amount to $code using the currencies list (or an explicit rate).
+     */
+    public static function fromEur(float $eurAmount, ?string $code, ?float $rate = null): ?float
+    {
+        $code = self::normalize($code);
+        $eurAmount = round($eurAmount, 2);
+
+        if ($code === 'EUR') {
+            return $eurAmount;
+        }
+
+        $rate ??= self::rateFor($code);
+        if ($rate === null || $rate <= 0) {
+            return null;
+        }
+
+        return round($eurAmount * $rate, 2);
     }
 
     /**

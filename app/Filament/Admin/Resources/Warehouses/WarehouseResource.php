@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\Warehouses;
 
-use App\Filament\Admin\Resources\Warehouses\Pages;
 use App\Models\MailTemplate;
 use App\Models\Warehouse;
 use BackedEnum;
@@ -31,9 +30,9 @@ class WarehouseResource extends Resource
 
     protected static ?string $slug = 'warehouses-settings';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Warehouse & shipping';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 8;
 
     public static function form(Schema $schema): Schema
     {
@@ -98,22 +97,22 @@ class WarehouseResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

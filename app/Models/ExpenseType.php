@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ExpenseType extends Model
 {
@@ -11,5 +12,11 @@ class ExpenseType extends Model
      */
     protected $fillable = [
         'name',
+        'invoice_code_id',
     ];
+
+    public function invoiceCode(): BelongsTo
+    {
+        return $this->belongsTo(InvoiceCode::class);
+    }
 }

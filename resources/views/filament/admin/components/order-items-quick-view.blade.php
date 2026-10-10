@@ -6,7 +6,7 @@
 @endphp
 
 <div class="space-y-4 text-sm text-gray-700 dark:text-gray-200">
-    <div class="grid gap-3 sm:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
             <p class="font-medium text-gray-500 dark:text-gray-400">Order</p>
             <p>#{{ $order->id }}</p>
@@ -20,6 +20,26 @@
         <div>
             <p class="font-medium text-gray-500 dark:text-gray-400">Status</p>
             <p>{{ $order->status?->getLabel() ?? '—' }}</p>
+        </div>
+
+        <div>
+            <p class="font-medium text-gray-500 dark:text-gray-400">Payment status</p>
+            <p>{{ $order->paymentSettlementLabel() }}</p>
+        </div>
+
+        <div>
+            <p class="font-medium text-gray-500 dark:text-gray-400">Tracking</p>
+            <p>{{ filled($order->tracking_number) ? $order->tracking_number : '—' }}</p>
+        </div>
+
+        <div>
+            <p class="font-medium text-gray-500 dark:text-gray-400">Package</p>
+            <p>{{ $order->package?->name ?: '—' }}</p>
+        </div>
+
+        <div>
+            <p class="font-medium text-gray-500 dark:text-gray-400">Order date</p>
+            <p>{{ $order->order_date?->format('Y-m-d H:i') ?: '—' }}</p>
         </div>
     </div>
 

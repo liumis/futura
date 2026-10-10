@@ -38,7 +38,7 @@ class IncompleteDocuments extends Page implements HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getNavigationBadge(): ?string
@@ -74,7 +74,6 @@ class IncompleteDocuments extends Page implements HasTable
                 Tables\Columns\TextColumn::make('document_date')
                     ->label('Date')
                     ->date('Y-m-d')
-                    ->description(fn (Document $record): ?string => $record->document_date?->format('H:i:s'))
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('name')
@@ -145,10 +144,10 @@ class IncompleteDocuments extends Page implements HasTable
             ->recordActions([
                 Action::make('openSharepoint')
                     ->label('SharePoint')
-                    ->icon('heroicon-o-cloud')
+                    ->icon('heroicon-o-document-text')
                     ->iconButton()
                     ->color('info')
-                    ->tooltip('Open in SharePoint')
+                    ->tooltip('Open PDF')
                     ->url(fn (Document $record): ?string => $record->sharepoint_web_url)
                     ->openUrlInNewTab()
                     ->visible(fn (Document $record): bool => $record->hasSharepointLink()),

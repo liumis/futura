@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Enums\AdminModule;
 use App\Enums\OvertimeRequestStatus;
 use App\Filament\Admin\Resources\OvertimeRequests\OvertimeRequestResource;
 use App\Models\OvertimeRequest;
@@ -158,7 +159,7 @@ final class OvertimeRequestConfirmer
         }
 
         if ((int) ($overtime->confirmed_by ?? 0) !== (int) $user->getKey()
-            && ! $user->hasRole('admin')) {
+            && ! $user->canAccessModule(AdminModule::EmployeesContracts)) {
             return false;
         }
 
@@ -222,7 +223,7 @@ final class OvertimeRequestConfirmer
         }
 
         if ((int) ($overtime->confirmed_by ?? 0) !== (int) $user->getKey()
-            && ! $user->hasRole('admin')) {
+            && ! $user->canAccessModule(AdminModule::EmployeesContracts)) {
             return false;
         }
 
@@ -240,7 +241,7 @@ final class OvertimeRequestConfirmer
         }
 
         if ((int) ($overtime->confirmed_by ?? 0) !== (int) $user->getKey()
-            && ! $user->hasRole('admin')) {
+            && ! $user->canAccessModule(AdminModule::EmployeesContracts)) {
             return false;
         }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AdminModule;
 use App\Enums\LeaveRequestStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,7 @@ class LeaveRequest extends Model
         'confirmed_by',
         'confirmed_at',
         'document_id',
+        'order_document_id',
     ];
 
     /**
@@ -65,6 +67,11 @@ class LeaveRequest extends Model
     public function document(): BelongsTo
     {
         return $this->belongsTo(Document::class);
+    }
+
+    public function orderDocument(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'order_document_id');
     }
 
     public function isConfirmed(): bool
@@ -155,6 +162,6 @@ class LeaveRequest extends Model
     {
         return $user !== null
             && $this->status === LeaveRequestStatus::Confirmed
-            && ($user->hasRole('admin') || (int) $user->getKey() === (int) ($this->confirmed_by ?? 0));
+            && ($user->canAccessModule(AdminModule::EmployeesContracts) || (int) $user->getKey() === (int) ($this->confirmed_by ?? 0));
     }
 }

@@ -9,13 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasColumn('dividends', 'user_id')) {
-            SchemaForeignKeys::dropOnColumn('dividends', 'user_id');
-
-            Schema::table('dividends', function (Blueprint $table) {
-                $table->dropColumn('user_id');
-            });
-        }
+        SchemaForeignKeys::dropColumnIfExists('dividends', 'user_id');
 
         if (! Schema::hasColumn('dividends', 'employee_id')) {
             Schema::table('dividends', function (Blueprint $table) {
@@ -32,13 +26,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        if (Schema::hasColumn('dividends', 'employee_id')) {
-            SchemaForeignKeys::dropOnColumn('dividends', 'employee_id');
-
-            Schema::table('dividends', function (Blueprint $table) {
-                $table->dropColumn('employee_id');
-            });
-        }
+        SchemaForeignKeys::dropColumnIfExists('dividends', 'employee_id');
 
         if (! Schema::hasColumn('dividends', 'user_id')) {
             Schema::table('dividends', function (Blueprint $table) {

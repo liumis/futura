@@ -6,12 +6,15 @@ use App\Filament\Admin\Resources\Projects\Pages\CreateProject;
 use App\Filament\Admin\Resources\Projects\Pages\EditProject;
 use App\Filament\Admin\Resources\Projects\Pages\ListProjects;
 use App\Models\Project;
+use App\Models\ProjectStage;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\SelectFilter;
@@ -49,6 +52,55 @@ class ProjectResource extends Resource
                     ->unique(ignoreRecord: true)
                     ->alphaDash(),
 
+                Forms\Components\Select::make('project_type_id')
+                    ->label('Project type')
+                    ->relationship(
+                        'projectType',
+                        'name',
+                        fn (Builder $query) => $query->orderBy('name'),
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->native(false)
+                    ->afterStateUpdated(fn (Set $set): mixed => $set('project_stage_id', null)),
+
+                Forms\Components\Select::make('project_stage_id')
+                    ->label('Project stage')
+                    ->options(function (Get $get): array {
+                        $typeId = $get('project_type_id');
+
+                        if (blank($typeId)) {
+                            return [];
+                        }
+
+                        return ProjectStage::query()
+                            ->where('project_type_id', $typeId)
+                            ->orderBy('name')
+                            ->pluck('name', 'id')
+                            ->all();
+                    })
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->disabled(fn (Get $get): bool => blank($get('project_type_id')))
+                    ->dehydrated()
+                    ->dehydrateStateUsing(function (mixed $state, Get $get): mixed {
+                        $typeId = $get('project_type_id');
+
+                        if (blank($state) || blank($typeId)) {
+                            return null;
+                        }
+
+                        $belongsToType = ProjectStage::query()
+                            ->whereKey($state)
+                            ->where('project_type_id', $typeId)
+                            ->exists();
+
+                        return $belongsToType ? $state : null;
+                    })
+                    ->helperText('Stages available for the selected project type.'),
+
                 Forms\Components\Toggle::make('archived')
                     ->label('Archived')
                     ->default(false),
@@ -64,6 +116,18 @@ class ProjectResource extends Resource
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('code')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('projectType.name')
+                    ->label('Project type')
+                    ->placeholder('—')
+                    ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('projectStage.name')
+                    ->label('Project stage')
+                    ->placeholder('—')
                     ->searchable()
                     ->sortable(),
 
@@ -85,6 +149,20 @@ class ProjectResource extends Resource
             ])
             ->defaultSort('name')
             ->filters([
+                SelectFilter::make('project_type_id')
+                    ->label('Project type')
+                    ->relationship('projectType', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
+                SelectFilter::make('project_stage_id')
+                    ->label('Project stage')
+                    ->relationship('projectStage', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
                 SelectFilter::make('archived')
                     ->label('Status')
                     ->options([
@@ -117,22 +195,22 @@ class ProjectResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

@@ -1,8 +1,13 @@
 <x-filament-panels::page>
     <section class="fi-report-filters">
-        <div class="fi-report-filters__header">
-            <h2 class="fi-report-filters__title">Filters</h2>
-            <p class="fi-report-filters__description">Filter finance lines by invoice date and supplier.</p>
+        <div class="fi-report-filters__header flex items-start justify-between gap-4">
+            <div class="fi-report-filters__heading min-w-0">
+                <h2 class="fi-report-filters__title">Filters</h2>
+                <p class="fi-report-filters__description">Filter finance lines by invoice date and supplier.</p>
+            </div>
+            <div class="fi-report-filters__actions shrink-0">
+                {{ $this->generateReportAction }}
+            </div>
         </div>
         <div class="fi-report-filters__body">
             {{ $this->form }}
@@ -15,20 +20,12 @@
 
     @php
         $totals = $this->totals();
-        $from = $this->data['from'] ?? null;
-        $until = $this->data['until'] ?? null;
-        $contactId = $this->data['contact_id'] ?? null;
-        $supplierLabel = filled($contactId)
-            ? (\App\Models\Contact::query()->find($contactId)?->company_name ?? 'Selected supplier')
-            : 'All suppliers';
-        $periodLabel = filled($from) && filled($until)
-            ? $from.' — '.$until
-            : 'All dates';
+        $filters = $this->filterContext();
     @endphp
 
     @include('filament.admin.components.report-stat-summary', [
         'title' => 'Period summary',
-        'description' => $periodLabel.' · '.$supplierLabel,
+        'description' => $filters['period_label'].' · '.$filters['supplier_label'],
         'footer' => $totals['lines'].' line(s) included in this report.',
         'stats' => $totals['lines'] === 0 ? [] : [
             ['label' => 'Lines', 'value' => number_format($totals['lines']), 'hint' => 'Finance lines'],

@@ -17,7 +17,7 @@ class ManualImportApplier
     public static function applyCreate(ManualImport $import): void
     {
         DB::transaction(function () use ($import): void {
-            self::applyStockAndPriceOnCreate($import);
+            self::applyStockOnCreate($import);
             self::syncInvoice($import);
         });
     }
@@ -27,24 +27,18 @@ class ManualImportApplier
      */
     public static function applyUpdate(ManualImport $import, int $oldProductId, int $oldAmount, float $oldPrice): void
     {
-        DB::transaction(function () use ($import, $oldProductId, $oldAmount, $oldPrice): void {
+        DB::transaction(function () use ($import, $oldProductId, $oldAmount): void {
             $newProductId = (int) $import->product_id;
             $newAmount = max(0, (int) $import->amount);
-            $newPrice = (float) $import->price;
 
             if ($oldProductId !== $newProductId) {
                 self::adjustStock($oldProductId, -$oldAmount);
                 self::adjustStock($newProductId, $newAmount);
-                self::setPrice($newProductId, $newPrice);
             } else {
                 $delta = $newAmount - $oldAmount;
 
                 if ($delta !== 0) {
                     self::adjustStock($newProductId, $delta);
-                }
-
-                if (abs($newPrice - $oldPrice) > 0.00001) {
-                    self::setPrice($newProductId, $newPrice);
                 }
             }
 
@@ -69,7 +63,7 @@ class ManualImportApplier
         });
     }
 
-    private static function applyStockAndPriceOnCreate(ManualImport $import): void
+    private static function applyStockOnCreate(ManualImport $import): void
     {
         $product = Product::query()->lockForUpdate()->find($import->product_id);
 
@@ -82,10 +76,6 @@ class ManualImportApplier
         if ($amount > 0) {
             $product->increment('current_amount', $amount);
         }
-
-        $product->update([
-            'default_cost' => number_format((float) $import->price, 2, '.', ''),
-        ]);
     }
 
     public static function syncInvoice(ManualImport $import): void
@@ -109,7 +99,7 @@ class ManualImportApplier
             throw new RuntimeException('Attached invoice file was not found.');
         }
 
-        $binary = Storage::disk('public')->get($import->invoice_path);
+        $binary = (string) Storage::disk('public')->get($import->invoice_path);
         $mime = Storage::disk('public')->mimeType($import->invoice_path) ?: 'application/octet-stream';
         $lineTotal = self::lineTotal($import);
         $invoiceDate = $import->imported_at?->toDateString() ?? now()->toDateString();
@@ -122,20 +112,20 @@ class ManualImportApplier
             'sum_inc_vat' => $lineTotal,
             'upload_date' => now()->toDateString(),
             'uploaded_by' => $import->user_id ?? auth()->id(),
-            'pdf_path' => $import->invoice_path,
-            'file_content' => base64_encode($binary),
+            'pdf_path' => '',
             'file_name' => basename($import->invoice_path),
             'file_mime' => $mime,
         ];
 
         if (filled($import->invoice_id)) {
-            Invoice::query()->whereKey($import->invoice_id)->update($payload);
-
-            return;
+            $invoice = Invoice::query()->findOrFail($import->invoice_id);
+            $invoice->update($payload);
+        } else {
+            $invoice = Invoice::query()->create($payload);
+            $import->forceFill(['invoice_id' => $invoice->id])->saveQuietly();
         }
 
-        $invoice = Invoice::query()->create($payload);
-        $import->forceFill(['invoice_id' => $invoice->id])->saveQuietly();
+        SharepointInvoiceUploader::ingestBinary($invoice, $binary, basename($import->invoice_path));
     }
 
     public static function lineTotal(ManualImport $import): string
@@ -146,7 +136,7 @@ class ManualImportApplier
         $amount = max(0, (int) $import->amount);
 
         if ($product !== null && ! $product->isCatalog() && is_numeric($product->name)) {
-            $total = round($unit * (float) $product->name * $amount, 2);
+            $total = $product->lineAmount($unit, $amount);
         } else {
             $total = round($unit * $amount, 2);
         }
@@ -175,12 +165,5 @@ class ManualImportApplier
         }
 
         $product->update(['current_amount' => $next]);
-    }
-
-    private static function setPrice(int $productId, float $price): void
-    {
-        Product::query()->whereKey($productId)->update([
-            'default_cost' => number_format($price, 2, '.', ''),
-        ]);
     }
 }

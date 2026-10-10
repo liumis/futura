@@ -5,23 +5,40 @@ namespace App\Filament\Admin\Resources\Cargos\Pages;
 use App\Enums\ActivityLogEvent;
 use App\Enums\CargoStatus;
 use App\Filament\Admin\Resources\Cargos\CargoResource;
-use App\Models\Product;
-use App\Services\ActivityLogger;
-use App\Models\Supplier;
-use App\Services\CargoReceiver;
-use App\Services\WarehouseOrderMailer;
+use App\Filament\Admin\Resources\Cargos\Concerns\HandlesCargoQuickOrder;
 use App\Filament\Admin\Resources\Pages\EditRecord;
+use App\Models\Cargo;
+use App\Models\CustomsContact;
+use App\Models\Product;
+use App\Models\Supplier;
+use App\Services\ActivityLogger;
+use App\Services\CargoReceiver;
+use App\Services\CustomsContactMailer;
+use App\Services\SharepointCustomsDocumentsUploader;
+use App\Services\WarehouseOrderMailer;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Forms;
 use Filament\Notifications\Notification;
+use Filament\Schemas\Components\Utilities\Set;
+use Filament\Schemas\Schema;
+use Throwable;
 
 class EditCargo extends EditRecord
 {
+    use HandlesCargoQuickOrder;
+
     protected static string $resource = CargoResource::class;
 
     protected bool $sendEmailAfterSave = false;
 
     protected ?string $pendingEmailBody = null;
+
+    /** @var list<string> */
+    protected array $pendingCustomsDocumentUploads = [];
+
+    /** @var array<string, string> */
+    protected array $pendingCustomsDocumentNames = [];
 
     /**
      * @param  array<string, mixed>  $data
@@ -29,6 +46,15 @@ class EditCargo extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
+        $this->pendingCustomsDocumentUploads = $this->normalizeUploadedFilePaths($data['customs_document_uploads'] ?? null);
+        $this->pendingCustomsDocumentNames = is_array($data['customs_document_upload_names'] ?? null)
+            ? array_filter($data['customs_document_upload_names'], fn ($name): bool => is_string($name) && $name !== '')
+            : [];
+
+        if (blank($data['customs_contact_id'] ?? null) && CustomsContact::countContacts() === 1) {
+            $data['customs_contact_id'] = CustomsContact::defaultId();
+        }
+
         return CargoResource::stripVirtualCargoFormFields($data);
     }
 
@@ -57,6 +83,99 @@ class EditCargo extends EditRecord
                 $this->pendingEmailBody = $data['email_body'] ?? null;
                 $this->sendEmailAfterSave = (bool) ($arguments['sendEmail'] ?? false);
                 $this->save();
+            });
+    }
+
+    public function sendCustomsEmailAction(): Action
+    {
+        return Action::make('sendCustomsEmail')
+            ->label('Send email to customs')
+            ->modalHeading('Send customs documents email')
+            ->modalDescription('Review the email, then send it to the selected customs contact. Uploaded documents are attached when available on SharePoint.')
+            ->schema([
+                Forms\Components\Select::make('customs_contact_id')
+                    ->label('Customs contact')
+                    ->options(fn (): array => CustomsContact::options())
+                    ->required()
+                    ->native(false)
+                    ->live()
+                    ->visible(fn (): bool => CustomsContact::countContacts() > 1)
+                    ->afterStateUpdated(function ($state, Set $set): void {
+                        $set('email_body', CustomsContactMailer::preview(
+                            filled($state) ? (int) $state : null,
+                            $this->record,
+                        ));
+                    }),
+
+                Forms\Components\Placeholder::make('customs_contact_label')
+                    ->label('Customs contact')
+                    ->content(fn (): string => (string) (CustomsContact::options()[CustomsContact::defaultId()] ?? '—'))
+                    ->visible(fn (): bool => CustomsContact::countContacts() === 1),
+
+                Forms\Components\Textarea::make('email_body')
+                    ->label('Email')
+                    ->helperText('Uses the email template assigned to the customs contact. Placeholders: {order_id}, {tracking}, {estimated_arrival}, {supplier}, {company_name}.')
+                    ->rows(12)
+                    ->required()
+                    ->columnSpanFull(),
+
+                Forms\Components\Toggle::make('attach_documents')
+                    ->label('Attach customs documents')
+                    ->default(true)
+                    ->helperText('Downloads the SharePoint files and attaches them to the email.'),
+            ])
+            ->fillForm(function (): array {
+                $contactId = $this->record->customs_contact_id
+                    ?? CustomsContact::defaultId();
+
+                return [
+                    'customs_contact_id' => $contactId,
+                    'email_body' => CustomsContactMailer::preview($contactId, $this->record),
+                    'attach_documents' => true,
+                ];
+            })
+            ->modalSubmitActionLabel('Send email')
+            ->action(function (array $data): void {
+                $contactId = $data['customs_contact_id']
+                    ?? $this->record->customs_contact_id
+                    ?? CustomsContact::defaultId();
+
+                $contact = CustomsContact::query()
+                    ->with('mailTemplate')
+                    ->find($contactId);
+
+                if ($contact === null) {
+                    Notification::make()
+                        ->title('No customs contact selected')
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                try {
+                    CustomsContactMailer::send(
+                        $this->record->fresh(['supplier', 'customsContact']),
+                        $contact,
+                        $data['email_body'] ?? null,
+                        (bool) ($data['attach_documents'] ?? true),
+                    );
+
+                    Notification::make()
+                        ->title('Email sent to customs')
+                        ->body($contact->company_name.' · '.$contact->email)
+                        ->success()
+                        ->send();
+                } catch (Throwable $exception) {
+                    Notification::make()
+                        ->title('Email was not sent')
+                        ->body($exception->getMessage())
+                        ->danger()
+                        ->send();
+                }
+
+                $this->record->refresh();
+                $this->fillForm();
             });
     }
 
@@ -128,31 +247,43 @@ class EditCargo extends EditRecord
         }
 
         Product::query()
-            ->pluck('default_cost', 'id')
-            ->each(function ($defaultCost, $productId) use (&$costs): void {
-                $key = (string) $productId;
+            ->with('color.collection')
+            ->get()
+            ->each(function (Product $product) use (&$costs): void {
+                $key = (string) $product->getKey();
 
                 if (! array_key_exists($key, $costs)) {
-                    $costs[$key] = (float) $defaultCost;
+                    $costs[$key] = $product->collectionUnitCost();
                 }
             });
 
         $data['cargo_amounts'] = $amounts;
         $data['cargo_costs'] = $costs;
+        $data['customs_document_uploads'] = [];
+        $data['customs_document_upload_names'] = [];
 
         if (blank($data['import_tax_id'] ?? null)) {
             $data['import_tax_id'] = CargoResource::defaultImportTaxId();
+        }
+
+        if (blank($data['customs_contact_id'] ?? null)) {
+            $data['customs_contact_id'] = CustomsContact::defaultId();
         }
 
         return $data;
     }
 
     /**
-     * @return array<Action | \Filament\Actions\ActionGroup>
+     * @return array<Action | ActionGroup>
      */
     protected function buildHeaderActions(): array
     {
         return [
+            $this->quickOrderAction(),
+            $this->autoOrderAction(),
+            $this->expandOrderCartAction(),
+            $this->sendCustomsEmailAction()
+                ->extraAttributes(['class' => 'hidden', 'style' => 'display:none !important']),
             Action::make('resend')
                 ->label('Resend')
                 ->color('gray')
@@ -175,6 +306,11 @@ class EditCargo extends EditRecord
                 }),
             ...parent::buildHeaderActions(),
         ];
+    }
+
+    public function content(Schema $schema): Schema
+    {
+        return $this->cargoPageContent($schema);
     }
 
     public function resendEmail(?string $emailBody = null): void
@@ -205,7 +341,7 @@ class EditCargo extends EditRecord
                 ->title('Email sent to supplier')
                 ->success()
                 ->send();
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Email was not sent')
                 ->body($exception->getMessage())
@@ -288,6 +424,8 @@ class EditCargo extends EditRecord
             $cargo,
         );
 
+        $this->uploadPendingCustomsDocuments($cargo);
+
         if (! $this->sendEmailAfterSave) {
             $this->pendingEmailBody = null;
 
@@ -304,7 +442,7 @@ class EditCargo extends EditRecord
                 ->title('Email sent to supplier')
                 ->success()
                 ->send();
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             Notification::make()
                 ->title('Warehouse order saved, but email was not sent')
                 ->body($exception->getMessage())
@@ -316,4 +454,62 @@ class EditCargo extends EditRecord
         }
     }
 
+    protected function uploadPendingCustomsDocuments(Cargo $cargo): void
+    {
+        $paths = $this->pendingCustomsDocumentUploads;
+        $names = $this->pendingCustomsDocumentNames;
+        $this->pendingCustomsDocumentUploads = [];
+        $this->pendingCustomsDocumentNames = [];
+
+        if ($paths === []) {
+            return;
+        }
+
+        $status = CargoStatus::tryFromMixed($cargo->status);
+
+        if ($status === null || ! $status->allowsCustomsDocuments()) {
+            Notification::make()
+                ->title('Customs documents not uploaded')
+                ->body('Set status to Confirmed (or later) before uploading customs documents.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            SharepointCustomsDocumentsUploader::ingestFromLocalPaths($cargo, $paths, $names);
+
+            Notification::make()
+                ->title(count($paths) === 1 ? 'Customs document uploaded' : count($paths).' customs documents uploaded')
+                ->body('Stored on SharePoint.')
+                ->success()
+                ->send();
+
+            $this->record->refresh();
+            $this->fillForm();
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->title('Customs document upload failed')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+        }
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function normalizeUploadedFilePaths(mixed $state): array
+    {
+        if (blank($state)) {
+            return [];
+        }
+
+        if (is_array($state)) {
+            return array_values(array_filter($state, fn ($path): bool => filled($path) && is_string($path)));
+        }
+
+        return is_string($state) ? [$state] : [];
+    }
 }

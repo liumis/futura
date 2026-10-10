@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\LeaveRequests\Pages;
 
+use App\Enums\AdminModule;
 use App\Enums\LeaveRequestStatus;
 use App\Filament\Admin\Resources\LeaveRequests\LeaveRequestResource;
 use App\Filament\Admin\Resources\Pages\EditRecord;
@@ -10,7 +11,9 @@ use App\Models\User;
 use App\Services\LeaveRequestConfirmer;
 use App\Services\LeaveRequestDocumentGenerator;
 use App\Services\LithuanianLeavePaymentCalculator;
+use App\Support\ParentalLeaveRequestGuard;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
 use Throwable;
@@ -69,6 +72,8 @@ class EditLeaveRequest extends EditRecord
             ->map(fn ($id): int => (int) $id)
             ->all();
 
+        ParentalLeaveRequestGuard::assertAllowed($data, (int) $record->getKey());
+
         return LeaveRequestConfirmer::prepareFormData($data);
     }
 
@@ -107,15 +112,22 @@ class EditLeaveRequest extends EditRecord
         $fresh = $leave->fresh(['extraApprovers']);
 
         if ($fresh?->isConfirmed() && $this->previousStatus !== LeaveRequestStatus::Confirmed) {
+            $fresh->loadMissing('orderDocument');
+
             Notification::make()
                 ->title('Leave request confirmed')
+                ->body(filled($fresh->order_document_id)
+                    ? 'Įsakymas was created and auto-approved.'
+                    : 'Confirmed. Įsakymas could not be created — check logs.')
                 ->success()
                 ->send();
+
+            $this->refreshFormData(['order_document_id']);
         }
     }
 
     /**
-     * @return array<\Filament\Actions\Action | \Filament\Actions\ActionGroup>
+     * @return array<Action | ActionGroup>
      */
     protected function getFormActions(): array
     {
@@ -211,7 +223,7 @@ class EditLeaveRequest extends EditRecord
                         || (
                             $record->status === LeaveRequestStatus::New
                             && ! $record->confirmerHasConfirmed()
-                            && ($user?->hasRole('admin') ?? false)
+                            && ($user?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
                         );
                 })
                 ->action(function (): void {
@@ -229,15 +241,46 @@ class EditLeaveRequest extends EditRecord
                         return;
                     }
 
-                    $fresh = $record->fresh(['extraApprovers']);
+                    $fresh = $record->fresh(['extraApprovers', 'orderDocument']);
 
                     Notification::make()
                         ->title($fresh?->isConfirmed()
                             ? 'Leave request confirmed'
                             : 'Confirmation recorded')
                         ->body($fresh?->isConfirmed()
-                            ? null
+                            ? (filled($fresh->order_document_id)
+                                ? 'Įsakymas was created and auto-approved.'
+                                : 'Confirmed. Įsakymas could not be created — check logs.')
                             : 'Waiting for extra approvers.')
+                        ->success()
+                        ->send();
+
+                    $this->redirect(LeaveRequestResource::getUrl('edit', ['record' => $record]));
+                }),
+
+            Action::make('generateIsakymas')
+                ->label('Generate Įsakymas')
+                ->icon('heroicon-o-document-text')
+                ->color('gray')
+                ->visible(fn (): bool => $this->record->isConfirmed() && blank($this->record->order_document_id))
+                ->action(function (): void {
+                    /** @var LeaveRequest $record */
+                    $record = $this->record->fresh(['confirmedBy', 'employee', 'leaveRequestType', 'document']);
+
+                    $document = LeaveRequestConfirmer::ensureOrderDocument($record);
+
+                    if ($document === null) {
+                        Notification::make()
+                            ->title('Could not create Įsakymas')
+                            ->danger()
+                            ->send();
+
+                        return;
+                    }
+
+                    Notification::make()
+                        ->title('Įsakymas created')
+                        ->body('Document was auto-approved by the leave confirmer.')
                         ->success()
                         ->send();
 
@@ -267,12 +310,15 @@ class EditLeaveRequest extends EditRecord
                         return;
                     }
 
-                    $fresh = $record->fresh();
+                    $fresh = $record->fresh(['extraApprovers', 'orderDocument']);
 
                     Notification::make()
                         ->title($fresh?->isConfirmed()
                             ? 'Leave request confirmed'
                             : 'Extra approval recorded')
+                        ->body($fresh?->isConfirmed() && filled($fresh->order_document_id)
+                            ? 'Įsakymas was created and auto-approved.'
+                            : null)
                         ->success()
                         ->send();
 
@@ -327,7 +373,7 @@ class EditLeaveRequest extends EditRecord
                 ->visible(fn (): bool => $this->record->isAwaitingCancellationApprovalFrom(auth()->user())
                     || (
                         $this->record->status === LeaveRequestStatus::CancellationPending
-                        && (auth()->user()?->hasRole('admin') ?? false)
+                        && (auth()->user()?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
                     ))
                 ->action(function (): void {
                     /** @var User $user */
@@ -362,7 +408,7 @@ class EditLeaveRequest extends EditRecord
                 ->visible(fn (): bool => $this->record->status === LeaveRequestStatus::CancellationPending
                     && (
                         $this->record->isAwaitingCancellationApprovalFrom(auth()->user())
-                        || (auth()->user()?->hasRole('admin') ?? false)
+                        || (auth()->user()?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
                     ))
                 ->action(function (): void {
                     /** @var User $user */

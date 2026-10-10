@@ -24,9 +24,36 @@ class VatRateResolver
             if ($user->vatRate !== null) {
                 return $user->vatRate;
             }
+
+            $fromCountry = self::forCustomerCountry($user);
+            if ($fromCountry !== null) {
+                return $fromCountry;
+            }
         }
 
         return self::default();
+    }
+
+    /**
+     * LT / domestic → PVM1, export → PVM4.
+     */
+    public static function forCustomerCountry(?User $user): ?VatRate
+    {
+        if ($user === null) {
+            return null;
+        }
+
+        $isExport = (bool) $user->export;
+        $country = strtolower(trim((string) ($user->company_country ?? '')));
+        if ($country !== '' && in_array($country, ['lithuania', 'lietuva', 'lt'], true)) {
+            $isExport = false;
+        } elseif ($country !== '') {
+            $isExport = true;
+        }
+
+        $classificator = $isExport ? 'PVM4' : 'PVM1';
+
+        return VatRate::query()->where('classificator', $classificator)->first();
     }
 
     public static function forInvoice(Invoice $invoice, ?User $user = null): ?VatRate
@@ -64,6 +91,25 @@ class VatRateResolver
             $sumWithoutVat = $sumIncVat;
             $vat = 0.0;
         }
+
+        return [
+            number_format($sumWithoutVat, 2, '.', ''),
+            number_format($vat, 2, '.', ''),
+            number_format($sumIncVat, 2, '.', ''),
+        ];
+    }
+
+    /**
+     * Build totals from a net (excl. VAT) base — used for order/sales line totals.
+     *
+     * @return array{0: string, 1: string, 2: string}
+     */
+    public static function calculateFromNet(float $sumWithoutVat, ?VatRate $vatRate): array
+    {
+        $sumWithoutVat = round($sumWithoutVat, 2);
+        $rate = self::numericRate($vatRate);
+        $vat = round($sumWithoutVat * ($rate / 100), 2);
+        $sumIncVat = round($sumWithoutVat + $vat, 2);
 
         return [
             number_format($sumWithoutVat, 2, '.', ''),

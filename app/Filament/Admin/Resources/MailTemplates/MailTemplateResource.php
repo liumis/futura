@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\MailTemplates;
 
-use App\Filament\Admin\Resources\MailTemplates\Pages;
 use App\Models\MailTemplate;
 use App\Models\User;
 use BackedEnum;
@@ -32,9 +31,9 @@ class MailTemplateResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Mail templates';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Warehouse & shipping';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
-    protected static ?int $navigationSort = 6;
+    protected static ?int $navigationSort = 14;
 
     public static function form(Schema $schema): Schema
     {
@@ -154,22 +153,22 @@ class MailTemplateResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

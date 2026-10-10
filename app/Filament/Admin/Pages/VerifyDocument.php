@@ -136,7 +136,7 @@ class VerifyDocument extends Page implements HasForms
                 return [
                     'document_id' => $document->id,
                     'name' => (string) $document->name,
-                    'document_date' => optional($document->document_date)->format('Y-m-d H:i:s'),
+                    'document_date' => optional($document->document_date)->format('Y-m-d'),
                     'type' => $document->documentType?->name ?? '—',
                     'approved_by' => $approverName,
                     'approval_date' => optional($document->approval_date)->format('Y-m-d H:i:s'),
@@ -165,6 +165,6 @@ class VerifyDocument extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 }

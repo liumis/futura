@@ -2,9 +2,11 @@
 
 namespace App\Filament\Admin\Resources\ProductTypes;
 
-use App\Filament\Admin\Resources\ProductTypes\Pages;
 use App\Models\ProductType;
 use BackedEnum;
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -26,7 +28,7 @@ class ProductTypeResource extends Resource
 
     protected static string|UnitEnum|null $navigationGroup = 'Catalog';
 
-    protected static ?int $navigationSort = 0;
+    protected static ?int $navigationSort = 4;
 
     public static function form(Schema $schema): Schema
     {
@@ -82,33 +84,33 @@ class ProductTypeResource extends Resource
             ])
             ->defaultSort('name')
             ->recordActions([
-                \Filament\Actions\EditAction::make(),
+                EditAction::make(),
             ])
             ->toolbarActions([
-                \Filament\Actions\BulkActionGroup::make([
-                    \Filament\Actions\DeleteBulkAction::make(),
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
                 ]),
             ]);
     }
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

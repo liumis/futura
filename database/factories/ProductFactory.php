@@ -31,7 +31,6 @@ class ProductFactory extends Factory
             'color_id' => Color::factory(),
             'product_code' => Str::upper(Str::random(8)),
             'current_amount' => fake()->numberBetween(0, 10_000),
-            'default_cost' => 0,
         ];
     }
 

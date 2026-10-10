@@ -3,19 +3,28 @@
 namespace App\Filament\Admin\Resources\Employees;
 
 use App\Enums\EmployeeNpdType;
-use App\Filament\Admin\Resources\Employees\Pages;
+use App\Enums\EmployeeStatus;
+use App\Filament\Admin\Pages\AbsenceCalendar;
+use App\Filament\Admin\Resources\EmployeeContracts\EmployeeContractEndAction;
+use App\Filament\Admin\Support\EmployeePaymentsList;
 use App\Models\Employee;
+use App\Models\User;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Forms;
+use Filament\Forms\Components\Repeater\TableColumn;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Contracts\Support\Htmlable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\HtmlString;
 use UnitEnum;
 
 class EmployeeResource extends Resource
@@ -73,6 +82,25 @@ class EmployeeResource extends Resource
                 Forms\Components\TextInput::make('email')
                     ->email()
                     ->maxLength(255),
+
+                Forms\Components\Select::make('status')
+                    ->label('Status')
+                    ->options(EmployeeStatus::options())
+                    ->default(EmployeeStatus::Active->value)
+                    ->required()
+                    ->native(false),
+
+                Forms\Components\Select::make('user_id')
+                    ->label('Login user')
+                    ->relationship('user', 'email')
+                    ->getOptionLabelFromRecordUsing(fn (User $record): string => filled(trim($record->fullName()))
+                        ? $record->fullName().' ('.$record->email.')'
+                        : (string) ($record->email ?? ''))
+                    ->searchable(['name', 'surname', 'email'])
+                    ->preload()
+                    ->nullable()
+                    ->native(false)
+                    ->helperText('Link this employee to a system user so they can receive confirmation notifications.'),
 
                 Forms\Components\TextInput::make('working_time_percentage')
                     ->label('Working time')
@@ -133,6 +161,33 @@ class EmployeeResource extends Resource
                     ])
                     ->columns(2)
                     ->columnSpanFull(),
+
+                Section::make('Children')
+                    ->description('Birthdates only. Used for Tėvadienis / Mamadienis (DK 138§3): children under 12, or disabled under 18.')
+                    ->schema([
+                        Forms\Components\Repeater::make('children')
+                            ->relationship()
+                            ->label('')
+                            ->table([
+                                TableColumn::make('Birthdate'),
+                                TableColumn::make('Disability (until 18)'),
+                            ])
+                            ->schema([
+                                Forms\Components\DatePicker::make('birthdate')
+                                    ->required()
+                                    ->native(false)
+                                    ->hiddenLabel(),
+                                Forms\Components\Toggle::make('has_disability')
+                                    ->default(false)
+                                    ->inline(false)
+                                    ->hiddenLabel(),
+                            ])
+                            ->addActionLabel('Add child')
+                            ->reorderable(false)
+                            ->defaultItems(0)
+                            ->columnSpanFull(),
+                    ])
+                    ->columnSpanFull(),
             ])
             ->columns(2);
     }
@@ -156,6 +211,98 @@ class EmployeeResource extends Resource
                     ->sortable()
                     ->placeholder('—'),
 
+                Tables\Columns\TextColumn::make('status')
+                    ->badge()
+                    ->formatStateUsing(fn ($state): string => $state instanceof EmployeeStatus
+                        ? $state->label()
+                        : EmployeeStatus::tryFrom((string) $state)?->label() ?? (string) $state)
+                    ->color(fn ($state): string => ($state instanceof EmployeeStatus
+                        ? $state
+                        : EmployeeStatus::tryFrom((string) $state)) === EmployeeStatus::Active
+                        ? 'success'
+                        : 'gray')
+                    ->url(function (Employee $record): ?string {
+                        if ($record->status !== EmployeeStatus::Inactive) {
+                            return null;
+                        }
+
+                        return $record->displayedTerminationDocumentUrl();
+                    })
+                    ->openUrlInNewTab()
+                    ->tooltip(function (Employee $record): ?string {
+                        if ($record->status !== EmployeeStatus::Inactive) {
+                            return null;
+                        }
+
+                        $date = $record->displayedTerminationDate();
+                        $hasDoc = $record->displayedTerminationDocumentUrl() !== null;
+
+                        if ($hasDoc && $date !== null) {
+                            return 'Open termination document · ended '.$date;
+                        }
+
+                        if ($hasDoc) {
+                            return 'Open termination document';
+                        }
+
+                        return $date !== null ? 'Terminated '.$date.' (no document linked)' : null;
+                    })
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('termination_date')
+                    ->label('Termination date')
+                    ->getStateUsing(fn (Employee $record): ?string => $record->displayedTerminationDate())
+                    ->date('Y-m-d')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query->orderBy('contract_end_date', $direction);
+                    }),
+
+                Tables\Columns\TextColumn::make('termination_document')
+                    ->label('Termination document')
+                    ->html()
+                    ->toggleable(isToggledHiddenByDefault: true)
+                    ->getStateUsing(function (Employee $record): string {
+                        $document = $record->displayedTerminationDocument();
+                        if ($document === null) {
+                            return '—';
+                        }
+
+                        $links = $document->attachedFileLinks();
+                        if ($links === []) {
+                            $url = $document->displayFileUrl();
+                            $label = e($document->name ?: 'Termination document');
+
+                            return $url
+                                ? '<a href="'.e($url).'" target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:underline dark:text-primary-400">'.$label.'</a>'
+                                : $label;
+                        }
+
+                        $items = [];
+                        foreach ($links as $file) {
+                            $name = e((string) ($file['name'] ?? 'file'));
+                            $url = filled($file['url'] ?? null) ? e((string) $file['url']) : null;
+                            $items[] = $url !== null
+                                ? '<a href="'.$url.'" target="_blank" rel="noopener noreferrer" class="text-primary-600 hover:underline dark:text-primary-400">'.$name.'</a>'
+                                : $name;
+                        }
+
+                        return implode('<br>', $items);
+                    })
+                    ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('user.email')
+                    ->label('Login user')
+                    ->placeholder('—')
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                Tables\Columns\ViewColumn::make('confirmations')
+                    ->label('Confirmations')
+                    ->view('filament.admin.components.employee-confirmations')
+                    ->extraCellAttributes(['class' => 'ss-employee-confirmations-cell'])
+                    ->toggleable(),
+
                 Tables\Columns\IconColumn::make('is_general_manager')
                     ->label('General manager')
                     ->boolean()
@@ -167,10 +314,44 @@ class EmployeeResource extends Resource
                     ->view('filament.admin.components.employee-related-links')
                     ->extraCellAttributes(['class' => 'ss-employee-related-cell']),
             ])
-            ->defaultSort('surname')
+            ->recordClasses(fn (Employee $record): ?string => $record->status === EmployeeStatus::Inactive
+                ? 'ss-employee-row--inactive'
+                : null)
             ->recordActions([
-                EditAction::make(),
+                Action::make('calendar')
+                    ->label('Calendar')
+                    ->icon('heroicon-o-calendar-days')
+                    ->color('gray')
+                    ->iconButton()
+                    ->tooltip('Calendar')
+                    ->url(fn (Employee $record): string => AbsenceCalendar::getUrl([
+                        'employee_id' => $record->getKey(),
+                    ]))
+                    ->visible(fn (): bool => AbsenceCalendar::canAccess()),
+                Action::make('payments')
+                    ->label('Payments')
+                    ->icon('heroicon-o-banknotes')
+                    ->color('gray')
+                    ->iconButton()
+                    ->tooltip('Payments')
+                    ->modalHeading(fn (Employee $record): string => 'Payments — '.$record->fullName())
+                    ->modalContent(fn (Employee $record): Htmlable => new HtmlString(
+                        view('filament.admin.components.employee-payments-modal', [
+                            'rows' => EmployeePaymentsList::rowsFor($record),
+                        ])->render()
+                    ))
+                    ->modalSubmitAction(false)
+                    ->modalCancelActionLabel('Close')
+                    ->modalWidth('5xl'),
+                EmployeeContractEndAction::make()
+                    ->iconButton()
+                    ->tooltip('End contract'),
+                EditAction::make()
+                    ->iconButton()
+                    ->tooltip('Edit'),
             ])
+            ->recordActionsAlignment('start')
+            ->recordActionsColumnLabel('Actions')
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
@@ -180,22 +361,22 @@ class EmployeeResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

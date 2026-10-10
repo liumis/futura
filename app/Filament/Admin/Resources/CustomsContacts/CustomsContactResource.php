@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\CustomsContacts;
 
-use App\Filament\Admin\Resources\CustomsContacts\Pages;
 use App\Models\CustomsContact;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -62,6 +61,30 @@ class CustomsContactResource extends Resource
                     ->label('Email')
                     ->email()
                     ->maxLength(255),
+
+                Forms\Components\Select::make('mail_template_id')
+                    ->label('Email template')
+                    ->relationship('mailTemplate', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->native(false)
+                    ->helperText('Used when sending customs documents from a confirmed warehouse order.'),
+
+                Forms\Components\TextInput::make('bank_account')
+                    ->label('Bank account (IBAN)')
+                    ->helperText('Used for SEB payment files from Import taxes.')
+                    ->maxLength(34)
+                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state)
+                        ? strtoupper(preg_replace('/\s+/', '', $state) ?? '')
+                        : null),
+
+                Forms\Components\TextInput::make('bank_bic')
+                    ->label('BIC')
+                    ->helperText('Optional. SEB Lithuania is often CBVILT2X.')
+                    ->maxLength(11)
+                    ->dehydrateStateUsing(fn (?string $state): ?string => filled($state)
+                        ? strtoupper(preg_replace('/\s+/', '', $state) ?? '')
+                        : null),
             ])
             ->columns(2);
     }
@@ -98,6 +121,16 @@ class CustomsContactResource extends Resource
                     ->placeholder('—')
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('mailTemplate.name')
+                    ->label('Email template')
+                    ->placeholder('—')
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('bank_account')
+                    ->label('IBAN')
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -116,22 +149,22 @@ class CustomsContactResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

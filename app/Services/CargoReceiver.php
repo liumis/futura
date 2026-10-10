@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\DB;
 class CargoReceiver
 {
     /**
-     * Mark a warehouse order as received and import stock, received orders, and import taxes.
+     * Mark a warehouse order as received and import stock.
+     * Import tax payment rows are created when the customs invoice is uploaded;
+     * receive still refreshes amounts/dates on that row.
      *
      * @param  array<string|int, int>  $amounts
      * @param  array<string|int, float>  $costs
@@ -44,14 +46,18 @@ class CargoReceiver
         $updateData = $attributes ?? [];
         $updateData['status'] = CargoStatus::Received;
 
+        if (blank($updateData['actual_date'] ?? null)) {
+            $updateData['actual_date'] = now()->toDateString();
+        }
+
         DB::transaction(function () use ($cargo, $amounts, $costs, $updateData): void {
             $cargo->update($updateData);
             CargoResource::syncCargoItemsFromAmounts($cargo, $amounts, $costs);
-            CargoResource::importCargoItemsToProductStock($cargo);
 
             $receivedCargo = $cargo->fresh(['cargoItems', 'importTax']);
-            $receivedDate = now()->toDateString();
+            $receivedDate = $receivedCargo->actual_date?->toDateString() ?? now()->toDateString();
 
+            // Pending warehouse-import rows; stock is added when staff click Import on /warehouse-imports.
             WarehouseImport::syncFromCargo($receivedCargo, $receivedDate);
             ImportTaxPayment::syncFromCargo($receivedCargo, $receivedDate);
         });
@@ -60,7 +66,7 @@ class CargoReceiver
 
         ActivityLogger::log(
             ActivityLogEvent::CargoUpdated,
-            'Warehouse order #'.$receivedCargo->id.' received and stock imported',
+            'Warehouse order #'.$receivedCargo->id.' received — pending stock import',
             $receivedCargo,
         );
 

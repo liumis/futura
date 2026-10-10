@@ -6,6 +6,7 @@ use App\Enums\EmployeeMonthlyPaymentStatus;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 class EmployeeMonthlyPayment extends Model
@@ -24,6 +25,9 @@ class EmployeeMonthlyPayment extends Model
         'comment',
         'status',
         'employee_payment_report_id',
+        'payslip_document_id',
+        'bonus_order_document_id',
+        'shareholder_decision_document_id',
         'is_paid',
         'paid_at',
     ];
@@ -54,6 +58,31 @@ class EmployeeMonthlyPayment extends Model
     public function paymentReport(): BelongsTo
     {
         return $this->belongsTo(EmployeePaymentReport::class, 'employee_payment_report_id');
+    }
+
+    public function payslipDocument(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'payslip_document_id');
+    }
+
+    public function bankStatementTransactions(): HasMany
+    {
+        return $this->hasMany(BankStatementTransaction::class);
+    }
+
+    public function bonusOrderDocument(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'bonus_order_document_id');
+    }
+
+    public function shareholderDecisionDocument(): BelongsTo
+    {
+        return $this->belongsTo(Document::class, 'shareholder_decision_document_id');
+    }
+
+    public function hasBonus(): bool
+    {
+        return round((float) ($this->bonus_payment ?? 0), 2) > 0;
     }
 
     public function scopeForDate(Builder $query, Carbon|string $date): Builder

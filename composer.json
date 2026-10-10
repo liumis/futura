@@ -12,8 +12,10 @@
         "laravel/framework": "^12.0",
         "laravel/tinker": "^2.10.1",
         "league/flysystem-aws-s3-v3": "^3.35",
+        "phpoffice/phpspreadsheet": "^5.9",
         "setasign/fpdf": "^1.9",
         "setasign/fpdi": "^2.6",
+        "smalot/pdfparser": "^2.12",
         "spatie/laravel-permission": "^6.25"
     },
     "require-dev": {

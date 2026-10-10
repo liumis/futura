@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\OvertimeRequests\Pages;
 
+use App\Enums\AdminModule;
 use App\Enums\OvertimeRequestStatus;
 use App\Filament\Admin\Resources\OvertimeRequests\OvertimeRequestResource;
 use App\Filament\Admin\Resources\Pages\EditRecord;
@@ -9,6 +10,7 @@ use App\Models\OvertimeRequest;
 use App\Models\User;
 use App\Services\OvertimeRequestConfirmer;
 use Filament\Actions\Action;
+use Filament\Actions\ActionGroup;
 use Filament\Notifications\Notification;
 use Filament\Support\Exceptions\Halt;
 
@@ -93,7 +95,7 @@ class EditOvertimeRequest extends EditRecord
     }
 
     /**
-     * @return array<\Filament\Actions\Action | \Filament\Actions\ActionGroup>
+     * @return array<Action | ActionGroup>
      */
     protected function getFormActions(): array
     {
@@ -132,7 +134,7 @@ class EditOvertimeRequest extends EditRecord
                         || (
                             $record->status === OvertimeRequestStatus::New
                             && ! $record->confirmerHasConfirmed()
-                            && ($user?->hasRole('admin') ?? false)
+                            && ($user?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
                         );
                 })
                 ->action(function (): void {
@@ -248,7 +250,7 @@ class EditOvertimeRequest extends EditRecord
                 ->visible(fn (): bool => $this->record->isAwaitingCancellationApprovalFrom(auth()->user())
                     || (
                         $this->record->status === OvertimeRequestStatus::CancellationPending
-                        && (auth()->user()?->hasRole('admin') ?? false)
+                        && (auth()->user()?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
                     ))
                 ->action(function (): void {
                     /** @var User $user */
@@ -283,7 +285,7 @@ class EditOvertimeRequest extends EditRecord
                 ->visible(fn (): bool => $this->record->status === OvertimeRequestStatus::CancellationPending
                     && (
                         $this->record->isAwaitingCancellationApprovalFrom(auth()->user())
-                        || (auth()->user()?->hasRole('admin') ?? false)
+                        || (auth()->user()?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
                     ))
                 ->action(function (): void {
                     /** @var User $user */

@@ -3,7 +3,9 @@
 namespace App\Filament\Admin\Pages;
 
 use App\Enums\EmployeeMonthlyPaymentStatus;
+use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Models\CompanySetting;
+use App\Models\Document;
 use App\Models\Employee;
 use App\Models\EmployeeContract;
 use App\Models\EmployeeMonthlyPayment;
@@ -11,10 +13,16 @@ use App\Models\EmployeePaymentReport;
 use App\Models\User;
 use App\Models\WorkSchedule;
 use App\Services\ActivityLogger;
+use App\Services\DocumentWorkflow;
+use App\Services\EmployeeBonusDocumentGenerator;
 use App\Services\EmployeePaymentReportApprover;
+use App\Services\EmployeePayslipDocumentGenerator;
+use App\Services\HistoricalEmployeePayslipGenerator;
 use App\Services\LithuanianPayrollCalculator;
+use App\Services\PayrollAccrualJournalPdfGenerator;
 use App\Services\PayrollAuthoritySepaExporter;
 use App\Services\SepaPain001Exporter;
+use App\Services\WorkTimeTimesheetPdfGenerator;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -99,7 +107,7 @@ class MonthlyPayment extends Page implements HasForms
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public function mount(): void
@@ -109,8 +117,7 @@ class MonthlyPayment extends Page implements HasForms
         ]);
 
         $this->reportFiltersForm->fill([
-            'from' => now()->startOfMonth()->toDateString(),
-            'until' => now()->endOfMonth()->toDateString(),
+            'month' => now()->format('Y-m'),
             'employee_id' => null,
         ]);
 
@@ -276,20 +283,17 @@ class MonthlyPayment extends Page implements HasForms
         return $schema
             ->statePath('reportData')
             ->components([
-                DatePicker::make('from')
-                    ->label('From')
+                Select::make('month')
+                    ->label('Month')
+                    ->options(fn (): array => WorkTimeTimesheetPdfGenerator::monthSelectOptions())
+                    ->default(now()->format('Y-m'))
                     ->native(false)
-                    ->live()
-                    ->afterStateUpdated(fn (): mixed => $this->loadReportRows()),
-
-                DatePicker::make('until')
-                    ->label('Until')
-                    ->native(false)
+                    ->searchable()
                     ->live()
                     ->afterStateUpdated(fn (): mixed => $this->loadReportRows()),
 
                 Select::make('employee_id')
-                    ->label('Employee')
+                    ->label('Person')
                     ->options(
                         fn (): array => Employee::query()
                             ->orderBy('surname')
@@ -300,13 +304,14 @@ class MonthlyPayment extends Page implements HasForms
                             ])
                             ->all()
                     )
+                    ->placeholder('All people')
                     ->searchable()
                     ->preload()
                     ->native(false)
                     ->live()
                     ->afterStateUpdated(fn (): mixed => $this->loadReportRows()),
             ])
-            ->columns(3);
+            ->columns(2);
     }
 
     public function loadRows(): void
@@ -377,19 +382,63 @@ class MonthlyPayment extends Page implements HasForms
 
     public function applyActualHoursToSalary(int $index): void
     {
-        if (! isset($this->rows[$index]) || ($this->rows[$index]['is_locked'] ?? false)) {
-            return;
-        }
+        $prefilled = $this->prefillRowBaseSalaryFromActualHours($index);
 
-        $row = $this->rows[$index];
+        if ($prefilled === null) {
+            if (isset($this->rows[$index]) && ($this->rows[$index]['is_locked'] ?? false)) {
+                return;
+            }
 
-        if (! ($row['has_schedule'] ?? false) || (float) ($row['planned_hours'] ?? 0) <= 0) {
             Notification::make()
                 ->title('No work schedule hours for this month')
                 ->warning()
                 ->send();
 
             return;
+        }
+
+        Notification::make()
+            ->title('Base salary prefilled from actual hours')
+            ->body(sprintf(
+                '%s — review and click Save when ready.',
+                $prefilled,
+            ))
+            ->success()
+            ->send();
+    }
+
+    public function applyActualHoursToAllSalaries(): void
+    {
+        $prefilled = 0;
+
+        foreach (array_keys($this->rows) as $index) {
+            if ($this->prefillRowBaseSalaryFromActualHours((int) $index) !== null) {
+                $prefilled++;
+            }
+        }
+
+        Notification::make()
+            ->title($prefilled > 0
+                ? "Prefilled {$prefilled} base salaries from actual hours"
+                : 'No unlocked rows with schedule hours to prefill')
+            ->body($prefilled > 0 ? 'Review the values and click Save when ready.' : null)
+            ->success()
+            ->send();
+    }
+
+    /**
+     * Prefill a row's base salary from actual/plan hours without persisting.
+     */
+    private function prefillRowBaseSalaryFromActualHours(int $index): ?string
+    {
+        if (! isset($this->rows[$index]) || ($this->rows[$index]['is_locked'] ?? false)) {
+            return null;
+        }
+
+        $row = $this->rows[$index];
+
+        if (! ($row['has_schedule'] ?? false) || (float) ($row['planned_hours'] ?? 0) <= 0) {
+            return null;
         }
 
         $contractBase = $this->parseAmount($row['contract_base_salary'] ?? null)
@@ -402,53 +451,18 @@ class MonthlyPayment extends Page implements HasForms
             (float) $row['actual_hours'],
         );
 
-        $this->rows[$index]['base_salary'] = $this->formatAmount($prorated);
+        $formatted = $this->formatAmount($prorated);
+        $rows = $this->rows;
+        $rows[$index]['base_salary'] = $formatted;
+        $this->rows = $rows;
 
-        Notification::make()
-            ->title('Base salary updated from actual hours')
-            ->body(sprintf(
-                '%s h actual / %s h plan → %s',
-                number_format((float) $row['actual_hours'], 2),
-                number_format((float) $row['planned_hours'], 2),
-                $this->moneyPrefix().$this->formatAmount($prorated),
-            ))
-            ->success()
-            ->send();
-    }
-
-    public function applyActualHoursToAllSalaries(): void
-    {
-        $updated = 0;
-
-        foreach ($this->rows as $index => $row) {
-            if ($row['is_locked'] ?? false) {
-                continue;
-            }
-
-            if (! ($row['has_schedule'] ?? false) || (float) ($row['planned_hours'] ?? 0) <= 0) {
-                continue;
-            }
-
-            $contractBase = $this->parseAmount($row['contract_base_salary'] ?? null)
-                ?? $this->parseAmount($row['base_salary'] ?? null)
-                ?? 0;
-
-            $prorated = WorkSchedule::prorateSalary(
-                $contractBase,
-                (float) $row['planned_hours'],
-                (float) $row['actual_hours'],
-            );
-
-            $this->rows[$index]['base_salary'] = $this->formatAmount($prorated);
-            $updated++;
-        }
-
-        Notification::make()
-            ->title($updated > 0
-                ? "Updated {$updated} base salaries from actual hours"
-                : 'No unlocked rows with schedule hours to update')
-            ->success()
-            ->send();
+        return sprintf(
+            '%s h actual / %s h plan → %s%s',
+            number_format((float) $row['actual_hours'], 2),
+            number_format((float) $row['planned_hours'], 2),
+            $this->moneyPrefix(),
+            $formatted,
+        );
     }
 
     public function save(): void
@@ -503,6 +517,15 @@ class MonthlyPayment extends Page implements HasForms
                     ...$tax,
                 ],
             );
+
+            $savedPayment = EmployeeMonthlyPayment::query()
+                ->where('employee_id', $employeeId)
+                ->whereDate('payment_date', $paymentDate)
+                ->first();
+
+            if ($savedPayment !== null) {
+                $this->syncBonusDocumentsQuietly($savedPayment);
+            }
         }
 
         Notification::make()
@@ -514,8 +537,7 @@ class MonthlyPayment extends Page implements HasForms
 
         $date = Carbon::parse($paymentDate);
         $this->reportFiltersForm->fill([
-            'from' => $date->copy()->startOfMonth()->toDateString(),
-            'until' => $date->copy()->endOfMonth()->toDateString(),
+            'month' => $date->format('Y-m'),
             'employee_id' => $this->reportData['employee_id'] ?? null,
         ]);
 
@@ -525,18 +547,30 @@ class MonthlyPayment extends Page implements HasForms
 
     public function loadReportRows(): void
     {
-        $from = filled($this->reportData['from'] ?? null)
-            ? Carbon::parse((string) $this->reportData['from'])->startOfDay()
-            : null;
-        $until = filled($this->reportData['until'] ?? null)
-            ? Carbon::parse((string) $this->reportData['until'])->endOfDay()
-            : null;
+        $month = filled($this->reportData['month'] ?? null)
+            ? (string) $this->reportData['month']
+            : now()->format('Y-m');
+
+        if (preg_match('/^(\d{4})-(\d{2})$/', $month) !== 1) {
+            $month = now()->format('Y-m');
+        }
+
+        $from = Carbon::parse($month.'-01')->startOfDay();
+        $until = $from->copy()->endOfMonth()->endOfDay();
+
         $employeeId = filled($this->reportData['employee_id'] ?? null)
             ? (int) $this->reportData['employee_id']
             : null;
 
         $query = EmployeeMonthlyPayment::query()
-            ->with(['employee', 'paymentReport.approvers'])
+            ->with([
+                'employee',
+                'paymentReport.approvers',
+                'paymentReport.document',
+                'payslipDocument',
+                'bonusOrderDocument.approvers',
+                'shareholderDecisionDocument',
+            ])
             ->orderByDesc('payment_date')
             ->orderBy('employee_id');
 
@@ -544,13 +578,8 @@ class MonthlyPayment extends Page implements HasForms
             $query->where('employee_id', $employeeId);
         }
 
-        if ($from !== null) {
-            $query->whereDate('payment_date', '>=', $from->toDateString());
-        }
-
-        if ($until !== null) {
-            $query->whereDate('payment_date', '<=', $until->toDateString());
-        }
+        $query->whereDate('payment_date', '>=', $from->toDateString())
+            ->whereDate('payment_date', '<=', $until->toDateString());
 
         $this->selectedReportIds = [];
         $this->selectAllReports = false;
@@ -562,11 +591,47 @@ class MonthlyPayment extends Page implements HasForms
             ->mapWithKeys(function (EmployeeMonthlyPayment $payment) use ($currentUserId): array {
                 $status = $payment->status ?? EmployeeMonthlyPaymentStatus::Open;
                 $report = $payment->paymentReport;
+                $payslip = $payment->payslipDocument;
+                $payslipUrl = $payslip?->displayFileUrl();
+                $bonusOrder = $payment->bonusOrderDocument;
+                $bonusOrderUrl = $bonusOrder?->displayFileUrl();
+                $shareholderDecision = $payment->shareholderDecisionDocument;
+                $shareholderDecisionUrl = $shareholderDecision?->displayFileUrl();
+                $canConfirmBonusOrder = false;
+                $bonusOrderPendingLabel = null;
+
+                if ($bonusOrder !== null && $currentUserId !== null && ! $bonusOrder->isApproved()) {
+                    $pendingBonusApprovers = $bonusOrder->approvers
+                        ->filter(fn (User $approver): bool => blank($approver->pivot?->approved_at))
+                        ->values();
+
+                    $bonusOrderPendingLabel = $pendingBonusApprovers
+                        ->map(function (User $approver): string {
+                            $name = trim((string) (($approver->name ?? '').' '.($approver->surname ?? '')));
+
+                            return $name !== ''
+                                ? $name
+                                : (filled($approver->email) ? (string) $approver->email : 'User #'.$approver->id);
+                        })
+                        ->implode(', ');
+
+                    $canConfirmBonusOrder = $pendingBonusApprovers->contains(
+                        fn (User $approver): bool => (int) $approver->getKey() === $currentUserId,
+                    );
+                }
+
                 $canConfirm = false;
                 $id = (int) $payment->getKey();
+                $reportDocumentUrl = null;
 
                 $pendingApproversLabel = null;
                 if ($report !== null) {
+                    $reportDocument = $report->document;
+                    if ($reportDocument !== null) {
+                        $reportDocumentUrl = $reportDocument->displayFileUrl()
+                            ?: DocumentResource::getUrl('edit', ['record' => $reportDocument]);
+                    }
+
                     $pendingApprovers = $report->approvers
                         ->filter(fn (User $approver): bool => blank($approver->pivot?->approved_at))
                         ->values();
@@ -621,8 +686,18 @@ class MonthlyPayment extends Page implements HasForms
                         'report_id' => $report?->getKey() ? (int) $report->getKey() : null,
                         'report_status' => $report?->status?->value,
                         'report_status_label' => $report?->status?->label() ?? '—',
+                        'report_document_url' => $reportDocumentUrl,
                         'pending_approvers_label' => $pendingApproversLabel,
                         'can_confirm' => $canConfirm,
+                        'payslip_document_id' => $payslip?->getKey() ? (int) $payslip->getKey() : null,
+                        'payslip_url' => $payslipUrl,
+                        'payslip_label' => $payslip !== null ? 'Payslip' : null,
+                        'bonus_order_document_id' => $bonusOrder?->getKey() ? (int) $bonusOrder->getKey() : null,
+                        'bonus_order_url' => $bonusOrderUrl,
+                        'bonus_order_approved' => $bonusOrder?->isApproved() ?? false,
+                        'can_confirm_bonus_order' => $canConfirmBonusOrder,
+                        'bonus_order_pending_label' => $bonusOrderPendingLabel,
+                        'shareholder_decision_url' => $shareholderDecisionUrl,
                     ],
                 ];
             })
@@ -676,10 +751,48 @@ class MonthlyPayment extends Page implements HasForms
             ->all();
     }
 
-    public function updatedSelectAllReports(bool $value): void
+    public function toggleSelectAllReports(): void
     {
-        if ($value) {
-            $this->selectedReportIds = $this->selectableReportIds();
+        $selectableIds = $this->selectableReportIds();
+
+        if ($selectableIds === []) {
+            $this->selectAllReports = false;
+            $this->selectedReportIds = [];
+
+            return;
+        }
+
+        $selected = collect($this->selectedReportIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->sort()
+            ->values()
+            ->all();
+
+        $allSelected = $selected === collect($selectableIds)->sort()->values()->all();
+
+        if ($allSelected) {
+            $this->selectAllReports = false;
+            $this->selectedReportIds = [];
+
+            return;
+        }
+
+        $this->selectedReportIds = array_map(
+            static fn (int $id): string => (string) $id,
+            $selectableIds,
+        );
+        $this->selectAllReports = true;
+    }
+
+    public function updatedSelectAllReports(mixed $value): void
+    {
+        if (filter_var($value, FILTER_VALIDATE_BOOLEAN)) {
+            $this->selectedReportIds = array_map(
+                static fn (int $id): string => (string) $id,
+                $this->selectableReportIds(),
+            );
 
             return;
         }
@@ -690,11 +803,14 @@ class MonthlyPayment extends Page implements HasForms
     public function updatedSelectedReportIds(): void
     {
         $selectableIds = $this->selectableReportIds();
+        $selectableLookup = array_flip($selectableIds);
 
         $this->selectedReportIds = collect($this->selectedReportIds)
             ->map(fn ($id): int => (int) $id)
-            ->filter(fn (int $id): bool => in_array($id, $selectableIds, true))
+            ->filter(fn (int $id): bool => isset($selectableLookup[$id]))
+            ->unique()
             ->values()
+            ->map(fn (int $id): string => (string) $id)
             ->all();
 
         $this->selectAllReports = count($selectableIds) > 0
@@ -703,7 +819,7 @@ class MonthlyPayment extends Page implements HasForms
 
     public function payPayment(int $id): void
     {
-        $payment = EmployeeMonthlyPayment::query()->find($id);
+        $payment = EmployeeMonthlyPayment::query()->with('employee')->find($id);
 
         if (! $payment || $payment->status !== EmployeeMonthlyPaymentStatus::Open) {
             return;
@@ -711,8 +827,11 @@ class MonthlyPayment extends Page implements HasForms
 
         $payment->markPayed();
 
+        $payslipNote = $this->generatePayslipForPayment($payment);
+
         Notification::make()
             ->title('Payment marked as payed')
+            ->body($payslipNote)
             ->success()
             ->send();
 
@@ -758,23 +877,81 @@ class MonthlyPayment extends Page implements HasForms
         }
 
         $payments = EmployeeMonthlyPayment::query()
+            ->with('employee')
             ->whereIn('id', $ids)
             ->where('status', EmployeeMonthlyPaymentStatus::Open)
             ->get();
 
+        $payslipOk = 0;
+        $payslipFail = 0;
+        $emailOk = 0;
+
         foreach ($payments as $payment) {
             $payment->markPayed();
+
+            try {
+                $result = EmployeePayslipDocumentGenerator::createForPayment($payment);
+                $payslipOk++;
+                if ($result['emailed']) {
+                    $emailOk++;
+                }
+            } catch (\Throwable $e) {
+                report($e);
+                $payslipFail++;
+            }
+        }
+
+        $body = null;
+        if ($payslipOk > 0 || $payslipFail > 0) {
+            $parts = [];
+            if ($payslipOk > 0) {
+                $parts[] = $payslipOk.' payslip(s) generated';
+            }
+            if ($emailOk > 0) {
+                $parts[] = $emailOk.' emailed';
+            }
+            if ($payslipFail > 0) {
+                $parts[] = $payslipFail.' payslip failed';
+            }
+            $body = implode(' · ', $parts);
         }
 
         Notification::make()
             ->title($payments->count() === 1
                 ? '1 payment marked as payed'
                 : $payments->count().' payments marked as payed')
+            ->body($body)
             ->success()
             ->send();
 
         $this->loadRows();
         $this->loadReportRows();
+    }
+
+    protected function generatePayslipForPayment(EmployeeMonthlyPayment $payment): ?string
+    {
+        try {
+            $result = EmployeePayslipDocumentGenerator::createForPayment($payment);
+            $parts = ['Payslip PDF saved to Documents / SharePoint'];
+
+            if ($result['emailed']) {
+                $parts[] = 'emailed to employee';
+            } elseif (filled($result['email_message'])) {
+                $parts[] = $result['email_message'];
+            }
+
+            return implode(' · ', $parts);
+        } catch (\Throwable $e) {
+            report($e);
+
+            Notification::make()
+                ->title('Payslip generation failed')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
+
+            return 'Payslip was not generated.';
+        }
     }
 
     public function exportSepaXml(): ?StreamedResponse
@@ -788,7 +965,8 @@ class MonthlyPayment extends Page implements HasForms
 
         if ($ids === []) {
             Notification::make()
-                ->title('Select at least one open payment')
+                ->title('No employee selected')
+                ->body('Select at least one open payment using the checkboxes, then try again.')
                 ->warning()
                 ->send();
 
@@ -805,6 +983,7 @@ class MonthlyPayment extends Page implements HasForms
         if ($payments->isEmpty()) {
             Notification::make()
                 ->title('No open payments selected')
+                ->body('SEPA export only includes open payments. Select open rows and try again.')
                 ->warning()
                 ->send();
 
@@ -848,7 +1027,7 @@ class MonthlyPayment extends Page implements HasForms
         return $this->exportAuthorityXml('sodra');
     }
 
-    public function exportXls(): ?StreamedResponse
+    public function exportFullReportPdf(): ?StreamedResponse
     {
         if ($this->reportRows === []) {
             Notification::make()
@@ -859,110 +1038,51 @@ class MonthlyPayment extends Page implements HasForms
             return null;
         }
 
-        $fileName = 'payments-report-'.now()->format('Ymd-His').'.xls';
-        $rows = $this->reportRows;
+        $payments = EmployeeMonthlyPayment::query()
+            ->with('employee')
+            ->whereIn('id', collect($this->reportRows)->pluck('id')->map(fn ($id): int => (int) $id)->all())
+            ->get();
 
-        ActivityLogger::logReportDownloaded('Monthly payments XLS', 'xls', properties: [
+        if ($payments->isEmpty()) {
+            Notification::make()
+                ->title('No payments to export')
+                ->warning()
+                ->send();
+
+            return null;
+        }
+
+        $firstDate = Carbon::parse((string) $payments->first()->payment_date);
+        $year = (int) $firstDate->year;
+        $month = (int) $firstDate->month;
+        $fileName = sprintf('payroll-full-report-%04d-%02d-%s.pdf', $year, $month, now()->format('Ymd-His'));
+
+        try {
+            $pdf = PayrollAccrualJournalPdfGenerator::generate($payments, $year, $month);
+        } catch (\Throwable $exception) {
+            Notification::make()
+                ->title('Full report export failed')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return null;
+        }
+
+        ActivityLogger::logReportDownloaded('Monthly payments full report', 'pdf', properties: [
             'file_name' => $fileName,
-            'count' => count($rows),
+            'count' => $payments->count(),
+            'year' => $year,
+            'month' => $month,
         ]);
 
-        return response()->streamDownload(function () use ($rows): void {
-            $headers = [
-                'Date',
-                'Person',
-                'Base (Gross)',
-                'Bonus (gross)',
-                'Gross',
-                'NPD',
-                'GPM 20%',
-                'Sodra health 6.98%',
-                'Sodra pension & soc.',
-                'Net to employee',
-                'Sodra employer 1.77%',
-                'Workplace cost',
-                'Comment',
-                'Payment status',
-                'Report status',
-            ];
-
-            echo '<table border="1"><tr>';
-            foreach ($headers as $header) {
-                echo '<th>'.e($header).'</th>';
-            }
-            echo '</tr>';
-
-            foreach ($rows as $row) {
-                $base = (float) str_replace(',', '.', (string) ($row['base_salary'] ?? 0));
-                $bonusRaw = trim((string) ($row['bonus_payment'] ?? ''));
-                $bonus = $bonusRaw === '' ? 0.0 : (float) str_replace(',', '.', $bonusRaw);
-
-                $grossOut = $row['gross_amount'] !== null
-                    ? (string) $row['gross_amount']
-                    : number_format($base + $bonus, 2, '.', '');
-                $grossNum = (float) str_replace(',', '.', $grossOut);
-
-                $npdOut = $row['npd_amount'] !== null ? (string) $row['npd_amount'] : '';
-                $gpmOut = $row['gpm_amount'] !== null ? (string) $row['gpm_amount'] : '';
-
-                $sodraEmployeeNum = $row['sodra_employee_amount'] !== null
-                    ? (float) str_replace(',', '.', (string) $row['sodra_employee_amount'])
-                    : null;
-                $sodraEmployerNum = $row['sodra_employer_amount'] !== null
-                    ? (float) str_replace(',', '.', (string) $row['sodra_employer_amount'])
-                    : null;
-
-                $sodraHealthOut = '';
-                $sodraPensionOut = '';
-                if ($sodraEmployeeNum !== null) {
-                    $sodraHealthNum = round($grossNum * 0.0698, 2);
-                    $sodraPensionNum = round($sodraEmployeeNum - $sodraHealthNum, 2);
-
-                    $sodraHealthOut = number_format($sodraHealthNum, 2, '.', '');
-                    $sodraPensionOut = number_format($sodraPensionNum, 2, '.', '');
-                }
-
-                $netOut = $row['net_amount'] !== null ? (string) $row['net_amount'] : '';
-                $workplaceCostOut = '';
-                if ($sodraEmployerNum !== null) {
-                    $workplaceCostOut = number_format(round($grossNum + $sodraEmployerNum, 2), 2, '.', '');
-                }
-
-                $sodraEmployerOut = $sodraEmployerNum !== null
-                    ? number_format($sodraEmployerNum, 2, '.', '')
-                    : '';
-
-                $paymentStatus = EmployeeMonthlyPaymentStatus::tryFrom((string) ($row['status'] ?? ''))?->label()
-                    ?? (string) ($row['status'] ?? '');
-
-                echo '<tr>';
-                echo '<td>'.e((string) ($row['payment_date'] ?? '')).'</td>';
-                echo '<td>'.e((string) ($row['employee_name'] ?? '')).'</td>';
-                echo '<td>'.e((string) ($row['base_salary'] ?? '')).'</td>';
-                echo '<td>'.e((string) ($row['bonus_payment'] ?? '')).'</td>';
-                echo '<td>'.e($grossOut).'</td>';
-                echo '<td>'.e($npdOut).'</td>';
-                echo '<td>'.e($gpmOut).'</td>';
-                echo '<td>'.e($sodraHealthOut).'</td>';
-                echo '<td>'.e($sodraPensionOut).'</td>';
-                echo '<td>'.e($netOut).'</td>';
-                echo '<td>'.e($sodraEmployerOut).'</td>';
-                echo '<td>'.e($workplaceCostOut).'</td>';
-                echo '<td>'.e((string) ($row['comment'] ?? '')).'</td>';
-                echo '<td>'.e($paymentStatus).'</td>';
-                echo '<td>'.e((string) ($row['report_status_label'] ?? '—')).'</td>';
-                echo '</tr>';
-            }
-
-            echo '</table>';
+        return response()->streamDownload(function () use ($pdf): void {
+            echo $pdf;
         }, $fileName, [
-            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+            'Content-Type' => 'application/pdf',
         ]);
     }
 
-    /**
-     * @param  'vmi'|'sodra'  $type
-     */
     protected function exportAuthorityXml(string $type): ?StreamedResponse
     {
         $payments = $this->selectedPaymentsForAuthorityExport();
@@ -1019,8 +1139,26 @@ class MonthlyPayment extends Page implements HasForms
             ->all();
 
         if ($ids === []) {
+            $ids = collect($this->reportRows)
+                ->filter(fn (array $row): bool => in_array(
+                    (string) ($row['status'] ?? ''),
+                    [
+                        EmployeeMonthlyPaymentStatus::Open->value,
+                        EmployeeMonthlyPaymentStatus::Payed->value,
+                    ],
+                    true,
+                ))
+                ->pluck('id')
+                ->map(fn ($id): int => (int) $id)
+                ->filter(fn (int $id): bool => $id > 0)
+                ->unique()
+                ->values()
+                ->all();
+        }
+
+        if ($ids === []) {
             Notification::make()
-                ->title('Select at least one payment')
+                ->title('No open or payed payments to export')
                 ->warning()
                 ->send();
 
@@ -1129,13 +1267,79 @@ class MonthlyPayment extends Page implements HasForms
             ...$tax,
         ]);
 
+        $bonusMessages = $this->syncBonusDocumentsQuietly($payment->fresh(['employee']));
+
         Notification::make()
             ->title('Payment saved')
+            ->body($bonusMessages !== [] ? implode(' · ', $bonusMessages) : null)
             ->success()
             ->send();
 
         $this->loadRows();
         $this->loadReportRows();
+    }
+
+    public function confirmBonusOrder(int $documentId): void
+    {
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            return;
+        }
+
+        $document = Document::query()->find($documentId);
+        if ($document === null || ! $document->userHasPendingApproval((int) $user->getKey())) {
+            Notification::make()
+                ->title('Nothing to confirm')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            DocumentWorkflow::confirmApproval($document, $user);
+        } catch (\Throwable $e) {
+            Notification::make()
+                ->title('Confirmation failed')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title('Bonus order confirmed')
+            ->success()
+            ->send();
+
+        $this->loadReportRows();
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function syncBonusDocumentsQuietly(EmployeeMonthlyPayment $payment): array
+    {
+        if (round((float) ($payment->bonus_payment ?? 0), 2) <= 0) {
+            return [];
+        }
+
+        try {
+            $result = EmployeeBonusDocumentGenerator::syncForPayment($payment);
+
+            return $result['messages'];
+        } catch (\Throwable $e) {
+            report($e);
+
+            Notification::make()
+                ->title('Bonus documents failed')
+                ->body($e->getMessage())
+                ->warning()
+                ->send();
+
+            return [$e->getMessage()];
+        }
     }
 
     protected function getHeaderActions(): array
@@ -1149,6 +1353,48 @@ class MonthlyPayment extends Page implements HasForms
                 ->modalDescription('Save salary and bonus values for the selected date?')
                 ->modalSubmitActionLabel('Save')
                 ->action('save'),
+            Action::make('generateHistoricalPayslips')
+                ->label('Generate from bank DU')
+                ->icon('heroicon-o-banknotes')
+                ->color('gray')
+                ->tooltip('Create paid DU records and atsiskaitymo lapeliai from bank salary transfers')
+                ->requiresConfirmation()
+                ->modalHeading('Generate payslips from bank statements')
+                ->modalDescription('Match bank lines labelled DU {employee name} to employees, reverse-calculate tax from the net amount, create Payed payments, generate atsiskaitymo lapeliai, and link the bank lines. Email is not sent.')
+                ->modalSubmitActionLabel('Generate')
+                ->action(function (): void {
+                    $result = HistoricalEmployeePayslipGenerator::run(
+                        actor: auth()->user(),
+                        dryRun: false,
+                        email: false,
+                    );
+
+                    $this->loadRows();
+                    $this->loadReportRows();
+
+                    $body = 'Created '.$result['created'].' payment(s), generated '.$result['payslips'].' payslip(s), linked '.$result['linked'].' bank line(s).';
+                    if ($result['skipped'] > 0) {
+                        $body .= ' Skipped '.$result['skipped'].' line(s) because an existing payment amount differs.';
+                    }
+                    if ($result['unmatched'] !== []) {
+                        $body .= ' Unmatched: '.implode('; ', $result['unmatched']).'.';
+                    }
+
+                    $notification = Notification::make()
+                        ->title('Historical payslips')
+                        ->body($body);
+
+                    if ($result['errors'] !== []) {
+                        $notification
+                            ->danger()
+                            ->body($body.' '.implode(' ', $result['errors']))
+                            ->send();
+
+                        return;
+                    }
+
+                    $notification->success()->send();
+                }),
         ];
     }
 
@@ -1219,6 +1465,20 @@ class MonthlyPayment extends Page implements HasForms
             });
     }
 
+    public function confirmBonusOrderAction(): Action
+    {
+        return Action::make('confirmBonusOrder')
+            ->label('Confirm order')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalHeading('Confirm bonus order')
+            ->modalDescription('Confirm this Įsakymas dėl priedo as general manager?')
+            ->modalSubmitActionLabel('Confirm')
+            ->action(function (array $arguments): void {
+                $this->confirmBonusOrder((int) ($arguments['documentId'] ?? 0));
+            });
+    }
+
     public function paySelectedAction(): Action
     {
         return Action::make('paySelected')
@@ -1229,6 +1489,34 @@ class MonthlyPayment extends Page implements HasForms
             ->modalDescription('Mark selected payments as payed?')
             ->modalSubmitActionLabel('Payed')
             ->action(fn (): mixed => $this->paySelected());
+    }
+
+    public function exportSepaXmlAction(): Action
+    {
+        return Action::make('exportSepaXml')
+            ->label('Export SEPA (employees)')
+            ->action(fn (): mixed => $this->exportSepaXml());
+    }
+
+    public function exportVmiXmlAction(): Action
+    {
+        return Action::make('exportVmiXml')
+            ->label('Export VMI (GPM 1311)')
+            ->action(fn (): mixed => $this->exportVmiXml());
+    }
+
+    public function exportSodraXmlAction(): Action
+    {
+        return Action::make('exportSodraXml')
+            ->label('Export Sodra (252)')
+            ->action(fn (): mixed => $this->exportSodraXml());
+    }
+
+    public function exportFullReportPdfAction(): Action
+    {
+        return Action::make('exportFullReportPdf')
+            ->label('Full report')
+            ->action(fn (): mixed => $this->exportFullReportPdf());
     }
 
     public function approveReportAction(): Action

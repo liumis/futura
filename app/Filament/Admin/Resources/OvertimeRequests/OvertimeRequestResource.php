@@ -3,7 +3,6 @@
 namespace App\Filament\Admin\Resources\OvertimeRequests;
 
 use App\Enums\OvertimeRequestStatus;
-use App\Filament\Admin\Resources\OvertimeRequests\Pages;
 use App\Models\Employee;
 use App\Models\OvertimeRequest;
 use App\Models\User;
@@ -277,22 +276,22 @@ class OvertimeRequestResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

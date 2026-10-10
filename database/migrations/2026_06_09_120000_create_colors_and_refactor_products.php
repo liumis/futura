@@ -50,6 +50,41 @@ return new class extends Migration
             DB::table('products')->delete();
         }
 
+        $driver = Schema::getConnection()->getDriverName();
+
+        if ($driver === 'sqlite') {
+            // SQLite cannot DROP COLUMN when a FK still references it; rebuild the table.
+            Schema::disableForeignKeyConstraints();
+
+            Schema::dropIfExists('products_tmp');
+
+            Schema::create('products_tmp', function (Blueprint $table): void {
+                $table->id();
+                $table->foreignId('color_id')->constrained()->restrictOnDelete();
+
+                if (Schema::hasColumn('products', 'name')) {
+                    $table->string('name')->default('');
+                }
+
+                if (Schema::hasColumn('products', 'product_code')) {
+                    $table->string('product_code');
+                }
+
+                if (Schema::hasColumn('products', 'alternative_code')) {
+                    $table->string('alternative_code')->nullable();
+                }
+
+                $table->unsignedInteger('current_amount')->default(0);
+                $table->timestamps();
+            });
+
+            Schema::drop('products');
+            Schema::rename('products_tmp', 'products');
+            Schema::enableForeignKeyConstraints();
+
+            return;
+        }
+
         Schema::table('products', function (Blueprint $table) {
             $table->foreignId('color_id')
                 ->after('id')
@@ -60,7 +95,14 @@ return new class extends Migration
         SchemaForeignKeys::dropOnColumn('products', 'collection_id');
 
         Schema::table('products', function (Blueprint $table) {
-            $table->dropColumn(['collection_id', 'color_code', 'color_name']);
+            $columns = array_values(array_filter(
+                ['collection_id', 'color_code', 'color_name'],
+                fn (string $column): bool => Schema::hasColumn('products', $column),
+            ));
+
+            if ($columns !== []) {
+                $table->dropColumn($columns);
+            }
         });
     }
 

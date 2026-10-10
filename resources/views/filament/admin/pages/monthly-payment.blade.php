@@ -121,9 +121,9 @@
                                         type="button"
                                         wire:click="applyActualHoursToSalary({{ $index }})"
                                         class="text-xs font-semibold text-primary-700 hover:underline dark:text-primary-300"
-                                        title="Set base salary = contract base × actual / plan hours"
+                                        title="Prefill base salary = contract base × actual / plan hours (not saved until you click Save)"
                                     >
-                                        Apply actual
+                                        Prefill from actual
                                         @if (filled($row['prorated_base_salary'] ?? null))
                                             <span class="block font-normal text-gray-500 dark:text-gray-400">
                                                 → {{ $this->moneyPrefix() }}{{ $row['prorated_base_salary'] }}
@@ -152,7 +152,7 @@
     <div class="mt-4 flex flex-wrap gap-3">
         <button
             type="button"
-            wire:click="mountAction('savePayments')"
+            wire:click="save"
             class="inline-flex items-center rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
         >
             Save
@@ -160,17 +160,16 @@
         <button
             type="button"
             wire:click="applyActualHoursToAllSalaries"
-            wire:confirm="Update all unlocked base salaries using contract base × actual / plan hours for this month?"
             class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
         >
-            Apply actual hours to all
+            Prefill all from actual hours
         </button>
     </div>
 
     <section class="fi-report-filters mt-10">
         <div class="fi-report-filters__header">
             <h2 class="fi-report-filters__title">Payment reports</h2>
-            <p class="fi-report-filters__description">Saved payments filtered by date range and employee.</p>
+            <p class="fi-report-filters__description">Filter saved payments by month and person.</p>
         </div>
         <div class="fi-report-filters__body">
             {{ $this->reportFiltersForm }}
@@ -189,7 +188,8 @@
                         <th class="px-4 py-3 w-10">
                             <input
                                 type="checkbox"
-                                wire:model.live="selectAllReports"
+                                wire:click.prevent="toggleSelectAllReports"
+                                @checked($selectAllReports)
                                 class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
                                 @disabled(collect($reportRows)->filter(fn ($row) => in_array(($row['status'] ?? ''), ['open', 'payed'], true))->isEmpty())
                             >
@@ -262,6 +262,7 @@
                                         type="checkbox"
                                         value="{{ $rowId }}"
                                         wire:model.live="selectedReportIds"
+                                        wire:key="payment-report-check-{{ $rowId }}"
                                         class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
                                     >
                                 @endif
@@ -360,13 +361,82 @@
                             </td>
                             <td class="px-4 py-3">
                                 <div class="space-y-1">
+                                    @if (filled($reportRow['report_document_url'] ?? null))
+                                        <a
+                                            href="{{ $reportRow['report_document_url'] }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-500 hover:underline dark:text-primary-400"
+                                        >
+                                            Payment report
+                                        </a>
+                                    @endif
+
+                                    @if (filled($reportRow['bonus_order_url'] ?? null))
+                                        <div class="flex flex-wrap items-center gap-2">
+                                            <a
+                                                href="{{ $reportRow['bonus_order_url'] }}"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                class="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-500 hover:underline dark:text-primary-400"
+                                            >
+                                                Įsakymas
+                                            </a>
+                                            @if ($reportRow['bonus_order_approved'] ?? false)
+                                                <span class="rounded-md bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">Confirmed</span>
+                                            @else
+                                                <span class="rounded-md bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">Awaiting GM</span>
+                                            @endif
+                                        </div>
+                                        @if (($reportRow['can_confirm_bonus_order'] ?? false) && ! ($reportRow['bonus_order_approved'] ?? false))
+                                            <button
+                                                type="button"
+                                                wire:click="mountAction('confirmBonusOrder', { documentId: {{ $reportRow['bonus_order_document_id'] }} })"
+                                                class="inline-flex items-center rounded-lg bg-warning-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm hover:bg-warning-500 focus:outline-none focus:ring-2 focus:ring-warning-500"
+                                            >
+                                                Confirm order
+                                            </button>
+                                        @elseif (filled($reportRow['bonus_order_pending_label'] ?? null) && ! ($reportRow['bonus_order_approved'] ?? false))
+                                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                                Missing: {{ $reportRow['bonus_order_pending_label'] }}
+                                            </p>
+                                        @endif
+                                    @endif
+
+                                    @if (filled($reportRow['shareholder_decision_url'] ?? null))
+                                        <a
+                                            href="{{ $reportRow['shareholder_decision_url'] }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-500 hover:underline dark:text-primary-400"
+                                        >
+                                            Akcininkų sprendimas
+                                        </a>
+                                    @endif
+
+                                    @if (filled($reportRow['payslip_url'] ?? null))
+                                        <a
+                                            href="{{ $reportRow['payslip_url'] }}"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            class="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-500 hover:underline dark:text-primary-400"
+                                        >
+                                            {{ $reportRow['payslip_label'] ?? 'Payslip' }}
+                                        </a>
+                                    @endif
+
                                     @if ($reportStatus === 'confirmed')
                                         <span class="rounded-md bg-success-50 px-2 py-0.5 text-xs font-medium text-success-700 dark:bg-success-500/10 dark:text-success-400">{{ $reportRow['report_status_label'] }}</span>
                                     @elseif ($reportStatus === 'waiting_confirmations')
                                         <span class="rounded-md bg-warning-50 px-2 py-0.5 text-xs font-medium text-warning-700 dark:bg-warning-500/10 dark:text-warning-400">{{ $reportRow['report_status_label'] }}</span>
                                     @elseif ($reportStatus === 'created')
                                         <span class="rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-gray-800 dark:text-gray-300">{{ $reportRow['report_status_label'] }}</span>
-                                    @else
+                                    @elseif (
+                                        ! filled($reportRow['report_document_url'] ?? null)
+                                        && ! filled($reportRow['bonus_order_url'] ?? null)
+                                        && ! filled($reportRow['shareholder_decision_url'] ?? null)
+                                        && ! filled($reportRow['payslip_url'] ?? null)
+                                    )
                                         <span class="text-gray-400">—</span>
                                     @endif
 
@@ -391,7 +461,7 @@
                                 <div class="flex items-center justify-end gap-2">
                                     <button
                                         type="button"
-                                        wire:click="mountAction('saveReportPayment', { id: {{ $reportRow['id'] }} })"
+                                        wire:click="saveReportPayment({{ $reportRow['id'] }})"
                                         class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
                                     >
                                         Save
@@ -526,7 +596,7 @@
             </button>
             <button
                 type="button"
-                wire:click="exportSepaXml"
+                wire:click="mountAction('exportSepaXml')"
                 class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
             >
                 Export SEPA (employees)
@@ -536,14 +606,14 @@
         @if (collect($reportRows)->contains(fn ($row) => in_array(($row['status'] ?? ''), ['open', 'payed'], true)))
             <button
                 type="button"
-                wire:click="exportVmiXml"
+                wire:click="mountAction('exportVmiXml')"
                 class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
             >
                 Export VMI (GPM 1311)
             </button>
             <button
                 type="button"
-                wire:click="exportSodraXml"
+                wire:click="mountAction('exportSodraXml')"
                 class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
             >
                 Export Sodra (252)
@@ -553,10 +623,10 @@
         @if (collect($reportRows)->isNotEmpty())
             <button
                 type="button"
-                wire:click="exportXls"
+                wire:click="mountAction('exportFullReportPdf')"
                 class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700"
             >
-                Export to XLS
+                Full report
             </button>
         @endif
 

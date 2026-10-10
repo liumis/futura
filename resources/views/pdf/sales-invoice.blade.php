@@ -370,7 +370,7 @@
 
             text-align: right;
 
-            font-weight: 600;
+            font-weight: 700;
 
             color: #1a1f2e;
 
@@ -500,7 +500,9 @@
 
                         <div><strong>{{ $t['invoice_date'] ?? 'Invoice date:' }}</strong> {{ $invoiceDate }}</div>
 
-                        <div><strong>{{ $t['order_no'] ?? 'Order no:' }}</strong> #{{ $orderNumber }}</div>
+                        @if (filled($orderNumber))
+                            <div><strong>{{ $t['order_no'] ?? 'Order no:' }}</strong> #{{ $orderNumber }}</div>
+                        @endif
 
                         @if (filled($trackingNumber))
 

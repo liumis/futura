@@ -21,7 +21,7 @@
         </p>
         <p style="margin:0 0 24px;">
             <a href="{{ $signingUrl }}"
-               style="display:inline-block;background:#2563eb;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-size:14px;font-weight:600;">
+               style="display:inline-block;background:#111111;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:8px;font-size:14px;font-weight:600;">
                 Open Dokobit signing
             </a>
         </p>

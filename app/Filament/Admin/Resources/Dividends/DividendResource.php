@@ -2,31 +2,30 @@
 
 namespace App\Filament\Admin\Resources\Dividends;
 
-use App\Filament\Admin\Resources\Dividends\Pages;
 use App\Enums\DividendPaymentReportStatus;
 use App\Enums\DividendPaymentStatus;
 use App\Models\Dividend;
 use App\Models\Shareholder;
-use App\Support\Money;
 use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\DividendPaymentReportApprover;
 use App\Services\LithuanianDividendCalculator;
 use App\Services\PayrollAuthoritySepaExporter;
 use App\Services\SepaPain001Exporter;
+use App\Support\Money;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\Action;
 use Filament\Forms;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
-use Filament\Notifications\Notification;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use UnitEnum;
@@ -207,6 +206,7 @@ class DividendResource extends Resource
                         }
 
                         $report = $record->dividendPaymentReport;
+
                         return $report->status === DividendPaymentReportStatus::WaitingConfirmations
                             && $report->userHasPendingApproval((int) $userId);
                     })
@@ -534,23 +534,23 @@ class DividendResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return (auth()->user()?->hasRole('admin') ?? false)
+        return (auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false)
             && ! ($record?->isLocked() ?? false);
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     protected static function approverUserOptions(): array

@@ -2,8 +2,8 @@
 
 namespace App\Filament\Admin\Resources\LeaveRequestTypes;
 
-use App\Filament\Admin\Resources\LeaveRequestTypes\Pages;
 use App\Models\LeaveRequestType;
+use App\Support\TimesheetCode;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -43,6 +43,17 @@ class LeaveRequestTypeResource extends Resource
                     ->label('Calendar color')
                     ->default('#6b7280')
                     ->required(),
+
+                Forms\Components\Select::make('timesheet_code')
+                    ->label('Timesheet code')
+                    ->options(TimesheetCode::assignableOptions())
+                    ->searchable()
+                    ->nullable()
+                    ->native(false)
+                    ->dehydrateStateUsing(fn (mixed $state): ?string => TimesheetCode::normalize(
+                        is_string($state) ? $state : null,
+                    ))
+                    ->helperText('Official žiniaraštis code (e.g. A = annual leave). Leave empty for types that should not mark absences (e.g. remote work).'),
             ]);
     }
 
@@ -52,6 +63,12 @@ class LeaveRequestTypeResource extends Resource
             ->columns([
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
+                    ->sortable(),
+
+                Tables\Columns\TextColumn::make('timesheet_code')
+                    ->label('Code')
+                    ->badge()
+                    ->placeholder('—')
                     ->sortable(),
 
                 Tables\Columns\ColorColumn::make('color')
@@ -80,22 +97,22 @@ class LeaveRequestTypeResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

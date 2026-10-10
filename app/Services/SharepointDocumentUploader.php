@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Document;
 use App\Models\SharepointSetting;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use RuntimeException;
 use Throwable;
@@ -149,8 +150,8 @@ class SharepointDocumentUploader
             $date = $documentDate;
         } elseif (filled($documentDate)) {
             try {
-                $date = \Carbon\Carbon::parse($documentDate);
-            } catch (\Throwable) {
+                $date = Carbon::parse($documentDate);
+            } catch (Throwable) {
                 $date = null;
             }
         }
@@ -210,6 +211,14 @@ class SharepointDocumentUploader
                 'path' => $result['path'],
                 'item_id' => $result['item']['id'] ?? null,
             ]);
+
+            $remoteName = basename((string) $result['path']);
+            $format = strtolower((string) pathinfo($remoteName, PATHINFO_EXTENSION)) ?: 'bin';
+            ActivityLogger::logFileUploaded('Document file', $format, $document, [
+                'file_name' => $remoteName,
+                'sharepoint_path' => $result['path'],
+                'sharepoint_item_id' => $result['item']['id'] ?? null,
+            ]);
         } catch (Throwable $exception) {
             Log::warning('SharePoint document upload failed', [
                 'document_id' => $document->getKey(),
@@ -218,5 +227,72 @@ class SharepointDocumentUploader
 
             throw $exception;
         }
+    }
+
+    /**
+     * Delete all SharePoint files attached to the document (primary + sharepoint_files).
+     * Missing remote files (404) are ignored.
+     *
+     * @return list<string> Deleted SharePoint item IDs
+     */
+    public static function deleteRemoteFiles(Document $document): array
+    {
+        $settings = SharepointSetting::instance();
+        if (! $settings->isReady()) {
+            Log::info('SharePoint delete skipped — integration not ready', [
+                'document_id' => $document->getKey(),
+            ]);
+
+            return [];
+        }
+
+        $itemIds = [];
+
+        if (is_array($document->sharepoint_files)) {
+            foreach ($document->sharepoint_files as $file) {
+                if (! is_array($file)) {
+                    continue;
+                }
+
+                $itemId = trim((string) ($file['item_id'] ?? ''));
+                if ($itemId !== '') {
+                    $itemIds[$itemId] = $itemId;
+                }
+            }
+        }
+
+        $primary = trim((string) ($document->sharepoint_item_id ?? ''));
+        if ($primary !== '') {
+            $itemIds[$primary] = $primary;
+        }
+
+        if ($itemIds === []) {
+            return [];
+        }
+
+        $client = SharepointGraphClient::make($settings);
+        $deleted = [];
+
+        foreach ($itemIds as $itemId) {
+            try {
+                $client->deleteItem($itemId);
+                $deleted[] = $itemId;
+            } catch (Throwable $exception) {
+                Log::warning('SharePoint document file delete failed', [
+                    'document_id' => $document->getKey(),
+                    'item_id' => $itemId,
+                    'message' => $exception->getMessage(),
+                ]);
+
+                throw $exception;
+            }
+        }
+
+        Log::info('Document SharePoint files deleted', [
+            'document_id' => $document->getKey(),
+            'item_ids' => $deleted,
+        ]);
+
+        return $deleted;
     }
 }

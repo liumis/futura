@@ -26,7 +26,7 @@ class Kanban extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     /**
@@ -72,7 +72,7 @@ class Kanban extends Page
             'priority' => $todo->priority?->value ?? 'regular',
             'color' => $this->statusColor($todo->status?->value),
             'can_edit' => $this->canEditTodo($todo),
-            'user_label' => (string) ($todo->user?->name ?? $todo->user?->email ?? ('User #'.$todo->user_id)),
+            'user_label' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
             'deadline_label' => optional($todo->deadline)?->format('Y-m-d H:i:s') ?? '—',
             'description' => Str::limit((string) ($todo->description ?? ''), 300, '...'),
             'full_description' => (string) ($todo->description ?? ''),

@@ -63,6 +63,7 @@ class PayrollAuthoritySepaExporter
             $company,
             $executionDate,
             'VMI',
+            'TAXS',
         );
     }
 
@@ -110,6 +111,7 @@ class PayrollAuthoritySepaExporter
             $company,
             $executionDate,
             'SDR',
+            'TAXS',
         );
     }
 

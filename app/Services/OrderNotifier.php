@@ -3,22 +3,29 @@
 namespace App\Services;
 
 use App\Enums\NotificationType;
+use App\Enums\OrderStatus;
 use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Models\Order;
 use App\Models\User;
 use App\Notifications\NewOrderNotification;
 use App\Support\Money;
+use Illuminate\Support\Collection;
+use Spatie\Permission\Models\Role;
 
 class OrderNotifier
 {
     /**
-     * Notify opted-in users that a new order was created.
+     * Notify opted-in staff that a customer order was submitted (Pending).
      *
      * @return int Number of users notified.
      */
     public static function created(Order $order): int
     {
         $order->loadMissing('user');
+
+        if (OrderStatus::fromMixed($order->status) !== OrderStatus::Pending) {
+            return 0;
+        }
 
         $notification = new NewOrderNotification(
             orderId: (int) $order->id,
@@ -28,15 +35,22 @@ class OrderNotifier
             url: OrderResource::getUrl('edit', ['record' => $order]),
         );
 
-        $recipients = self::recipients();
         $notified = 0;
 
-        foreach ($recipients as $user) {
+        foreach (self::recipients() as $user) {
             $user->notify($notification);
             $notified++;
         }
 
         return $notified;
+    }
+
+    /**
+     * Notify when an order becomes Pending (e.g. customer submits a draft).
+     */
+    public static function submitted(Order $order): int
+    {
+        return self::created($order->fresh(['user']) ?? $order);
     }
 
     private static function customerLabel(Order $order): string
@@ -61,23 +75,23 @@ class OrderNotifier
     }
 
     /**
-     * Users who opted in to customer order notifications (excluding the creator).
+     * Admin users who opted in to customer order notifications (excluding the actor).
      *
-     * @return \Illuminate\Support\Collection<int, User>
+     * @return Collection<int, User>
      */
-    private static function recipients(): \Illuminate\Support\Collection
+    private static function recipients(): Collection
     {
-        $creatorId = auth()->id();
+        if (! Role::query()->where('name', 'admin')->where('guard_name', 'web')->exists()) {
+            return collect();
+        }
+
+        $actorId = auth()->id();
 
         return User::query()
-            ->whereNotNull('notification_types')
-            ->when($creatorId !== null, fn ($query) => $query->whereKeyNot($creatorId))
+            ->role('admin')
+            ->when($actorId !== null, fn ($query) => $query->whereKeyNot($actorId))
             ->get()
-            ->filter(fn (User $user): bool => in_array(
-                NotificationType::CustomerOrders->value,
-                (array) ($user->notification_types ?? []),
-                true,
-            ))
+            ->filter(fn (User $user): bool => $user->wantsNotification(NotificationType::CustomerOrders))
             ->values();
     }
 }

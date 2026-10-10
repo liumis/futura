@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\InvoiceCodes;
 
-use App\Filament\Admin\Resources\InvoiceCodes\Pages;
 use App\Models\InvoiceCode;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -30,9 +29,9 @@ class InvoiceCodeResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Invoice codes';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Invoices';
+    protected static string|UnitEnum|null $navigationGroup = 'Finances';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 5;
 
     public static function form(Schema $schema): Schema
     {
@@ -121,22 +120,22 @@ class InvoiceCodeResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit(Model $record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete(Model $record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

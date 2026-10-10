@@ -70,6 +70,14 @@ class DocumentApprover
         return $base.'-'.$suffix;
     }
 
+    /**
+     * Stamp an approval box onto the first page of a PDF binary.
+     */
+    public static function stampPdf(string $binary, User $approver): string
+    {
+        return self::stampPdfBinary($binary, $approver);
+    }
+
     private static function stampPdfBinary(string $binary, User $approver): string
     {
         $tempOriginal = tempnam(sys_get_temp_dir(), 'doc_src_');

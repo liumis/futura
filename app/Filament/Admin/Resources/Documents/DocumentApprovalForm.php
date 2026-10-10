@@ -2,10 +2,14 @@
 
 namespace App\Filament\Admin\Resources\Documents;
 
+use App\Filament\Admin\Support\DokobitSigningUi;
 use App\Models\Document;
+use App\Models\DocumentSigning;
 use App\Models\User;
+use App\Services\DocumentBinaryStore;
 use App\Services\DocumentDokobitSigner;
 use App\Services\DocumentWorkflow;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
@@ -95,7 +99,13 @@ class DocumentApprovalForm
                                 ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
                         ]),
                 ])
-                ->visible(fn (?Document $record): bool => $record === null || $record->canStartApprovalOrSigningWorkflow())
+                ->visible(function (Get $get, ?Document $record): bool {
+                    if ((bool) $get('mark_as_signed')) {
+                        return false;
+                    }
+
+                    return $record === null || $record->canStartApprovalOrSigningWorkflow();
+                })
                 ->columnSpanFull(),
         ];
     }
@@ -219,8 +229,23 @@ class DocumentApprovalForm
         array $localPaths,
         ?Document $record,
         bool $forImmediateApprove = false,
+        bool $forSignedUpload = false,
     ): void {
         $hasFile = $localPaths !== [] || ($record?->hasStoredFile() ?? false);
+
+        if ($forSignedUpload) {
+            if (self::hasSelection($workflow)) {
+                throw new RuntimeException(
+                    'Remove selected approvers/signers before marking the document as already signed.',
+                );
+            }
+
+            if (! $hasFile) {
+                throw new RuntimeException('Attach the signed file before marking the document as signed.');
+            }
+
+            return;
+        }
 
         if ($forImmediateApprove) {
             if (self::hasSelection($workflow)) {
@@ -247,7 +272,7 @@ class DocumentApprovalForm
         if (self::hasSigningSelection($workflow)) {
             $paths = $localPaths;
             if ($paths === [] && $record !== null) {
-                $name = \App\Services\DocumentBinaryStore::downloadFileName($record);
+                $name = DocumentBinaryStore::downloadFileName($record);
                 if (! str_ends_with(strtolower($name), '.pdf')) {
                     throw new RuntimeException('Dokobit signing requires a PDF file.');
                 }
@@ -267,7 +292,7 @@ class DocumentApprovalForm
      *     signer_user_ids: list<int>,
      *     external_invitees: list<array{name?: string, surname?: string, email?: string}>
      * }  $workflow
-     * @return array{document: Document, signing: \App\Models\DocumentSigning|null}|null
+     * @return array{document: Document, signing: DocumentSigning|null}|null
      */
     public static function startAfterSave(
         Document $document,
@@ -329,7 +354,7 @@ class DocumentApprovalForm
             && $result['signing']->signerForUser($user)
             && method_exists($livewire, 'openDokobitSigningFrame')
         ) {
-            \App\Filament\Admin\Support\DokobitSigningUi::openForDocument(
+            DokobitSigningUi::openForDocument(
                 $livewire,
                 $result['document'],
                 $user,
@@ -339,6 +364,66 @@ class DocumentApprovalForm
         return $result;
     }
 
+    public static function validateMarkAsSigned(Get $get, ?Document $record, \Closure $fail): void
+    {
+        if (! (bool) $get('mark_as_signed')) {
+            return;
+        }
+
+        $workflow = [
+            self::APPROVER_IDS => (array) ($get(self::APPROVER_IDS) ?? []),
+            self::SIGNER_IDS => (array) ($get(self::SIGNER_IDS) ?? []),
+            self::EXTERNAL_INVITEES => (array) ($get(self::EXTERNAL_INVITEES) ?? []),
+        ];
+
+        if (self::hasSelection($workflow)) {
+            $fail('Remove selected approvers/signers before marking the document as already signed.');
+
+            return;
+        }
+
+        $files = $get('file_path');
+        $uploadCount = 0;
+        if (is_array($files)) {
+            $uploadCount = count(array_filter($files, fn ($path): bool => filled($path)));
+        } elseif (filled($files)) {
+            $uploadCount = 1;
+        }
+
+        if ($uploadCount === 0 && ! ($record?->hasStoredFile() ?? false)) {
+            $fail('Attach the signed file before marking the document as signed.');
+        }
+    }
+
+    public static function markUploadedAsSignedAfterSave(?Document $document): ?Document
+    {
+        if ($document === null) {
+            return null;
+        }
+
+        $user = auth()->user();
+        if (! $user instanceof User) {
+            Notification::make()
+                ->title('Not authenticated')
+                ->danger()
+                ->send();
+
+            return $document;
+        }
+
+        try {
+            return DocumentWorkflow::markUploadedAsSigned($document->fresh(), $user);
+        } catch (\Throwable $exception) {
+            Notification::make()
+                ->title('Could not mark as signed')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return $document;
+        }
+    }
+
     public static function validateWorkflowSelection(Get $get, ?Document $record, \Closure $fail): void
     {
         $workflow = [
@@ -346,6 +431,12 @@ class DocumentApprovalForm
             self::SIGNER_IDS => (array) ($get(self::SIGNER_IDS) ?? []),
             self::EXTERNAL_INVITEES => (array) ($get(self::EXTERNAL_INVITEES) ?? []),
         ];
+
+        if ((bool) $get('mark_as_signed') && self::hasSelection($workflow)) {
+            $fail('Remove selected approvers/signers before marking the document as already signed.');
+
+            return;
+        }
 
         if (! self::hasSelection($workflow)) {
             return;
@@ -381,16 +472,16 @@ class DocumentApprovalForm
                 }
             }
         } elseif ($record !== null && $record->hasStoredFile()) {
-            $name = \App\Services\DocumentBinaryStore::downloadFileName($record);
+            $name = DocumentBinaryStore::downloadFileName($record);
             if (! str_ends_with(strtolower($name), '.pdf')) {
                 $fail('Dokobit signing requires a PDF file.');
             }
         }
     }
 
-    public static function statusPanel(): \Filament\Forms\Components\Placeholder
+    public static function statusPanel(): Placeholder
     {
-        return \Filament\Forms\Components\Placeholder::make('approval_info')
+        return Placeholder::make('approval_info')
             ->label('Approval')
             ->content(function (?Document $record): HtmlString {
                 return new HtmlString(

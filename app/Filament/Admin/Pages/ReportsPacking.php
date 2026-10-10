@@ -2,16 +2,21 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Concerns\HasReportMonthQuickFilter;
+use App\Filament\Admin\Resources\Documents\DocumentResource;
+use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Models\Order;
 use App\Models\Package;
 use App\Services\ActivityLogger;
 use App\Services\OrderPackageCalculator;
+use App\Services\PackingReportDocumentGenerator;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\Action as TableAction;
-use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
 use Filament\Tables;
@@ -19,11 +24,15 @@ use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\Collection;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use Throwable;
 use UnitEnum;
 
 class ReportsPacking extends Page implements HasForms, HasTable
 {
+    use HasReportMonthQuickFilter;
     use InteractsWithForms;
     use InteractsWithTable;
 
@@ -45,8 +54,7 @@ class ReportsPacking extends Page implements HasForms, HasTable
     public function mount(): void
     {
         $this->form->fill([
-            'from' => now()->startOfMonth()->toDateString(),
-            'until' => now()->endOfMonth()->toDateString(),
+            ...$this->defaultReportMonthRangeFill(),
             'package_id' => 'all',
             'export' => 'all',
         ]);
@@ -57,15 +65,7 @@ class ReportsPacking extends Page implements HasForms, HasTable
         return $schema
             ->statePath('data')
             ->components([
-                DatePicker::make('from')
-                    ->label('From')
-                    ->native(false)
-                    ->live(),
-
-                DatePicker::make('until')
-                    ->label('Until')
-                    ->native(false)
-                    ->live(),
+                ...$this->reportMonthRangeFilters(),
 
                 Select::make('package_id')
                     ->label('Package profile')
@@ -75,17 +75,17 @@ class ReportsPacking extends Page implements HasForms, HasTable
                     ->live(),
 
                 Select::make('export')
-                    ->label('Export customer')
+                    ->label('Customer type')
                     ->options([
                         'all' => 'All',
-                        'yes' => 'Export only',
-                        'no' => 'Non-export only',
+                        PackingReportDocumentGenerator::AUDIENCE_INTERNAL => 'Internal',
+                        PackingReportDocumentGenerator::AUDIENCE_EXPORT => 'Export',
                     ])
                     ->default('all')
                     ->native(false)
                     ->live(),
             ])
-            ->columns(4);
+            ->columns(5);
     }
 
     public function table(Table $table): Table
@@ -96,7 +96,7 @@ class ReportsPacking extends Page implements HasForms, HasTable
                 Tables\Columns\TextColumn::make('id')
                     ->label('Order #')
                     ->sortable()
-                    ->url(fn (Order $record): string => \App\Filament\Admin\Resources\Orders\OrderResource::getUrl('edit', ['record' => $record])),
+                    ->url(fn (Order $record): string => OrderResource::getUrl('edit', ['record' => $record])),
 
                 Tables\Columns\TextColumn::make('order_date')
                     ->label('Order date')
@@ -107,6 +107,10 @@ class ReportsPacking extends Page implements HasForms, HasTable
                     ->label('Customer')
                     ->getStateUsing(fn (Order $record): string => $record->user?->company_name ?? trim(($record->user?->name ?? '').' '.($record->user?->surname ?? '')))
                     ->searchable(['user.company_name', 'user.name', 'user.surname']),
+
+                Tables\Columns\TextColumn::make('customer_type')
+                    ->label('Type')
+                    ->getStateUsing(fn (Order $record): string => $record->user?->export ? 'Export' : 'Internal'),
 
                 Tables\Columns\TextColumn::make('package.name')
                     ->label('Package profile')
@@ -168,6 +172,148 @@ class ReportsPacking extends Page implements HasForms, HasTable
             ->paginated([25, 50, 100]);
     }
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            $this->generateInternalReportAction(),
+            $this->generateExportReportAction(),
+        ];
+    }
+
+    public function generateInternalReportAction(): Action
+    {
+        return $this->makeGenerateAction(
+            'generateInternalReport',
+            'Generate internal',
+            PackingReportDocumentGenerator::AUDIENCE_INTERNAL,
+        );
+    }
+
+    public function generateExportReportAction(): Action
+    {
+        return $this->makeGenerateAction(
+            'generateExportReport',
+            'Generate export',
+            PackingReportDocumentGenerator::AUDIENCE_EXPORT,
+        );
+    }
+
+    private function makeGenerateAction(string $name, string $label, string $audience): Action
+    {
+        $audienceLabel = PackingReportDocumentGenerator::audienceLabel($audience);
+
+        return Action::make($name)
+            ->label($label)
+            ->icon('heroicon-o-document-arrow-down')
+            ->color('primary')
+            ->requiresConfirmation()
+            ->modalHeading('Generate '.$audienceLabel.' packing report')
+            ->modalDescription(function () use ($audience, $audienceLabel): string {
+                $filters = $this->filterContext($audience);
+                $count = $this->ordersQuery($audience)->count();
+
+                return sprintf(
+                    'Save a %s packing PDF (%s · %s · %s order(s)) to Documents and SharePoint?',
+                    $audienceLabel,
+                    $filters['period_label'],
+                    $filters['package_label'],
+                    number_format($count),
+                );
+            })
+            ->modalSubmitActionLabel('Generate')
+            ->action(function () use ($audience): void {
+                $this->generateReport($audience);
+            });
+    }
+
+    public function generateReport(string $audience): void
+    {
+        try {
+            $document = PackingReportDocumentGenerator::create(
+                $this->reportOrders($audience),
+                $this->filterContext($audience),
+                auth()->user(),
+            );
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->title('Could not generate report')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $audienceLabel = PackingReportDocumentGenerator::audienceLabel($audience);
+
+        Notification::make()
+            ->title($audienceLabel.' packing report saved')
+            ->body('The PDF was stored in Documents and uploaded to SharePoint.')
+            ->success()
+            ->actions([
+                Action::make('openDocument')
+                    ->label('Open document')
+                    ->url(DocumentResource::getUrl('edit', ['record' => $document]))
+                    ->openUrlInNewTab(),
+            ])
+            ->send();
+    }
+
+    /**
+     * @return array{
+     *     from: ?string,
+     *     until: ?string,
+     *     package_label: string,
+     *     period_label: string,
+     *     audience: string,
+     *     audience_label: string
+     * }
+     */
+    public function filterContext(?string $audience = null): array
+    {
+        $from = $this->dateLabel($this->data['from'] ?? null);
+        $until = $this->dateLabel($this->data['until'] ?? null);
+        $audience = PackingReportDocumentGenerator::normalizeAudience(
+            $audience ?? ($this->data['export'] ?? 'all'),
+        );
+        $packageId = $this->data['package_id'] ?? 'all';
+        $packageLabel = $packageId === 'all' || ! filled($packageId)
+            ? 'All package profiles'
+            : (Package::query()->find($packageId)?->name ?? 'Selected package profile');
+
+        if (filled($from) && filled($until)) {
+            $periodLabel = $from.' — '.$until;
+        } elseif (filled($from)) {
+            $periodLabel = 'From '.$from;
+        } elseif (filled($until)) {
+            $periodLabel = 'Until '.$until;
+        } else {
+            $periodLabel = 'All dates';
+        }
+
+        return [
+            'from' => $from,
+            'until' => $until,
+            'package_label' => $packageLabel,
+            'period_label' => $periodLabel,
+            'audience' => $audience,
+            'audience_label' => PackingReportDocumentGenerator::audienceLabel($audience),
+        ];
+    }
+
+    private function dateLabel(mixed $value): ?string
+    {
+        if (blank($value)) {
+            return null;
+        }
+
+        try {
+            return Carbon::parse((string) $value)->toDateString();
+        } catch (Throwable) {
+            return trim((string) $value) ?: null;
+        }
+    }
+
     /**
      * @return array<string, string>
      */
@@ -179,12 +325,20 @@ class ReportsPacking extends Page implements HasForms, HasTable
             ->all();
     }
 
-    private function ordersQuery(): Builder
+    /**
+     * @return Collection<int, Order>
+     */
+    private function reportOrders(string $audience): Collection
+    {
+        return $this->ordersQuery($audience)->orderBy('order_date')->orderBy('id')->get();
+    }
+
+    private function ordersQuery(?string $audience = null): Builder
     {
         $query = Order::query()->with(['user', 'orderItems', 'package']);
 
-        $from = $this->data['from'] ?? null;
-        $until = $this->data['until'] ?? null;
+        $from = $this->dateLabel($this->data['from'] ?? null);
+        $until = $this->dateLabel($this->data['until'] ?? null);
 
         if (filled($from)) {
             $query->whereRaw('COALESCE(DATE(order_date), DATE(created_at)) >= ?', [$from]);
@@ -199,10 +353,12 @@ class ReportsPacking extends Page implements HasForms, HasTable
             $query->where('package_id', (int) $packageId);
         }
 
-        $export = $this->data['export'] ?? 'all';
-        if ($export === 'yes') {
+        $audience = PackingReportDocumentGenerator::normalizeAudience(
+            $audience ?? ($this->data['export'] ?? 'all'),
+        );
+        if ($audience === PackingReportDocumentGenerator::AUDIENCE_EXPORT) {
             $query->whereHas('user', fn (Builder $q) => $q->where('export', true));
-        } elseif ($export === 'no') {
+        } elseif ($audience === PackingReportDocumentGenerator::AUDIENCE_INTERNAL) {
             $query->whereHas('user', fn (Builder $q) => $q->where('export', false));
         }
 
@@ -290,6 +446,7 @@ class ReportsPacking extends Page implements HasForms, HasTable
                 'Order #',
                 'Order date',
                 'Customer',
+                'Type',
                 'Package profile',
                 'Tracking',
                 'Items',
@@ -310,6 +467,7 @@ class ReportsPacking extends Page implements HasForms, HasTable
                     $order->id,
                     optional($order->order_date)->format('Y-m-d H:i:s'),
                     $order->user?->company_name ?? trim(($order->user?->name ?? '').' '.($order->user?->surname ?? '')),
+                    $order->user?->export ? 'Export' : 'Internal',
                     $order->package?->name ?? 'Default',
                     $order->tracking_number,
                     $stats['items'],
@@ -345,6 +503,7 @@ class ReportsPacking extends Page implements HasForms, HasTable
                 'Order #',
                 'Order date',
                 'Customer',
+                'Type',
                 'Package profile',
                 'Tracking',
                 'Items',
@@ -371,6 +530,7 @@ class ReportsPacking extends Page implements HasForms, HasTable
                 echo '<td>'.e((string) $order->id).'</td>';
                 echo '<td>'.e((string) optional($order->order_date)->format('Y-m-d H:i:s')).'</td>';
                 echo '<td>'.e($order->user?->company_name ?? trim(($order->user?->name ?? '').' '.($order->user?->surname ?? ''))).'</td>';
+                echo '<td>'.e($order->user?->export ? 'Export' : 'Internal').'</td>';
                 echo '<td>'.e($order->package?->name ?? 'Default').'</td>';
                 echo '<td>'.e((string) ($order->tracking_number ?? '')).'</td>';
                 echo '<td>'.e((string) $stats['items']).'</td>';
@@ -393,6 +553,6 @@ class ReportsPacking extends Page implements HasForms, HasTable
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 }

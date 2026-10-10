@@ -88,6 +88,61 @@ class LithuanianPayrollCalculator
         ];
     }
 
+    /**
+     * Reverse a paid net amount into a full tax snapshot (bank DU transfers are net).
+     *
+     * @return array{
+     *     gross: float,
+     *     npd: float,
+     *     sodra_employee: float,
+     *     sodra_health: float,
+     *     sodra_pension: float,
+     *     sodra_employer: float,
+     *     sodra_rate: float,
+     *     employer_sodra_rate: float,
+     *     gpm: float,
+     *     gpm_taxable: float,
+     *     net: float,
+     *     workplace_cost: float
+     * }
+     */
+    public function calculateFromNet(
+        float $net,
+        Employee|EmployeeNpdType|null $employeeOrNpdType = null,
+        bool $secondPillarEnrolled = false,
+        ?float $secondPillarRate = null,
+        ?int $year = null,
+        bool $fixedTermContract = false,
+    ): array {
+        $target = round(max(0, $net), 2);
+        $low = $target;
+        $high = max($target * 2.5, $target + 50);
+
+        $best = $this->calculate($target, $employeeOrNpdType, $secondPillarEnrolled, $secondPillarRate, $year, $fixedTermContract);
+
+        for ($i = 0; $i < 48; $i++) {
+            $mid = round(($low + $high) / 2, 2);
+            $tax = $this->calculate($mid, $employeeOrNpdType, $secondPillarEnrolled, $secondPillarRate, $year, $fixedTermContract);
+            $best = $tax;
+
+            if (abs($tax['net'] - $target) <= 0.01) {
+                $tax['net'] = $target;
+
+                return $tax;
+            }
+
+            if ($tax['net'] > $target) {
+                $high = $mid;
+            } else {
+                $low = $mid;
+            }
+        }
+
+        $best['net'] = $target;
+
+        return $best;
+    }
+
     public function calculateNpd(float $gross, EmployeeNpdType $type, PayrollTaxSetting $settings): float
     {
         $gross = round(max(0, $gross), 2);

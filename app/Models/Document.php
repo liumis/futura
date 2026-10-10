@@ -2,25 +2,65 @@
 
 namespace App\Models;
 
+use App\Enums\DocumentConfirmationAudience;
 use App\Enums\DocumentSigningStatus;
 use App\Enums\EmployeeContractSigningStatus;
 use App\Services\DocumentBinaryStore;
+use App\Services\SharepointDocumentUploader;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 
 class Document extends Model
 {
     use SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::forceDeleting(function (Document $document): void {
+            // Bank statement imports share the same SharePoint item — clear their
+            // remote links so they do not keep pointing at a deleted file.
+            if (Schema::hasColumn('bank_statement_imports', 'document_id')) {
+                BankStatementImport::query()
+                    ->where(function ($query) use ($document): void {
+                        $query->where('document_id', $document->getKey());
+
+                        if (filled($document->sharepoint_item_id)) {
+                            $query->orWhere('sharepoint_item_id', $document->sharepoint_item_id);
+                        }
+                    })
+                    ->get()
+                    ->each(function (BankStatementImport $import): void {
+                        $import->forceFill([
+                            'document_id' => null,
+                            'sharepoint_web_url' => null,
+                            'sharepoint_item_id' => null,
+                            'sharepoint_path' => null,
+                        ])->saveQuietly();
+                    });
+            }
+
+            SharepointDocumentUploader::deleteRemoteFiles($document);
+            DocumentBinaryStore::deleteLocalPaths([
+                $document->file_path,
+                $document->approved_file_path,
+            ]);
+        });
+    }
+
     /**
      * @var list<string>
      */
     protected $fillable = [
         'document_date',
+        'valid_to',
+        'confirmation_audience',
         'name',
         'document_type_id',
         'project_id',
@@ -46,7 +86,9 @@ class Document extends Model
     protected function casts(): array
     {
         return [
-            'document_date' => 'datetime',
+            'document_date' => 'date',
+            'valid_to' => 'date',
+            'confirmation_audience' => DocumentConfirmationAudience::class,
             'flag_approved' => 'boolean',
             'approval_date' => 'datetime',
             'sharepoint_files' => 'array',
@@ -67,6 +109,29 @@ class Document extends Model
     public function uploadedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'user_uploaded_id');
+    }
+
+    /**
+     * Users to be notified (in-app + email) when this document is expiring.
+     *
+     * Pivot table: document_watchers (document_id, user_id)
+     */
+    public function watchers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'document_watchers');
+    }
+
+    /**
+     * Specific users who must confirm this document when audience = specific_users.
+     */
+    public function confirmationUsers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'document_confirmation_users');
+    }
+
+    public function confirmations(): HasMany
+    {
+        return $this->hasMany(DocumentConfirmation::class);
     }
 
     public function approvedBy(): BelongsTo
@@ -711,7 +776,7 @@ class Document extends Model
 
     public function canStartApprovalOrSigningWorkflow(): bool
     {
-        if ($this->awaitsDokobitSignature()) {
+        if ($this->awaitsDokobitSignature() || $this->hasCompletedSignature()) {
             return false;
         }
 
@@ -829,8 +894,8 @@ class Document extends Model
         }
 
         $path = $this->displayFilePath() ?: $this->file_path;
-        if (filled($path) && \Illuminate\Support\Facades\Storage::disk('public')->exists((string) $path)) {
-            return \Illuminate\Support\Facades\Storage::disk('public')->url((string) $path);
+        if (filled($path) && Storage::disk('public')->exists((string) $path)) {
+            return Storage::disk('public')->url((string) $path);
         }
 
         if ($this->hasStoredFile() || $this->hasSharepointLink()) {

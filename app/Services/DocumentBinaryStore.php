@@ -142,6 +142,13 @@ class DocumentBinaryStore
             'item_id' => $item['id'] ?? null,
         ]);
 
+        $format = strtolower((string) pathinfo($remoteName, PATHINFO_EXTENSION)) ?: 'bin';
+        ActivityLogger::logFileUploaded('Document file', $format, $document, [
+            'file_name' => $remoteName,
+            'sharepoint_path' => $path,
+            'sharepoint_item_id' => $item['id'] ?? null,
+        ]);
+
         return [
             'path' => $path,
             'item' => $item,
@@ -184,7 +191,7 @@ class DocumentBinaryStore
      * @param  list<string>  $localPaths
      * @return list<array{name: string, path: string, item_id: ?string, web_url: ?string}>
      */
-    public static function ingestLocalUploads(Document $document, array $localPaths): array
+    public static function ingestLocalUploads(Document $document, array $localPaths, bool $allowWhenLocked = false): array
     {
         $settings = SharepointSetting::instance();
         if (! $settings->isReady()) {
@@ -196,7 +203,7 @@ class DocumentBinaryStore
             throw new RuntimeException('No local upload found to send to SharePoint.');
         }
 
-        if ($document->exists && ! $document->canAttachFiles()) {
+        if ($document->exists && ! $allowWhenLocked && ! $document->canAttachFiles()) {
             throw new RuntimeException('Files cannot be attached after the document is approved or signed.');
         }
 
@@ -268,6 +275,15 @@ class DocumentBinaryStore
             'document_id' => $document->getKey(),
             'count' => count($meta),
             'paths' => array_column($meta, 'path'),
+        ]);
+
+        ActivityLogger::logFileUploaded('Document file(s)', 'multi', $document, [
+            'count' => count($localPaths),
+            'sharepoint_folder' => $folderPath,
+            'file_names' => array_values(array_filter(array_map(
+                fn (array $row): ?string => isset($row['name']) ? (string) $row['name'] : null,
+                array_slice($meta, $existingCount),
+            ))),
         ]);
 
         return $meta;

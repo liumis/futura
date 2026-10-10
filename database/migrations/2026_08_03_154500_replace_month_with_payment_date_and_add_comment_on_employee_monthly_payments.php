@@ -31,18 +31,18 @@ return new class extends Migration
                 ]);
             }
 
-            SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
+            $this->dropIndexesUsingColumns('employee_monthly_payments', ['year', 'month']);
 
-            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-                $table->dropColumn(['year', 'month']);
-            });
+            SchemaForeignKeys::dropColumnIfExists('employee_monthly_payments', 'year', 'month');
 
-            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-                $table->foreign('employee_id')
-                    ->references('id')
-                    ->on('employees')
-                    ->cascadeOnDelete();
-            });
+            if (! SchemaForeignKeys::hasOnColumn('employee_monthly_payments', 'employee_id')) {
+                Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+                    $table->foreign('employee_id')
+                        ->references('id')
+                        ->on('employees')
+                        ->cascadeOnDelete();
+                });
+            }
         }
 
         $this->ensurePaymentDateIndex();
@@ -115,5 +115,32 @@ return new class extends Migration
         }
 
         return false;
+    }
+
+    /**
+     * @param  list<string>  $columns
+     */
+    protected function dropIndexesUsingColumns(string $table, array $columns): void
+    {
+        foreach (Schema::getIndexes($table) as $index) {
+            $indexColumns = $index['columns'] ?? [];
+            $name = $index['name'] ?? null;
+
+            if (! filled($name) || ($index['primary'] ?? false)) {
+                continue;
+            }
+
+            if (array_intersect($columns, $indexColumns) === []) {
+                continue;
+            }
+
+            Schema::table($table, function (Blueprint $blueprint) use ($name, $index): void {
+                if ($index['unique'] ?? false) {
+                    $blueprint->dropUnique($name);
+                } else {
+                    $blueprint->dropIndex($name);
+                }
+            });
+        }
     }
 };

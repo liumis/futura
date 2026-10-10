@@ -25,9 +25,11 @@ class WriteOffDocumentResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Write-off documents';
 
-    protected static string|UnitEnum|null $navigationGroup = 'Warehouse & shipping';
+    protected static string|UnitEnum|null $navigationGroup = 'Stock';
 
-    protected static ?int $navigationSort = 5;
+    protected static ?int $navigationSort = 7;
+
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Schema $schema): Schema
     {
@@ -68,15 +70,22 @@ class WriteOffDocumentResource extends Resource
                 Tables\Columns\TextColumn::make('document_links')
                     ->label('Document')
                     ->formatStateUsing(function (WriteOffDocument $record): HtmlString {
+                        $parts = [];
+
+                        $sharepointUrl = $record->document?->sharepoint_web_url;
+
+                        if (filled($sharepointUrl)) {
+                            $parts[] = '<a href="'.e((string) $sharepointUrl).'" target="_blank" rel="noopener" class="text-primary-600 hover:underline dark:text-primary-400">SharePoint</a>';
+                        }
+
                         $ltUrl = e(route('write-off-documents.file', ['writeOffDocument' => $record, 'lang' => 'lt']));
                         $enUrl = e(route('write-off-documents.file', ['writeOffDocument' => $record, 'lang' => 'en']));
+                        $parts[] = '<a href="'.$ltUrl.'" target="_blank" class="text-primary-600 hover:underline dark:text-primary-400">LT</a>'
+                            .' / '
+                            .'<a href="'.$enUrl.'" target="_blank" class="text-primary-600 hover:underline dark:text-primary-400">EN</a>';
 
                         return new HtmlString(
-                            '<span class="whitespace-nowrap">'
-                            .'<a href="'.$ltUrl.'" target="_blank" class="text-primary-600 hover:underline dark:text-primary-400">LT</a>'
-                            .' / '
-                            .'<a href="'.$enUrl.'" target="_blank" class="text-primary-600 hover:underline dark:text-primary-400">EN</a>'
-                            .'</span>'
+                            '<span class="whitespace-nowrap">'.implode(' · ', $parts).'</span>'
                         );
                     })
                     ->html(),
@@ -95,12 +104,14 @@ class WriteOffDocumentResource extends Resource
 
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()->withCount('stockManualUpdates')->with('user');
+        return parent::getEloquentQuery()
+            ->withCount('stockManualUpdates')
+            ->with(['user', 'document']);
     }
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool

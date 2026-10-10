@@ -11,10 +11,13 @@ class LeaveRequestTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (LeaveRequestCatalog::TYPES as $name => $color) {
+        foreach (LeaveRequestCatalog::TYPES as $name => $meta) {
             LeaveRequestType::query()->updateOrCreate(
                 ['name' => $name],
-                ['color' => $color],
+                [
+                    'color' => $meta['color'],
+                    'timesheet_code' => $meta['timesheet_code'],
+                ],
             );
 
             DocumentType::query()->firstOrCreate(

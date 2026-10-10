@@ -3,11 +3,13 @@
 namespace App\Filament\Admin\Resources\LeaveRequests;
 
 use App\Enums\LeaveRequestStatus;
-use App\Filament\Admin\Resources\LeaveRequests\Pages;
+use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\LeaveRequestType;
 use App\Models\User;
 use App\Services\LithuanianLeavePaymentCalculator;
+use App\Services\ParentalLeaveCalculator;
 use App\Support\Money;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -22,6 +24,8 @@ use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Carbon;
+use Illuminate\Support\HtmlString;
 use UnitEnum;
 
 class LeaveRequestResource extends Resource
@@ -58,6 +62,7 @@ class LeaveRequestResource extends Resource
                     ->preload()
                     ->required()
                     ->native(false)
+                    ->live()
                     ->disabled(fn (?LeaveRequest $record): bool => $record?->isLocked() ?? false),
 
                 Forms\Components\Select::make('leave_request_type_id')
@@ -67,7 +72,68 @@ class LeaveRequestResource extends Resource
                     ->preload()
                     ->required()
                     ->native(false)
+                    ->live()
                     ->disabled(fn (?LeaveRequest $record): bool => $record?->isLocked() ?? false),
+
+                Forms\Components\Placeholder::make('parental_leave_balance')
+                    ->label('Tėvadienis / Mamadienis balance')
+                    ->content(function (Get $get, ?LeaveRequest $record): string {
+                        $typeId = (int) ($get('leave_request_type_id') ?? 0);
+                        $type = $typeId > 0 ? LeaveRequestType::query()->find($typeId) : null;
+
+                        if (! ParentalLeaveCalculator::isParentalType($type)) {
+                            return '—';
+                        }
+
+                        $employeeId = (int) ($get('employee_id') ?? 0);
+                        $employee = $employeeId > 0
+                            ? Employee::query()->with('children')->find($employeeId)
+                            : null;
+
+                        if ($employee === null) {
+                            return 'Select an employee to see entitlement.';
+                        }
+
+                        $asOf = filled($get('date_from'))
+                            ? (string) $get('date_from')
+                            : Carbon::today()->toDateString();
+
+                        $balance = ParentalLeaveCalculator::calculate(
+                            $employee,
+                            $asOf,
+                            $record?->getKey() ? (int) $record->getKey() : null,
+                        );
+
+                        if (! $balance['ok']) {
+                            return (string) $balance['message'];
+                        }
+
+                        return sprintf(
+                            '%s | Children under 12: %d%s | Period %s (%s – %s): %.0f entitled, %.0f used, %.0f available.',
+                            $balance['rule_label'],
+                            $balance['children_under_12'],
+                            $balance['children_disabled_under_18'] > 0
+                                ? ', disabled under 18: '.$balance['children_disabled_under_18']
+                                : '',
+                            $balance['period_label'],
+                            $balance['period_from'],
+                            $balance['period_to'],
+                            $balance['entitlement_days'],
+                            $balance['used_days'],
+                            $balance['available_days'],
+                        );
+                    })
+                    ->visible(function (Get $get): bool {
+                        $typeId = (int) ($get('leave_request_type_id') ?? 0);
+                        if ($typeId <= 0) {
+                            return false;
+                        }
+
+                        $type = LeaveRequestType::query()->find($typeId);
+
+                        return ParentalLeaveCalculator::isParentalType($type);
+                    })
+                    ->columnSpanFull(),
 
                 Forms\Components\DatePicker::make('date_from')
                     ->label('Date from')
@@ -85,6 +151,7 @@ class LeaveRequestResource extends Resource
                     ->label('Date to')
                     ->required()
                     ->native(false)
+                    ->live()
                     ->minDate(function (Get $get, ?LeaveRequest $record): ?string {
                         $statusMin = static::dateMinBound($get, $record);
                         $from = $get('date_from');
@@ -189,6 +256,57 @@ class LeaveRequestResource extends Resource
                     ->dehydrated(fn (Get $get): bool => static::isConfirmedStatus($get))
                     ->helperText('Filled automatically when the main confirmer confirms.'),
 
+                Forms\Components\Placeholder::make('prasymas_document_link')
+                    ->label('Prašymas')
+                    ->content(function (?LeaveRequest $record): HtmlString|string {
+                        if ($record === null || ! filled($record->document_id)) {
+                            return 'Created when the leave request is saved.';
+                        }
+
+                        $document = $record->document;
+                        if ($document === null) {
+                            return '—';
+                        }
+
+                        $url = $document->displayFileUrl()
+                            ?: DocumentResource::getUrl('edit', ['record' => $document]);
+
+                        return new HtmlString(
+                            '<a href="'.e($url).'" target="_blank" class="text-primary-600 underline dark:text-primary-400">Open Prašymas</a>'
+                        );
+                    })
+                    ->visible(fn (?LeaveRequest $record): bool => $record !== null),
+
+                Forms\Components\Placeholder::make('isakymas_document_link')
+                    ->label('Įsakymas')
+                    ->content(function (?LeaveRequest $record): HtmlString|string {
+                        if ($record === null) {
+                            return '—';
+                        }
+
+                        if (! filled($record->order_document_id)) {
+                            return $record->isConfirmed()
+                                ? 'Not created yet (or creation failed — check logs).'
+                                : 'Created automatically when the leave request is confirmed.';
+                        }
+
+                        $document = $record->orderDocument;
+                        if ($document === null) {
+                            return '—';
+                        }
+
+                        $url = $document->displayFileUrl()
+                            ?: DocumentResource::getUrl('edit', ['record' => $document]);
+
+                        $approved = $document->flag_approved ? ' (approved)' : '';
+
+                        return new HtmlString(
+                            '<a href="'.e($url).'" target="_blank" class="text-primary-600 underline dark:text-primary-400">Open Įsakymas'.$approved.'</a>'
+                        );
+                    })
+                    ->visible(fn (?LeaveRequest $record): bool => $record !== null)
+                    ->columnSpanFull(),
+
                 Forms\Components\Textarea::make('comment')
                     ->rows(4)
                     ->columnSpanFull()
@@ -261,8 +379,8 @@ class LeaveRequestResource extends Resource
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('document_pdf')
-                    ->label('Document')
-                    ->state(fn (LeaveRequest $record): string => filled($record->document_id) ? 'View PDF' : '—')
+                    ->label('Prašymas')
+                    ->state(fn (LeaveRequest $record): string => filled($record->document_id) ? 'View' : '—')
                     ->url(function (LeaveRequest $record): ?string {
                         if (! filled($record->document_id)) {
                             return null;
@@ -274,10 +392,30 @@ class LeaveRequestResource extends Resource
                         }
 
                         return $document->displayFileUrl()
-                            ?: \App\Filament\Admin\Resources\Documents\DocumentResource::getUrl('edit', ['record' => $document]);
+                            ?: DocumentResource::getUrl('edit', ['record' => $document]);
                     })
                     ->openUrlInNewTab()
                     ->color(fn (LeaveRequest $record): ?string => filled($record->document_id) ? 'primary' : null)
+                    ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('order_document_pdf')
+                    ->label('Įsakymas')
+                    ->state(fn (LeaveRequest $record): string => filled($record->order_document_id) ? 'View' : '—')
+                    ->url(function (LeaveRequest $record): ?string {
+                        if (! filled($record->order_document_id)) {
+                            return null;
+                        }
+
+                        $document = $record->orderDocument;
+                        if ($document === null) {
+                            return null;
+                        }
+
+                        return $document->displayFileUrl()
+                            ?: DocumentResource::getUrl('edit', ['record' => $document]);
+                    })
+                    ->openUrlInNewTab()
+                    ->color(fn (LeaveRequest $record): ?string => filled($record->order_document_id) ? 'primary' : null)
                     ->placeholder('—'),
 
                 Tables\Columns\TextColumn::make('comment')
@@ -378,22 +516,22 @@ class LeaveRequestResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

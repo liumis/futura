@@ -35,6 +35,16 @@ return [
         ],
     ],
 
+    'ocr_space' => [
+        'key' => env('OCR_SPACE_API_KEY'),
+    ],
+
+    'invoice_ai' => [
+        'key' => env('INVOICE_AI_API_KEY', env('OPENAI_API_KEY')),
+        'base_url' => env('INVOICE_AI_BASE_URL', 'https://api.openai.com/v1'),
+        'model' => env('INVOICE_AI_MODEL', 'gpt-4o-mini'),
+    ],
+
     /*
     | Delegated Microsoft Graph OAuth for Outlook Calendar sync.
     | Falls back to SharePoint Entra app client_id/secret/tenant when unset.

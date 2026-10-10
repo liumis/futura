@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Resources\InvoiceSeries;
 
-use App\Filament\Admin\Resources\InvoiceSeries\Pages;
 use App\Models\InvoiceSeries;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
@@ -39,7 +38,7 @@ class InvoiceSeriesResource extends Resource
                     ->label('Prefix')
                     ->required()
                     ->maxLength(50)
-                    ->helperText('Prepended to the invoice number, e.g. FT-'),
+                    ->helperText('Prepended to the invoice number, e.g. FTE (numbers are zero-padded to 4 digits: FTE0148).'),
 
                 Forms\Components\TextInput::make('first_item_no')
                     ->label('First item no')
@@ -47,7 +46,17 @@ class InvoiceSeriesResource extends Resource
                     ->required()
                     ->minValue(1)
                     ->integer()
-                    ->helperText('Number used for the first invoice in this series.'),
+                    ->helperText('Used when this series has no invoices yet. After existing invoices are linked, the next number continues from the highest series number.'),
+
+                Forms\Components\Placeholder::make('next_invoice_preview')
+                    ->label('Next invoice no')
+                    ->content(function (?InvoiceSeries $record): string {
+                        if ($record === null || ! $record->exists) {
+                            return 'Save the series to preview the next number.';
+                        }
+
+                        return $record->formatNumber($record->nextSeriesNumber());
+                    }),
 
                 Forms\Components\Checkbox::make('is_default')
                     ->label('Use as default')
@@ -66,6 +75,12 @@ class InvoiceSeriesResource extends Resource
                 Tables\Columns\TextColumn::make('first_item_no')
                     ->label('First item no')
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('next_invoice_no')
+                    ->label('Next invoice no')
+                    ->state(fn (InvoiceSeries $record): string => $record->formatNumber($record->nextSeriesNumber()))
+                    ->weight('semibold')
+                    ->copyable(),
 
                 Tables\Columns\IconColumn::make('is_default')
                     ->label('Default')
@@ -95,22 +110,22 @@ class InvoiceSeriesResource extends Resource
 
     public static function canViewAny(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canCreate(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canEdit($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function canDelete($record): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     public static function getPages(): array

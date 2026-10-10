@@ -22,7 +22,7 @@ class Charts extends Page
 
     public static function canAccess(): bool
     {
-        return auth()->user()?->hasRole('admin') ?? false;
+        return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
     }
 
     /**
@@ -59,7 +59,7 @@ class Charts extends Page
                     'has_income_left' => $todo->income_left !== null && $todo->income_left !== '',
                     'has_payment_left' => $todo->payment_left !== null && $todo->payment_left !== '',
                     'user_id' => $todo->user_id,
-                    'user_label' => $todo->user?->name ?? ('User #'.$todo->user_id),
+                    'user_label' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
                 ];
             })
             ->values()
