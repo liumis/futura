@@ -11,20 +11,25 @@ return new class extends Migration
     {
         Schema::create('bank_statement_transaction_invoice', function (Blueprint $table): void {
             $table->id();
-            $table->foreignId('bank_statement_transaction_id')
-                ->constrained('bank_statement_transactions')
-                ->cascadeOnDelete();
-            $table->foreignId('invoice_id')
-                ->constrained('invoices')
-                ->cascadeOnDelete();
+            $table->unsignedBigInteger('bank_statement_transaction_id');
+            $table->unsignedBigInteger('invoice_id');
             $table->decimal('amount', 12, 2);
             $table->timestamps();
+
+            $table->foreign('bank_statement_transaction_id', 'bst_invoice_tx_fk')
+                ->references('id')
+                ->on('bank_statement_transactions')
+                ->cascadeOnDelete();
+            $table->foreign('invoice_id', 'bst_invoice_inv_fk')
+                ->references('id')
+                ->on('invoices')
+                ->cascadeOnDelete();
 
             $table->unique(
                 ['bank_statement_transaction_id', 'invoice_id'],
                 'bst_invoice_unique',
             );
-            $table->index('invoice_id');
+            $table->index('invoice_id', 'bst_invoice_inv_idx');
         });
 
         // Backfill existing 1:1 links so unlink can reverse allocated amounts.

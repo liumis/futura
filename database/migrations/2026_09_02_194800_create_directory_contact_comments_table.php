@@ -24,7 +24,7 @@ return new class extends Migration
                 $table->text('comment');
                 $table->timestamps();
 
-                $table->index(['directory_contact_id', 'commented_at']);
+                $table->index(['directory_contact_id', 'commented_at'], 'dir_contact_comments_contact_date_idx');
             });
         }
 

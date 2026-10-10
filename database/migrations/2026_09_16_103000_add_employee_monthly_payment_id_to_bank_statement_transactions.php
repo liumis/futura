@@ -14,10 +14,12 @@ return new class extends Migration
         }
 
         Schema::table('bank_statement_transactions', function (Blueprint $table): void {
-            $table->foreignId('employee_monthly_payment_id')
+            $table->unsignedBigInteger('employee_monthly_payment_id')
                 ->nullable()
-                ->after('payment_id')
-                ->constrained('employee_monthly_payments')
+                ->after('payment_id');
+            $table->foreign('employee_monthly_payment_id', 'bst_emp_monthly_pay_fk')
+                ->references('id')
+                ->on('employee_monthly_payments')
                 ->nullOnDelete();
         });
     }
@@ -29,7 +31,8 @@ return new class extends Migration
         }
 
         Schema::table('bank_statement_transactions', function (Blueprint $table): void {
-            $table->dropConstrainedForeignId('employee_monthly_payment_id');
+            $table->dropForeign('bst_emp_monthly_pay_fk');
+            $table->dropColumn('employee_monthly_payment_id');
         });
     }
 };

@@ -11,7 +11,11 @@ return new class extends Migration
         Schema::create('business_trip_requests', function (Blueprint $table): void {
             $table->id();
             $table->foreignId('employee_id')->constrained()->cascadeOnDelete();
-            $table->foreignId('business_trip_daily_allowance_id')->constrained('business_trip_daily_allowances')->restrictOnDelete();
+            $table->unsignedBigInteger('business_trip_daily_allowance_id');
+            $table->foreign('business_trip_daily_allowance_id', 'btr_daily_allowance_fk')
+                ->references('id')
+                ->on('business_trip_daily_allowances')
+                ->restrictOnDelete();
             $table->string('country_name');
             $table->decimal('daily_rate', 8, 2);
             $table->date('date_from');
