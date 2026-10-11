@@ -5,7 +5,6 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Throwable;
 
 /**
  * Production still had employee_id+year+month unique after payment_date replaced those columns.
@@ -98,10 +97,10 @@ return new class extends Migration
                 Schema::table('employee_monthly_payments', function (Blueprint $table) use ($name): void {
                     $table->dropIndex($name);
                 });
-            } catch (Throwable) {
+            } catch (\Throwable) {
                 try {
                     DB::statement('ALTER TABLE `employee_monthly_payments` DROP INDEX `'.$name.'`');
-                } catch (Throwable) {
+                } catch (\Throwable) {
                     // Already gone.
                 }
             }
