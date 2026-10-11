@@ -266,39 +266,38 @@ class ProdDatabaseBootstrap
 
         SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
 
-        $schema = Schema::getConnection()->getDatabaseName();
-        $indexRows = DB::select(
-            'SELECT DISTINCT INDEX_NAME AS name
-             FROM information_schema.STATISTICS
-             WHERE TABLE_SCHEMA = ?
-               AND TABLE_NAME = ?
-               AND INDEX_NAME <> ?
-               AND (
-                    COLUMN_NAME IN (?, ?)
-                    OR INDEX_NAME LIKE ?
-               )',
-            [
-                $schema,
-                'employee_monthly_payments',
-                'PRIMARY',
-                'year',
-                'month',
-                '%year_month%',
-            ],
-        );
+        $keepUnique = 'employee_monthly_payments_employee_id_payment_date_unique';
+        $indexRows = DB::select('SHOW INDEX FROM `employee_monthly_payments`');
+        $toDrop = [];
 
-        $names = collect($indexRows)->pluck('name')->filter()->unique()->values()->all();
+        foreach ($indexRows as $row) {
+            $name = (string) ($row->Key_name ?? '');
+            if ($name === '' || $name === 'PRIMARY' || $name === $keepUnique) {
+                continue;
+            }
+
+            $nonUnique = (int) ($row->Non_unique ?? 1);
+            $column = strtolower((string) ($row->Column_name ?? ''));
+            $nameLower = strtolower($name);
+
+            // Drop any unique that is not the payment_date key, plus any year/month leftovers.
+            if ($nonUnique === 0
+                || str_contains($nameLower, 'year_month')
+                || in_array($column, ['year', 'month'], true)) {
+                $toDrop[$name] = true;
+            }
+        }
+
         foreach ([
             'employee_monthly_payments_employee_id_year_month_unique',
-            // Live MySQL has shown this truncated variant in 1062 errors.
             'employee_monthly_payments_employee_id_year_month_un',
             'employee_monthly_payments_year_month_index',
         ] as $known) {
-            $names[] = $known;
+            $toDrop[$known] = true;
         }
 
-        foreach (array_unique($names) as $name) {
-            $safe = str_replace('`', '', (string) $name);
+        foreach (array_keys($toDrop) as $name) {
+            $safe = str_replace('`', '', $name);
             try {
                 DB::statement("ALTER TABLE `employee_monthly_payments` DROP INDEX `{$safe}`");
             } catch (Throwable) {
@@ -315,6 +314,19 @@ class ProdDatabaseBootstrap
                 DB::statement("ALTER TABLE `employee_monthly_payments` DROP COLUMN `{$column}`");
             } catch (Throwable) {
                 // Already gone.
+            }
+        }
+
+        $hasPaymentDateUnique = collect(DB::select('SHOW INDEX FROM `employee_monthly_payments`'))
+            ->contains(fn (object $row): bool => ($row->Key_name ?? null) === $keepUnique);
+
+        if (Schema::hasColumn('employee_monthly_payments', 'payment_date') && ! $hasPaymentDateUnique) {
+            try {
+                Schema::table('employee_monthly_payments', function (\Illuminate\Database\Schema\Blueprint $table): void {
+                    $table->unique(['employee_id', 'payment_date']);
+                });
+            } catch (Throwable) {
+                // May already exist under another name.
             }
         }
 

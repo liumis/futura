@@ -25,34 +25,36 @@ return new class extends Migration
 
         SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
 
-        $schema = Schema::getConnection()->getDatabaseName();
-        $indexRows = DB::select(
-            'SELECT DISTINCT INDEX_NAME AS name
-             FROM information_schema.STATISTICS
-             WHERE TABLE_SCHEMA = ?
-               AND TABLE_NAME = ?
-               AND INDEX_NAME <> ?
-               AND (
-                    COLUMN_NAME IN (?, ?)
-                    OR INDEX_NAME LIKE ?
-               )',
-            [
-                $schema,
-                'employee_monthly_payments',
-                'PRIMARY',
-                'year',
-                'month',
-                '%year_month%',
-            ],
-        );
+        $keepUnique = 'employee_monthly_payments_employee_id_payment_date_unique';
+        $toDrop = [];
 
-        $names = collect($indexRows)->pluck('name')->filter()->unique()->values()->all();
-        $names[] = 'employee_monthly_payments_employee_id_year_month_unique';
-        $names[] = 'employee_monthly_payments_employee_id_year_month_un';
-        $names[] = 'employee_monthly_payments_year_month_index';
+        foreach (DB::select('SHOW INDEX FROM `employee_monthly_payments`') as $row) {
+            $name = (string) ($row->Key_name ?? '');
+            if ($name === '' || $name === 'PRIMARY' || $name === $keepUnique) {
+                continue;
+            }
 
-        foreach (array_unique($names) as $name) {
-            $safe = str_replace('`', '', (string) $name);
+            $nonUnique = (int) ($row->Non_unique ?? 1);
+            $column = strtolower((string) ($row->Column_name ?? ''));
+            $nameLower = strtolower($name);
+
+            if ($nonUnique === 0
+                || str_contains($nameLower, 'year_month')
+                || in_array($column, ['year', 'month'], true)) {
+                $toDrop[$name] = true;
+            }
+        }
+
+        foreach ([
+            'employee_monthly_payments_employee_id_year_month_unique',
+            'employee_monthly_payments_employee_id_year_month_un',
+            'employee_monthly_payments_year_month_index',
+        ] as $known) {
+            $toDrop[$known] = true;
+        }
+
+        foreach (array_keys($toDrop) as $name) {
+            $safe = str_replace('`', '', $name);
             try {
                 DB::statement("ALTER TABLE `employee_monthly_payments` DROP INDEX `{$safe}`");
             } catch (\Throwable) {
@@ -72,30 +74,25 @@ return new class extends Migration
             }
         }
 
+        $hasPaymentDateUnique = collect(DB::select('SHOW INDEX FROM `employee_monthly_payments`'))
+            ->contains(fn (object $row): bool => ($row->Key_name ?? null) === $keepUnique);
+
+        if (Schema::hasColumn('employee_monthly_payments', 'payment_date') && ! $hasPaymentDateUnique) {
+            try {
+                Schema::table('employee_monthly_payments', function (Blueprint $table): void {
+                    $table->unique(['employee_id', 'payment_date']);
+                });
+            } catch (\Throwable) {
+                // May already exist under another name.
+            }
+        }
+
         if (! SchemaForeignKeys::hasOnColumn('employee_monthly_payments', 'employee_id')) {
             Schema::table('employee_monthly_payments', function (Blueprint $table): void {
                 $table->foreign('employee_id')
                     ->references('id')
                     ->on('employees')
                     ->cascadeOnDelete();
-            });
-        }
-
-        $hasPaymentDateUnique = collect(
-            DB::select(
-                'SELECT INDEX_NAME AS name
-                 FROM information_schema.STATISTICS
-                 WHERE TABLE_SCHEMA = ?
-                   AND TABLE_NAME = ?
-                   AND INDEX_NAME = ?
-                 LIMIT 1',
-                [$schema, 'employee_monthly_payments', 'employee_monthly_payments_employee_id_payment_date_unique'],
-            ),
-        )->isNotEmpty();
-
-        if (Schema::hasColumn('employee_monthly_payments', 'payment_date') && ! $hasPaymentDateUnique) {
-            Schema::table('employee_monthly_payments', function (Blueprint $table): void {
-                $table->unique(['employee_id', 'payment_date']);
             });
         }
     }
