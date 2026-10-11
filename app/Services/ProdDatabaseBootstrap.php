@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\SchemaForeignKeys;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
@@ -200,6 +201,9 @@ class ProdDatabaseBootstrap
         DB::statement('SET SQL_SAFE_UPDATES=0');
 
         try {
+            // Cloud may still have leftover year/month unique after migrations report success.
+            self::repairEmployeeMonthlyPaymentsSchema();
+
             // Always empty application tables first. Dump DELETEs alone are not enough when
             // a previous import failed mid-way or live data already has the same primary keys.
             self::wipeImportableTables();
@@ -252,12 +256,84 @@ class ProdDatabaseBootstrap
     }
 
     /**
+     * Drop leftover year/month columns/indexes that conflict with payment_date dumps.
+     */
+    private static function repairEmployeeMonthlyPaymentsSchema(): void
+    {
+        if (! Schema::hasTable('employee_monthly_payments')) {
+            return;
+        }
+
+        SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
+
+        $schema = Schema::getConnection()->getDatabaseName();
+        $indexRows = DB::select(
+            'SELECT DISTINCT INDEX_NAME AS name
+             FROM information_schema.STATISTICS
+             WHERE TABLE_SCHEMA = ?
+               AND TABLE_NAME = ?
+               AND INDEX_NAME <> ?
+               AND (
+                    COLUMN_NAME IN (?, ?)
+                    OR INDEX_NAME LIKE ?
+               )',
+            [
+                $schema,
+                'employee_monthly_payments',
+                'PRIMARY',
+                'year',
+                'month',
+                '%year_month%',
+            ],
+        );
+
+        $names = collect($indexRows)->pluck('name')->filter()->unique()->values()->all();
+        foreach ([
+            'employee_monthly_payments_employee_id_year_month_unique',
+            // Live MySQL has shown this truncated variant in 1062 errors.
+            'employee_monthly_payments_employee_id_year_month_un',
+            'employee_monthly_payments_year_month_index',
+        ] as $known) {
+            $names[] = $known;
+        }
+
+        foreach (array_unique($names) as $name) {
+            $safe = str_replace('`', '', (string) $name);
+            try {
+                DB::statement("ALTER TABLE `employee_monthly_payments` DROP INDEX `{$safe}`");
+            } catch (Throwable) {
+                // Already gone.
+            }
+        }
+
+        foreach (['year', 'month'] as $column) {
+            if (! Schema::hasColumn('employee_monthly_payments', $column)) {
+                continue;
+            }
+
+            try {
+                DB::statement("ALTER TABLE `employee_monthly_payments` DROP COLUMN `{$column}`");
+            } catch (Throwable) {
+                // Already gone.
+            }
+        }
+
+        if (! SchemaForeignKeys::hasOnColumn('employee_monthly_payments', 'employee_id')) {
+            Schema::table('employee_monthly_payments', function (\Illuminate\Database\Schema\Blueprint $table): void {
+                $table->foreign('employee_id')
+                    ->references('id')
+                    ->on('employees')
+                    ->cascadeOnDelete();
+            });
+        }
+    }
+
+    /**
      * Remove all rows from importable tables so the dump can replace live data cleanly.
      */
     private static function wipeImportableTables(): void
     {
-        // Avoid bound parameters — some MySQL versions reject placeholders in SHOW.
-        $tables = collect(DB::select('SHOW FULL TABLES WHERE Table_type = \'BASE TABLE\''))
+        $tables = collect(DB::select('SHOW TABLES'))
             ->map(function (object $row): string {
                 $values = array_values((array) $row);
 
@@ -267,6 +343,10 @@ class ProdDatabaseBootstrap
             ->reject(fn (string $name): bool => in_array($name, self::SKIP_TABLES, true))
             ->values()
             ->all();
+
+        if ($tables === []) {
+            throw new RuntimeException('Bootstrap wipe found zero tables — refusing to import into an unknown schema.');
+        }
 
         foreach ($tables as $table) {
             $quoted = self::quoteIdentifier($table);
