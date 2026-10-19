@@ -257,6 +257,10 @@ class ProdDatabaseBootstrap
 
     /**
      * Drop leftover year/month columns/indexes that conflict with payment_date dumps.
+     *
+     * Cloud MySQL kept the composite unique because the employee_id FK sits on that
+     * index — DROP INDEX fails until every FK is removed via information_schema.
+     * If the unique still remains, rebuild the table (safe: wipe runs next).
      */
     private static function repairEmployeeMonthlyPaymentsSchema(): void
     {
@@ -264,13 +268,13 @@ class ProdDatabaseBootstrap
             return;
         }
 
-        SchemaForeignKeys::dropOnColumn('employee_monthly_payments', 'employee_id');
+        self::dropForeignKeysReferencingTable('employee_monthly_payments');
+        self::dropAllForeignKeysOnTable('employee_monthly_payments');
 
         $keepUnique = 'employee_monthly_payments_employee_id_payment_date_unique';
-        $indexRows = DB::select('SHOW INDEX FROM `employee_monthly_payments`');
         $toDrop = [];
 
-        foreach ($indexRows as $row) {
+        foreach (DB::select('SHOW INDEX FROM `employee_monthly_payments`') as $row) {
             $name = (string) ($row->Key_name ?? '');
             if ($name === '' || $name === 'PRIMARY' || $name === $keepUnique) {
                 continue;
@@ -280,7 +284,6 @@ class ProdDatabaseBootstrap
             $column = strtolower((string) ($row->Column_name ?? ''));
             $nameLower = strtolower($name);
 
-            // Drop any unique that is not the payment_date key, plus any year/month leftovers.
             if ($nonUnique === 0
                 || str_contains($nameLower, 'year_month')
                 || in_array($column, ['year', 'month'], true)) {
@@ -317,6 +320,25 @@ class ProdDatabaseBootstrap
             }
         }
 
+        $stillBroken = collect(DB::select('SHOW INDEX FROM `employee_monthly_payments`'))
+            ->contains(function (object $row) use ($keepUnique): bool {
+                $name = strtolower((string) ($row->Key_name ?? ''));
+
+                return str_contains($name, 'year_month')
+                    || (
+                        (int) ($row->Non_unique ?? 1) === 0
+                        && ($row->Key_name ?? '') !== 'PRIMARY'
+                        && ($row->Key_name ?? '') !== $keepUnique
+                        && in_array(strtolower((string) ($row->Column_name ?? '')), ['year', 'month'], true)
+                    );
+            });
+
+        if ($stillBroken || Schema::hasColumn('employee_monthly_payments', 'year') || Schema::hasColumn('employee_monthly_payments', 'month')) {
+            self::rebuildEmployeeMonthlyPaymentsTable();
+
+            return;
+        }
+
         $hasPaymentDateUnique = collect(DB::select('SHOW INDEX FROM `employee_monthly_payments`'))
             ->contains(fn (object $row): bool => ($row->Key_name ?? null) === $keepUnique);
 
@@ -338,6 +360,107 @@ class ProdDatabaseBootstrap
                     ->cascadeOnDelete();
             });
         }
+    }
+
+    /**
+     * @return void
+     */
+    private static function dropAllForeignKeysOnTable(string $table): void
+    {
+        $schema = Schema::getConnection()->getDatabaseName();
+        $safeTable = str_replace('`', '', $table);
+
+        $fks = DB::select(
+            'SELECT CONSTRAINT_NAME AS name
+             FROM information_schema.TABLE_CONSTRAINTS
+             WHERE CONSTRAINT_SCHEMA = ?
+               AND TABLE_NAME = ?
+               AND CONSTRAINT_TYPE = ?',
+            [$schema, $safeTable, 'FOREIGN KEY'],
+        );
+
+        foreach ($fks as $fk) {
+            $safe = str_replace('`', '', (string) ($fk->name ?? ''));
+            if ($safe === '') {
+                continue;
+            }
+
+            try {
+                DB::statement("ALTER TABLE `{$safeTable}` DROP FOREIGN KEY `{$safe}`");
+            } catch (Throwable) {
+                // Already gone.
+            }
+        }
+    }
+
+    /**
+     * Drop FKs on other tables that reference the given table.
+     */
+    private static function dropForeignKeysReferencingTable(string $table): void
+    {
+        $schema = Schema::getConnection()->getDatabaseName();
+        $safeTable = str_replace('`', '', $table);
+
+        $fks = DB::select(
+            'SELECT TABLE_NAME AS tbl, CONSTRAINT_NAME AS name
+             FROM information_schema.KEY_COLUMN_USAGE
+             WHERE REFERENCED_TABLE_SCHEMA = ?
+               AND REFERENCED_TABLE_NAME = ?
+               AND CONSTRAINT_NAME IS NOT NULL',
+            [$schema, $safeTable],
+        );
+
+        foreach ($fks as $fk) {
+            $tbl = str_replace('`', '', (string) ($fk->tbl ?? ''));
+            $name = str_replace('`', '', (string) ($fk->name ?? ''));
+            if ($tbl === '' || $name === '') {
+                continue;
+            }
+
+            try {
+                DB::statement("ALTER TABLE `{$tbl}` DROP FOREIGN KEY `{$name}`");
+            } catch (Throwable) {
+                // Already gone.
+            }
+        }
+    }
+
+    /**
+     * Recreate employee_monthly_payments without legacy year/month uniques.
+     * Data is wiped immediately after repair during bootstrap import.
+     */
+    private static function rebuildEmployeeMonthlyPaymentsTable(): void
+    {
+        self::dropForeignKeysReferencingTable('employee_monthly_payments');
+        self::dropAllForeignKeysOnTable('employee_monthly_payments');
+
+        DB::statement('DROP TABLE IF EXISTS `employee_monthly_payments`');
+
+        Schema::create('employee_monthly_payments', function (\Illuminate\Database\Schema\Blueprint $table): void {
+            $table->id();
+            $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            $table->date('payment_date')->nullable();
+            $table->decimal('base_salary', 12, 2)->default(0);
+            $table->decimal('bonus_payment', 12, 2)->nullable();
+            $table->text('comment')->nullable();
+            $table->boolean('is_paid')->default(false);
+            $table->timestamp('paid_at')->nullable();
+            $table->string('status')->nullable();
+            $table->foreignId('employee_payment_report_id')->nullable()->constrained('employee_payment_reports')->nullOnDelete();
+            $table->decimal('gross_amount', 12, 2)->nullable();
+            $table->decimal('npd_amount', 12, 2)->nullable();
+            $table->decimal('sodra_employee_amount', 12, 2)->nullable();
+            $table->decimal('gpm_amount', 12, 2)->nullable();
+            $table->decimal('net_amount', 12, 2)->nullable();
+            $table->decimal('sodra_employer_amount', 12, 2)->nullable();
+            $table->foreignId('payslip_document_id')->nullable()->constrained('documents')->nullOnDelete();
+            $table->foreignId('bonus_order_document_id')->nullable()->constrained('documents')->nullOnDelete();
+            $table->foreignId('shareholder_decision_document_id')->nullable()->constrained('documents')->nullOnDelete();
+            $table->timestamps();
+
+            $table->unique(['employee_id', 'payment_date']);
+            $table->index('payment_date');
+        });
     }
 
     /**
