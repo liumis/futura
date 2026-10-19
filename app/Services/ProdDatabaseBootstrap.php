@@ -265,6 +265,8 @@ class ProdDatabaseBootstrap
     private static function repairEmployeeMonthlyPaymentsSchema(): void
     {
         if (! Schema::hasTable('employee_monthly_payments')) {
+            self::rebuildEmployeeMonthlyPaymentsTable();
+
             return;
         }
 
@@ -438,7 +440,7 @@ class ProdDatabaseBootstrap
 
         Schema::create('employee_monthly_payments', function (\Illuminate\Database\Schema\Blueprint $table): void {
             $table->id();
-            $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
+            $table->unsignedBigInteger('employee_id');
             $table->date('payment_date')->nullable();
             $table->decimal('base_salary', 12, 2)->default(0);
             $table->decimal('bonus_payment', 12, 2)->nullable();
@@ -446,21 +448,44 @@ class ProdDatabaseBootstrap
             $table->boolean('is_paid')->default(false);
             $table->timestamp('paid_at')->nullable();
             $table->string('status')->nullable();
-            $table->foreignId('employee_payment_report_id')->nullable()->constrained('employee_payment_reports')->nullOnDelete();
+            $table->unsignedBigInteger('employee_payment_report_id')->nullable();
             $table->decimal('gross_amount', 12, 2)->nullable();
             $table->decimal('npd_amount', 12, 2)->nullable();
             $table->decimal('sodra_employee_amount', 12, 2)->nullable();
             $table->decimal('gpm_amount', 12, 2)->nullable();
             $table->decimal('net_amount', 12, 2)->nullable();
             $table->decimal('sodra_employer_amount', 12, 2)->nullable();
-            $table->foreignId('payslip_document_id')->nullable()->constrained('documents')->nullOnDelete();
-            $table->foreignId('bonus_order_document_id')->nullable()->constrained('documents')->nullOnDelete();
-            $table->foreignId('shareholder_decision_document_id')->nullable()->constrained('documents')->nullOnDelete();
+            $table->unsignedBigInteger('payslip_document_id')->nullable();
+            $table->unsignedBigInteger('bonus_order_document_id')->nullable();
+            $table->unsignedBigInteger('shareholder_decision_document_id')->nullable();
             $table->timestamps();
 
-            $table->unique(['employee_id', 'payment_date']);
-            $table->index('payment_date');
+            // Short FK names — MySQL caps identifiers at 64 chars.
+            $table->foreign('employee_id', 'emp_mp_employee_fk')
+                ->references('id')->on('employees')->cascadeOnDelete();
+            $table->foreign('employee_payment_report_id', 'emp_payments_report_fk')
+                ->references('id')->on('employee_payment_reports')->nullOnDelete();
+            $table->foreign('payslip_document_id', 'emp_mp_payslip_doc_fk')
+                ->references('id')->on('documents')->nullOnDelete();
+            $table->foreign('bonus_order_document_id', 'emp_mp_bonus_order_doc_fk')
+                ->references('id')->on('documents')->nullOnDelete();
+            $table->foreign('shareholder_decision_document_id', 'emp_mp_shareholder_doc_fk')
+                ->references('id')->on('documents')->nullOnDelete();
+
+            $table->unique(['employee_id', 'payment_date'], 'emp_mp_employee_payment_date_uq');
+            $table->index('payment_date', 'emp_mp_payment_date_idx');
         });
+
+        if (Schema::hasTable('bank_statement_transactions')
+            && Schema::hasColumn('bank_statement_transactions', 'employee_monthly_payment_id')) {
+            SchemaForeignKeys::ensure(
+                'bank_statement_transactions',
+                'employee_monthly_payment_id',
+                'employee_monthly_payments',
+                'bst_emp_monthly_pay_fk',
+                'null',
+            );
+        }
     }
 
     /**
