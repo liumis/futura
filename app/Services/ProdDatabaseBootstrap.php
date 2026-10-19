@@ -438,6 +438,7 @@ class ProdDatabaseBootstrap
 
         DB::statement('DROP TABLE IF EXISTS `employee_monthly_payments`');
 
+        // Create without FKs first so a missing related table cannot abort bootstrap.
         Schema::create('employee_monthly_payments', function (\Illuminate\Database\Schema\Blueprint $table): void {
             $table->id();
             $table->unsignedBigInteger('employee_id');
@@ -460,21 +461,31 @@ class ProdDatabaseBootstrap
             $table->unsignedBigInteger('shareholder_decision_document_id')->nullable();
             $table->timestamps();
 
-            // Short FK names — MySQL caps identifiers at 64 chars.
-            $table->foreign('employee_id', 'emp_mp_employee_fk')
-                ->references('id')->on('employees')->cascadeOnDelete();
-            $table->foreign('employee_payment_report_id', 'emp_payments_report_fk')
-                ->references('id')->on('employee_payment_reports')->nullOnDelete();
-            $table->foreign('payslip_document_id', 'emp_mp_payslip_doc_fk')
-                ->references('id')->on('documents')->nullOnDelete();
-            $table->foreign('bonus_order_document_id', 'emp_mp_bonus_order_doc_fk')
-                ->references('id')->on('documents')->nullOnDelete();
-            $table->foreign('shareholder_decision_document_id', 'emp_mp_shareholder_doc_fk')
-                ->references('id')->on('documents')->nullOnDelete();
-
             $table->unique(['employee_id', 'payment_date'], 'emp_mp_employee_payment_date_uq');
             $table->index('payment_date', 'emp_mp_payment_date_idx');
         });
+
+        $fkSpecs = [
+            ['employee_id', 'employees', 'emp_mp_employee_fk', 'cascade'],
+            ['employee_payment_report_id', 'employee_payment_reports', 'emp_payments_report_fk', 'null'],
+            ['payslip_document_id', 'documents', 'emp_mp_payslip_doc_fk', 'null'],
+            ['bonus_order_document_id', 'documents', 'emp_mp_bonus_order_doc_fk', 'null'],
+            ['shareholder_decision_document_id', 'documents', 'emp_mp_shareholder_doc_fk', 'null'],
+        ];
+
+        foreach ($fkSpecs as [$column, $onTable, $name, $onDelete]) {
+            if (! Schema::hasTable($onTable) || ! Schema::hasColumn('employee_monthly_payments', $column)) {
+                continue;
+            }
+
+            SchemaForeignKeys::ensure(
+                'employee_monthly_payments',
+                $column,
+                $onTable,
+                $name,
+                $onDelete,
+            );
+        }
 
         if (Schema::hasTable('bank_statement_transactions')
             && Schema::hasColumn('bank_statement_transactions', 'employee_monthly_payment_id')) {

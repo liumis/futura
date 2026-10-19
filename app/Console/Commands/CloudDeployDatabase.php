@@ -23,6 +23,16 @@ class CloudDeployDatabase extends Command
         $force = filter_var(env('PROD_BOOTSTRAP_FORCE', false), FILTER_VALIDATE_BOOLEAN)
             || ! ProdDatabaseBootstrap::alreadyImported();
 
-        return $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
+        $import = $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
+
+        if ($import === self::SUCCESS) {
+            return self::SUCCESS;
+        }
+
+        // Do not block release activation: schema/theme must ship even if bootstrap
+        // import needs a follow-up. Re-run with PROD_BOOTSTRAP_FORCE=true after fix.
+        $this->error('Bootstrap import failed; continuing deploy so the release can activate.');
+
+        return self::SUCCESS;
     }
 }

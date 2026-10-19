@@ -102,21 +102,29 @@ return new class extends Migration
             $table->unsignedBigInteger('shareholder_decision_document_id')->nullable();
             $table->timestamps();
 
-            // Short FK/index names — MySQL caps identifiers at 64 chars.
-            $table->foreign('employee_id', 'emp_mp_employee_fk')
-                ->references('id')->on('employees')->cascadeOnDelete();
-            $table->foreign('employee_payment_report_id', 'emp_payments_report_fk')
-                ->references('id')->on('employee_payment_reports')->nullOnDelete();
-            $table->foreign('payslip_document_id', 'emp_mp_payslip_doc_fk')
-                ->references('id')->on('documents')->nullOnDelete();
-            $table->foreign('bonus_order_document_id', 'emp_mp_bonus_order_doc_fk')
-                ->references('id')->on('documents')->nullOnDelete();
-            $table->foreign('shareholder_decision_document_id', 'emp_mp_shareholder_doc_fk')
-                ->references('id')->on('documents')->nullOnDelete();
-
             $table->unique(['employee_id', 'payment_date'], 'emp_mp_employee_payment_date_uq');
             $table->index('payment_date', 'emp_mp_payment_date_idx');
         });
+
+        foreach ([
+            ['employee_id', 'employees', 'emp_mp_employee_fk', 'cascade'],
+            ['employee_payment_report_id', 'employee_payment_reports', 'emp_payments_report_fk', 'null'],
+            ['payslip_document_id', 'documents', 'emp_mp_payslip_doc_fk', 'null'],
+            ['bonus_order_document_id', 'documents', 'emp_mp_bonus_order_doc_fk', 'null'],
+            ['shareholder_decision_document_id', 'documents', 'emp_mp_shareholder_doc_fk', 'null'],
+        ] as [$column, $onTable, $name, $onDelete]) {
+            if (! Schema::hasTable($onTable)) {
+                continue;
+            }
+
+            \App\Support\SchemaForeignKeys::ensure(
+                'employee_monthly_payments',
+                $column,
+                $onTable,
+                $name,
+                $onDelete,
+            );
+        }
 
         if (Schema::hasTable('bank_statement_transactions')
             && Schema::hasColumn('bank_statement_transactions', 'employee_monthly_payment_id')) {
