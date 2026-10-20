@@ -714,7 +714,10 @@ class ProdDatabaseBootstrap
             return null;
         }
 
-        if (count($keepColumns) === count($dumpColumns)) {
+        $decimalMaxes = self::decimalColumnAbsMaxes($table);
+        $needsRewrite = count($keepColumns) !== count($dumpColumns) || $decimalMaxes !== [];
+
+        if (! $needsRewrite) {
             return $statement;
         }
 
@@ -729,7 +732,14 @@ class ProdDatabaseBootstrap
             $cells = [];
 
             foreach ($keepIndexes as $index) {
-                $cells[] = $row[$index];
+                $column = $dumpColumns[$index];
+                $literal = $row[$index];
+
+                if (isset($decimalMaxes[$column])) {
+                    $literal = self::clampDecimalLiteral($literal, $decimalMaxes[$column]);
+                }
+
+                $cells[] = $literal;
             }
 
             $values[] = '('.implode(', ', $cells).')';
@@ -738,6 +748,57 @@ class ProdDatabaseBootstrap
         $quotedColumns = implode(', ', array_map(self::quoteIdentifier(...), $keepColumns));
 
         return 'INSERT INTO '.self::quoteIdentifier($table).' ('.$quotedColumns.') VALUES '.implode(', ', $values);
+    }
+
+    /**
+     * @return array<string, float> column => max absolute value for DECIMAL/NUMERIC
+     */
+    private static function decimalColumnAbsMaxes(string $table): array
+    {
+        $maxes = [];
+
+        foreach (Schema::getColumns($table) as $column) {
+            $type = strtolower((string) ($column['type_name'] ?? $column['type'] ?? ''));
+
+            if (! str_contains($type, 'decimal') && ! str_contains($type, 'numeric')) {
+                continue;
+            }
+
+            $precision = (int) ($column['numeric_precision'] ?? 12);
+            $scale = (int) ($column['numeric_scale'] ?? 2);
+
+            if ($precision <= $scale) {
+                $precision = 12;
+                $scale = 2;
+            }
+
+            // DECIMAL(P,S) max is (10^(P-S) - 10^(-S)).
+            $maxes[$column['name']] = (10 ** ($precision - $scale)) - (10 ** (-1 * $scale));
+        }
+
+        return $maxes;
+    }
+
+    private static function clampDecimalLiteral(string $literal, float $absMax): string
+    {
+        $trimmed = trim($literal);
+
+        if ($trimmed === '' || strcasecmp($trimmed, 'NULL') === 0 || str_starts_with($trimmed, "'")) {
+            return $literal;
+        }
+
+        if (! is_numeric($trimmed)) {
+            return $literal;
+        }
+
+        $value = (float) $trimmed;
+
+        if (abs($value) <= $absMax) {
+            return $trimmed;
+        }
+
+        // Corrupt SQLite money values (e.g. invoices.vat) must not abort MySQL import.
+        return '0';
     }
 
     /**
