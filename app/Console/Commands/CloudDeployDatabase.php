@@ -4,6 +4,8 @@ namespace App\Console\Commands;
 
 use App\Services\ProdDatabaseBootstrap;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CloudDeployDatabase extends Command
 {
@@ -19,20 +21,17 @@ class CloudDeployDatabase extends Command
             return $migrate;
         }
 
-        // Force when env asks, or when the dump checksum is new / prior import never finished.
+        $usersMissing = Schema::hasTable('users') && ! DB::table('users')->exists();
+
+        // Force when env asks, dump is new, prior import never finished, or login DB is empty.
         $force = filter_var(env('PROD_BOOTSTRAP_FORCE', false), FILTER_VALIDATE_BOOLEAN)
-            || ! ProdDatabaseBootstrap::alreadyImported();
+            || ! ProdDatabaseBootstrap::alreadyImported()
+            || $usersMissing;
 
-        $import = $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
-
-        if ($import === self::SUCCESS) {
-            return self::SUCCESS;
+        if ($usersMissing) {
+            $this->warn('users table is empty — forcing prod bootstrap import.');
         }
 
-        // Do not block release activation: schema/theme must ship even if bootstrap
-        // import needs a follow-up. Re-run with PROD_BOOTSTRAP_FORCE=true after fix.
-        $this->error('Bootstrap import failed; continuing deploy so the release can activate.');
-
-        return self::SUCCESS;
+        return $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
     }
 }

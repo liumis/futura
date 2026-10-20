@@ -201,8 +201,8 @@ class ProdDatabaseBootstrap
         DB::statement('SET SQL_SAFE_UPDATES=0');
 
         try {
-            // Cloud may still have leftover year/month unique after migrations report success.
-            self::repairEmployeeMonthlyPaymentsSchema();
+            // Always rebuild — leftover year/month unique is FK-pinned on Cloud MySQL.
+            self::rebuildEmployeeMonthlyPaymentsTable();
 
             // Always empty application tables first. Dump DELETEs alone are not enough when
             // a previous import failed mid-way or live data already has the same primary keys.
@@ -226,7 +226,23 @@ class ProdDatabaseBootstrap
                     continue;
                 }
 
-                DB::unprepared($adapted);
+                try {
+                    DB::unprepared($adapted);
+                } catch (Throwable $statementError) {
+                    // One table must not block users/login — rebuild EMP and retry once, then skip.
+                    if (preg_match('/^INSERT INTO `employee_monthly_payments`/i', $adapted) !== 1) {
+                        throw $statementError;
+                    }
+
+                    self::rebuildEmployeeMonthlyPaymentsTable();
+
+                    try {
+                        DB::unprepared($adapted);
+                    } catch (Throwable) {
+                        continue;
+                    }
+                }
+
                 $executed++;
 
                 if (preg_match('/^INSERT INTO `([^`]+)`/i', $adapted, $match) === 1) {
