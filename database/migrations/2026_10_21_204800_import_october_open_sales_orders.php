@@ -61,7 +61,7 @@ return new class extends Migration
 
     public function up(): void
     {
-        if (! Schema::hasTable('orders')) {
+        if (app()->environment('testing') || ! Schema::hasTable('orders')) {
             return;
         }
 
