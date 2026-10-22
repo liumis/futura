@@ -106,6 +106,66 @@ class ReportsSalesTest extends TestCase
             ->assertDontSee('Rejected UAB');
     }
 
+    public function test_company_and_code_cells_are_double_click_editable(): void
+    {
+        $this->actingAsAdmin();
+        [$customer] = $this->seedSale(
+            company: 'Edit Me UAB',
+            code: 'EDITME',
+            collectionName: 'Ferrara',
+            price: 10,
+            size: '20',
+            quantity: 1,
+            status: OrderStatus::Completed,
+            orderDate: now(),
+        );
+
+        $html = Livewire::test(ReportsSales::class)->html();
+
+        $this->assertStringContainsString('data-ss-cell-field="company_name"', $html);
+        $this->assertStringContainsString('data-ss-cell-field="company_code"', $html);
+        $this->assertStringContainsString('data-ss-record-key="'.$customer->id.'"', $html);
+    }
+
+    public function test_double_click_edit_updates_company_name_and_code(): void
+    {
+        $this->actingAsAdmin();
+        [$customer] = $this->seedSale(
+            company: 'Before UAB',
+            code: 'BEFORE',
+            collectionName: 'Ferrara',
+            price: 10,
+            size: '20',
+            quantity: 1,
+            status: OrderStatus::Completed,
+            orderDate: now(),
+        );
+
+        Livewire::test(ReportsSales::class)
+            ->callAction('doubleClickCellEdit', data: [
+                'value' => 'After UAB',
+            ], arguments: [
+                'recordKey' => (string) $customer->id,
+                'field' => 'company_name',
+            ])
+            ->assertHasNoActionErrors()
+            ->assertSee('After UAB');
+
+        $this->assertSame('After UAB', $customer->fresh()?->company_name);
+
+        Livewire::test(ReportsSales::class)
+            ->callAction('doubleClickCellEdit', data: [
+                'value' => 'AFTER',
+            ], arguments: [
+                'recordKey' => (string) $customer->id,
+                'field' => 'company_code',
+            ])
+            ->assertHasNoActionErrors()
+            ->assertSee('AFTER');
+
+        $this->assertSame('AFTER', $customer->fresh()?->company_code);
+    }
+
     /**
      * @return array{0: User, 1: Order}
      */

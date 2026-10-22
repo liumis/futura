@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\ProductReservations;
 
+use App\Filament\Admin\Support\DoubleClickCellEdit;
 use App\Models\Product;
 use App\Models\ProductReservation;
 use BackedEnum;
@@ -74,28 +75,43 @@ class ProductReservationResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('product.productType.name')
-                    ->label('Type')
-                    ->sortable()
-                    ->toggleable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.productType.name')
+                        ->label('Type')
+                        ->sortable()
+                        ->toggleable(),
+                    'product_type',
+                ),
 
-                Tables\Columns\TextColumn::make('product.color.collection.name')
-                    ->label('Collection')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.color.collection.name')
+                        ->label('Collection')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'collection',
+                    fn (ProductReservation $record): bool => $record->product?->color_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('product.color.color_name')
-                    ->label('Color/Name')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.color.color_name')
+                        ->label('Color/Name')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'color_name',
+                    fn (ProductReservation $record): bool => $record->product?->color_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('product.color.color_code')
-                    ->label('Color code')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.color.color_code')
+                        ->label('Color code')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'color_code',
+                    fn (ProductReservation $record): bool => $record->product?->color_id !== null,
+                ),
 
                 Tables\Columns\TextColumn::make('product.name')
                     ->label('Size (m)')

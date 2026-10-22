@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\ManualImports;
 
+use App\Filament\Admin\Support\DoubleClickCellEdit;
 use App\Models\Contact;
 use App\Models\ManualImport;
 use App\Models\Product;
@@ -176,26 +177,30 @@ class ManualImportResource extends Resource
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('product.product_code')
-                    ->label('Product')
-                    ->searchable()
-                    ->sortable()
-                    ->description(function (ManualImport $record): ?string {
-                        $product = $record->product;
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.product_code')
+                        ->label('Product')
+                        ->searchable()
+                        ->sortable()
+                        ->description(function (ManualImport $record): ?string {
+                            $product = $record->product;
 
-                        if ($product === null) {
-                            return null;
-                        }
+                            if ($product === null) {
+                                return null;
+                            }
 
-                        if ($product->isCatalog()) {
-                            return $product->name;
-                        }
+                            if ($product->isCatalog()) {
+                                return $product->name;
+                            }
 
-                        $collection = $product->color?->collection?->name;
-                        $color = $product->color?->color_name;
+                            $collection = $product->color?->collection?->name;
+                            $color = $product->color?->color_name;
 
-                        return trim(implode(' · ', array_filter([$collection, $color]))) ?: null;
-                    }),
+                            return trim(implode(' · ', array_filter([$collection, $color]))) ?: null;
+                        }),
+                    'product_code',
+                    fn (ManualImport $record): bool => $record->product !== null,
+                ),
 
                 Tables\Columns\TextColumn::make('amount')
                     ->label('Amount')

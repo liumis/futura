@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\Orders\Concerns;
 
 use App\Enums\CargoStatus;
+use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Models\CargoItem;
 use App\Models\Product;
 use App\Services\CargoQuickOrderParser;
@@ -401,6 +402,9 @@ trait HandlesOrderQuickOrder
             ->keyBy('id');
 
         $onOrderRolls = $this->upcomingOnOrderRollsByProductIds($ids);
+        $colorStockMetersById = OrderResource::colorStockMetersByColorId(
+            $products->all(),
+        );
 
         $items = [];
 
@@ -418,7 +422,11 @@ trait HandlesOrderQuickOrder
             $color = trim(implode(' ', array_filter([$colorCode, $colorName])));
             $size = $product->sizeMeters();
             $stockMeters = $product->stockMeters();
+            $colorId = (int) ($product->color_id ?? 0);
             $recommended = (int) ($product->color?->recommended_stock ?? 0);
+            $colorStockMeters = $colorId > 0
+                ? (float) ($colorStockMetersById[$colorId] ?? $stockMeters)
+                : $stockMeters;
             $rollsOnOrder = (int) ($onOrderRolls[$productId] ?? 0);
             $onOrderMeters = $size !== null && $size > 0
                 ? $rollsOnOrder * $size
@@ -441,7 +449,7 @@ trait HandlesOrderQuickOrder
                 'stock' => (int) $product->current_amount,
                 'stock_meters' => $stockMeters,
                 'recommended_meters' => $recommended,
-                'is_low_stock' => $recommended > 0 && $stockMeters < $recommended,
+                'is_low_stock' => $recommended > 0 && $colorStockMeters < $recommended,
                 'on_order_rolls' => $rollsOnOrder,
                 'on_order_meters' => $onOrderMeters,
             ];

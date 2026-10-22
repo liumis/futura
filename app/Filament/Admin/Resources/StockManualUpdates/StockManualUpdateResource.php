@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\StockManualUpdates;
 
 use App\Filament\Admin\Resources\StockManualUpdates\Pages\ListStockManualUpdates;
+use App\Filament\Admin\Support\DoubleClickCellEdit;
 use App\Models\StockManualUpdate;
 use App\Models\User;
 use App\Services\WriteOffDocumentCreator;
@@ -83,21 +84,33 @@ class StockManualUpdateResource extends Resource
                     ->sortable()
                     ->placeholder('—'),
 
-                Tables\Columns\TextColumn::make('product.color.collection.name')
-                    ->label('Collection')
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.color.collection.name')
+                        ->label('Collection')
+                        ->sortable()
+                        ->placeholder('—'),
+                    'collection',
+                    fn (StockManualUpdate $record): bool => $record->product?->color_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('product.color.color_name')
-                    ->label('Color')
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.color.color_name')
+                        ->label('Color')
+                        ->sortable()
+                        ->placeholder('—'),
+                    'color_name',
+                    fn (StockManualUpdate $record): bool => $record->product?->color_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('product.product_code')
-                    ->label('Product code')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product.product_code')
+                        ->label('Product code')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'product_code',
+                    fn (StockManualUpdate $record): bool => $record->product !== null,
+                ),
 
                 Tables\Columns\TextColumn::make('product.name')
                     ->label('Size (m)')

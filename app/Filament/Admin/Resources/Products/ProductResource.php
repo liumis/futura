@@ -2,6 +2,7 @@
 
 namespace App\Filament\Admin\Resources\Products;
 
+use App\Filament\Admin\Support\DoubleClickCellEdit;
 use App\Models\Color;
 use App\Models\Product;
 use App\Models\ProductType;
@@ -116,27 +117,38 @@ class ProductResource extends Resource
                     ->placeholder('—')
                     ->label('Collection'),
 
-                Tables\Columns\TextColumn::make('color.color_name')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—')
-                    ->label('Color name'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('color.color_name')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—')
+                        ->label('Color name'),
+                    'color_name',
+                    fn (Product $record): bool => $record->color_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('color.color_code')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—')
-                    ->label('Color code'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('color.color_code')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—')
+                        ->label('Color code'),
+                    'color_code',
+                    fn (Product $record): bool => $record->color_id !== null,
+                ),
 
                 Tables\Columns\TextColumn::make('name')
                     ->searchable()
                     ->sortable()
                     ->label('Size (m)'),
 
-                Tables\Columns\TextColumn::make('product_code')
-                    ->searchable()
-                    ->sortable()
-                    ->label('Product code'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product_code')
+                        ->searchable()
+                        ->sortable()
+                        ->label('Product code'),
+                    'product_code',
+                ),
 
                 Tables\Columns\TextColumn::make('alternative_code')
                     ->searchable()

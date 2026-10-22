@@ -144,7 +144,8 @@ class AdminPanelProvider extends PanelProvider
             )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
-                fn (): string => '<script src="'.asset('js/cargo-order-picker.js').'?v=7"></script>',
+                fn (): string => '<script src="'.asset('js/cargo-order-picker.js').'?v=7"></script>'
+                    .'<script src="'.asset('js/ss-double-click-cell-edit.js').'?v=2"></script>',
             )
             ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,

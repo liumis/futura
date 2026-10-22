@@ -3,6 +3,7 @@
 namespace App\Filament\Admin\Resources\DirectoryContacts;
 
 use App\Enums\DirectoryContactPriority;
+use App\Filament\Admin\Support\DoubleClickCellEdit;
 use App\Models\DirectoryContact;
 use App\Models\DirectoryContactStage;
 use App\Models\OriginCountry;
@@ -214,50 +215,68 @@ class DirectoryContactResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('company_name')
-                    ->label('Company name')
-                    ->searchable()
-                    ->sortable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('company_name')
+                        ->label('Company name')
+                        ->searchable()
+                        ->sortable(),
+                    'company_name',
+                ),
 
-                Tables\Columns\TextColumn::make('type')
-                    ->label('Type')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—')
-                    ->toggleable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('type')
+                        ->label('Type')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—')
+                        ->toggleable(),
+                    'type',
+                ),
 
-                Tables\Columns\TextColumn::make('segment')
-                    ->label('Segment')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—')
-                    ->toggleable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('segment')
+                        ->label('Segment')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—')
+                        ->toggleable(),
+                    'segment',
+                ),
 
-                Tables\Columns\TextColumn::make('priority')
-                    ->label('Priority')
-                    ->badge()
-                    ->formatStateUsing(fn (?DirectoryContactPriority $state): string => $state?->label() ?? '—')
-                    ->color(fn (?DirectoryContactPriority $state): string => match ($state) {
-                        DirectoryContactPriority::High => 'danger',
-                        DirectoryContactPriority::Medium => 'warning',
-                        DirectoryContactPriority::Low => 'gray',
-                        default => 'gray',
-                    })
-                    ->sortable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('priority')
+                        ->label('Priority')
+                        ->badge()
+                        ->formatStateUsing(fn (?DirectoryContactPriority $state): string => $state?->label() ?? '—')
+                        ->color(fn (?DirectoryContactPriority $state): string => match ($state) {
+                            DirectoryContactPriority::High => 'danger',
+                            DirectoryContactPriority::Medium => 'warning',
+                            DirectoryContactPriority::Low => 'gray',
+                            default => 'gray',
+                        })
+                        ->sortable(),
+                    'priority',
+                ),
 
-                Tables\Columns\TextColumn::make('website')
-                    ->label('Website')
-                    ->url(fn (DirectoryContact $record): ?string => filled($record->website)
-                        ? 'https://'.$record->website
-                        : null)
-                    ->openUrlInNewTab()
-                    ->placeholder('—')
-                    ->toggleable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('website')
+                        ->label('Website')
+                        ->url(fn (DirectoryContact $record): ?string => filled($record->website)
+                            ? 'https://'.$record->website
+                            : null)
+                        ->openUrlInNewTab()
+                        ->placeholder('—')
+                        ->toggleable(),
+                    'website',
+                ),
 
-                Tables\Columns\TextColumn::make('stage.name')
-                    ->label('Stage')
-                    ->placeholder('—')
-                    ->sortable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('stage.name')
+                        ->label('Stage')
+                        ->placeholder('—')
+                        ->sortable(),
+                    'stage',
+                ),
 
                 Tables\Columns\TextColumn::make('last_contact')
                     ->label('Last contact')

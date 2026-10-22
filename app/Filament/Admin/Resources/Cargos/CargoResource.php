@@ -8,6 +8,7 @@ use App\Filament\Admin\Support\ProductCatalogPicker;
 use App\Filament\Admin\Support\ProductLineItemCard;
 use App\Models\Cargo;
 use App\Models\Collection as CollectionModel;
+use App\Models\Color;
 use App\Models\CustomsContact;
 use App\Models\ImportTax;
 use App\Models\ImportTaxPayment;
@@ -406,8 +407,15 @@ class CargoResource extends Resource
             $products,
         );
 
+        $colorStockMetersById = Color::stockMetersByIds(
+            array_values(array_filter(array_map(
+                fn (Product $product): int => (int) ($product->color_id ?? 0),
+                $products,
+            ))),
+        );
+
         $rows = array_map(
-            fn (Product $product): Group => self::cargoOrderProductRow($product, $heading),
+            fn (Product $product): Group => self::cargoOrderProductRow($product, $heading, $colorStockMetersById),
             $products,
         );
 
@@ -431,7 +439,10 @@ class CargoResource extends Resource
             ]);
     }
 
-    private static function cargoOrderProductRow(Product $product, string $collectionName): Group
+    /**
+     * @param  array<int, float>  $colorStockMetersById
+     */
+    private static function cargoOrderProductRow(Product $product, string $collectionName, array $colorStockMetersById = []): Group
     {
         $search = strtolower(trim(implode(' ', array_filter([
             $collectionName,
@@ -448,7 +459,10 @@ class CargoResource extends Resource
         $stockMeters = $product->stockMeters();
         $sizeMeters = $product->sizeMeters();
         $rolls = (int) $product->current_amount;
-        $isLowStock = $colorId > 0 && $recommended > 0 && $stockMeters < $recommended;
+        $colorStockMeters = $colorId > 0
+            ? (float) ($colorStockMetersById[$colorId] ?? $product->color?->stockMeters() ?? $stockMeters)
+            : $stockMeters;
+        $isLowStock = $colorId > 0 && $recommended > 0 && $colorStockMeters < $recommended;
 
         $formatMeters = static function (float $meters): string {
             return rtrim(rtrim(number_format($meters, 2, '.', ''), '0'), '.').'m';
@@ -558,7 +572,7 @@ class CargoResource extends Resource
             ->extraAttributes([
                 'class' => $rowClass,
                 'data-search' => e($search),
-                'data-stock-meters' => (string) $stockMeters,
+                'data-stock-meters' => (string) $colorStockMeters,
                 'data-recommended-meters' => (string) $recommended,
                 'data-color-id' => (string) $colorId,
             ]);
@@ -767,22 +781,28 @@ class CargoResource extends Resource
             return [];
         }
 
-        $stockMeters = Product::stockMetersSqlExpression();
-
         $products = Product::query()
             ->artificialLeather()
             ->with('color')
             ->whereHas('color.collection', fn (Builder $query) => $query->where('supplier_id', $supplierId))
             ->whereHas('color', function (Builder $query): void {
-                $query->where('recommended_stock', '>', 0)
+                $query->belowRecommendedStock()
                     ->where('default_order', '>', 0);
             })
-            ->whereRaw("{$stockMeters} < (SELECT recommended_stock FROM colors WHERE colors.id = products.color_id)")
-            ->get(['id', 'color_id']);
+            ->get(['id', 'color_id', 'name']);
 
         $amounts = [];
 
-        foreach ($products as $product) {
+        // One default-order line per low-stock color (prefer standard 30 m roll).
+        foreach ($products->groupBy(fn (Product $product): int => (int) $product->color_id) as $colorProducts) {
+            /** @var \Illuminate\Support\Collection<int, Product> $colorProducts */
+            $product = $colorProducts->first(fn (Product $row): bool => (float) $row->name === 30.0)
+                ?? $colorProducts->sortByDesc(fn (Product $row): float => $row->stockMeters())->first();
+
+            if ($product === null) {
+                continue;
+            }
+
             $defaultOrder = (int) ($product->color?->default_order ?? 0);
 
             if ($defaultOrder <= 0) {

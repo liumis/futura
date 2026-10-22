@@ -2,7 +2,12 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Concerns\HasDoubleClickCellEdit;
+use App\Filament\Admin\Support\DoubleClickCellEdit;
+use App\Models\Collection;
+use App\Models\Color;
 use App\Models\Product;
+use App\Models\ProductType;
 use App\Services\ExternalStockImporter;
 use App\Services\StockManualUpdateLogger;
 use App\Support\Money;
@@ -11,7 +16,9 @@ use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables;
@@ -20,6 +27,7 @@ use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\HtmlString;
@@ -29,6 +37,7 @@ use UnitEnum;
 
 class Stock extends Page implements HasTable
 {
+    use HasDoubleClickCellEdit;
     use InteractsWithTable;
 
     protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-archive-box';
@@ -61,28 +70,43 @@ class Stock extends Page implements HasTable
         return $table
             ->query(fn (): Builder => Product::query()->with(['productType', 'color.collection']))
             ->columns([
-                Tables\Columns\TextColumn::make('productType.name')
-                    ->label('Type')
-                    ->sortable()
-                    ->toggleable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('productType.name')
+                        ->label('Type')
+                        ->sortable()
+                        ->toggleable(),
+                    'product_type',
+                ),
 
-                Tables\Columns\TextColumn::make('color.collection.name')
-                    ->label('Collection')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('color.collection.name')
+                        ->label('Collection')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'collection',
+                    fn (Product $record): bool => $record->color_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('color.color_name')
-                    ->label('Color/Name')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('color.color_name')
+                        ->label('Color/Name')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'color_name',
+                    fn (Product $record): bool => $record->color_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('color.color_code')
-                    ->label('Color code')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('color.color_code')
+                        ->label('Color code')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'color_code',
+                    fn (Product $record): bool => $record->color_id !== null,
+                ),
 
                 Tables\Columns\TextColumn::make('name')
                     ->label('Size (m)')
@@ -91,10 +115,13 @@ class Stock extends Page implements HasTable
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('product_code')
-                    ->label('Product code')
-                    ->searchable()
-                    ->sortable(),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('product_code')
+                        ->label('Product code')
+                        ->searchable()
+                        ->sortable(),
+                    'product_code',
+                ),
 
                 Tables\Columns\TextColumn::make('alternative_code')
                     ->label('Alternative code')
@@ -194,6 +221,103 @@ class Stock extends Page implements HasTable
             ->defaultPaginationPageOption(50)
             ->emptyStateHeading('No stock items')
             ->emptyStateDescription('Products will appear here once they are added to the catalog.');
+    }
+
+    protected function doubleClickCellEditRecord(string|int $key): ?Model
+    {
+        return Product::query()->with(['productType', 'color.collection'])->find($key);
+    }
+
+    /**
+     * @return array<string, array{label: string, form: mixed, fill: \Closure, save: \Closure, can?: \Closure, description?: mixed}>
+     */
+    protected function doubleClickCellEditFields(): array
+    {
+        return [
+            'product_type' => [
+                'label' => 'Type',
+                'form' => fn (): Select => Select::make('value')
+                    ->label('Type')
+                    ->options(fn (): array => ProductType::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->searchable()
+                    ->required(),
+                'fill' => fn (Product $record): ?int => $record->product_type_id,
+                'save' => function (Product $record, mixed $value): void {
+                    $typeId = (int) $this->doubleClickValidate($value, ['required', 'integer', 'exists:product_types,id']);
+                    $record->update(['product_type_id' => $typeId]);
+                },
+            ],
+            'collection' => [
+                'label' => 'Collection',
+                'description' => 'Updates the color’s collection for every product that shares this color.',
+                'can' => fn (Product $record): bool => $record->color !== null,
+                'form' => fn (): Select => Select::make('value')
+                    ->label('Collection')
+                    ->options(fn (): array => Collection::query()->orderBy('name')->pluck('name', 'id')->all())
+                    ->searchable()
+                    ->required(),
+                'fill' => fn (Product $record): ?int => $record->color?->collection_id,
+                'save' => function (Product $record, mixed $value): void {
+                    $color = $record->color;
+                    if ($color === null) {
+                        throw ValidationException::withMessages(['value' => 'This product has no color.']);
+                    }
+
+                    $collectionId = (int) $this->doubleClickValidate($value, ['required', 'integer', 'exists:collections,id']);
+                    $color->update(['collection_id' => $collectionId]);
+                },
+            ],
+            'color_name' => [
+                'label' => 'Color name',
+                'description' => 'Updates the color name for every product that shares this color.',
+                'can' => fn (Product $record): bool => $record->color !== null,
+                'form' => fn (): TextInput => TextInput::make('value')
+                    ->label('Color name')
+                    ->required()
+                    ->maxLength(255),
+                'fill' => fn (Product $record): ?string => $record->color?->color_name,
+                'save' => function (Product $record, mixed $value): void {
+                    $color = $record->color;
+                    if ($color === null) {
+                        throw ValidationException::withMessages(['value' => 'This product has no color.']);
+                    }
+
+                    $name = (string) $this->doubleClickValidate($value, ['required', 'string', 'max:255']);
+                    $color->update(['color_name' => $name]);
+                },
+            ],
+            'color_code' => [
+                'label' => 'Color code',
+                'description' => 'Updates the color code for every product that shares this color.',
+                'can' => fn (Product $record): bool => $record->color !== null,
+                'form' => fn (): TextInput => TextInput::make('value')
+                    ->label('Color code')
+                    ->required()
+                    ->maxLength(255),
+                'fill' => fn (Product $record): ?string => $record->color?->color_code,
+                'save' => function (Product $record, mixed $value): void {
+                    $color = $record->color;
+                    if ($color === null) {
+                        throw ValidationException::withMessages(['value' => 'This product has no color.']);
+                    }
+
+                    $code = (string) $this->doubleClickValidate($value, ['required', 'string', 'max:255']);
+                    $color->update(['color_code' => $code]);
+                },
+            ],
+            'product_code' => [
+                'label' => 'Product code',
+                'form' => fn (): TextInput => TextInput::make('value')
+                    ->label('Product code')
+                    ->required()
+                    ->maxLength(255),
+                'fill' => fn (Product $record): ?string => $record->product_code,
+                'save' => function (Product $record, mixed $value): void {
+                    $code = (string) $this->doubleClickValidate($value, ['required', 'string', 'max:255']);
+                    $record->update(['product_code' => $code]);
+                },
+            ],
+        ];
     }
 
     protected function getHeaderActions(): array

@@ -4,9 +4,11 @@ namespace App\Filament\Admin\Resources\Orders;
 
 use App\Enums\CargoStatus;
 use App\Enums\OrderStatus;
+use App\Filament\Admin\Support\DoubleClickCellEdit;
 use App\Filament\Admin\Support\ProductLineItemCard;
 use App\Models\CargoItem;
 use App\Models\Collection as CollectionModel;
+use App\Models\Color;
 use App\Models\Contact;
 use App\Models\CustomerLevelPrice;
 use App\Models\Invoice;
@@ -409,11 +411,12 @@ class OrderResource extends Resource
             fn (Product $product): int => (int) $product->id,
             $products,
         ));
+        $colorStockMetersById = self::colorStockMetersByColorId($products);
 
         return View::make('filament.admin.components.order-catalog-collection')
             ->key('order-line-section-'.$sectionKey)
             ->columnSpanFull()
-            ->viewData(function (?Order $record, Get $get) use ($sectionKey, $heading, $products, $upcomingByProductId, $productIds): array {
+            ->viewData(function (?Order $record, Get $get) use ($sectionKey, $heading, $products, $upcomingByProductId, $productIds, $colorStockMetersById): array {
                 $amounts = is_array($get('order_amounts')) ? $get('order_amounts') : [];
 
                 return [
@@ -427,6 +430,7 @@ class OrderResource extends Resource
                             $upcomingByProductId[$product->id] ?? null,
                             $record,
                             $amounts,
+                            $colorStockMetersById,
                         ),
                         $products,
                     ),
@@ -435,8 +439,32 @@ class OrderResource extends Resource
     }
 
     /**
+     * Color-level stock meters (matches Reports → Low stock), keyed by color id.
+     *
+     * @param  list<Product>  $products
+     * @return array<int, float>
+     */
+    public static function colorStockMetersByColorId(array $products): array
+    {
+        $colorIds = [];
+        foreach ($products as $product) {
+            if ($product->isCatalog()) {
+                continue;
+            }
+
+            $colorId = (int) ($product->color_id ?? 0);
+            if ($colorId > 0) {
+                $colorIds[$colorId] = true;
+            }
+        }
+
+        return Color::stockMetersByIds(array_keys($colorIds));
+    }
+
+    /**
      * @param  array{amount: int, estimated_arrival: string|null}|null  $upcoming
      * @param  array<string|int, mixed>  $amounts
+     * @param  array<int, float>  $colorStockMetersById
      * @return array<string, mixed>
      */
     private static function orderCatalogRowData(
@@ -445,6 +473,7 @@ class OrderResource extends Resource
         ?array $upcoming,
         ?Order $record,
         array $amounts,
+        array $colorStockMetersById = [],
     ): array {
         $search = strtolower(trim(implode(' ', array_filter([
             $collectionName,
@@ -477,7 +506,11 @@ class OrderResource extends Resource
         $recommended = (int) ($product->color?->recommended_stock ?? 0);
         $stockMeters = $product->stockMeters();
         $sizeMeters = $product->sizeMeters();
-        $isLowStock = ! $product->isCatalog() && $colorId > 0 && $recommended > 0 && $stockMeters < $recommended;
+        // Recommended stock is per color — compare color totals, not each size SKU alone.
+        $colorStockMeters = $colorId > 0
+            ? (float) ($colorStockMetersById[$colorId] ?? $product->color?->stockMeters() ?? $stockMeters)
+            : $stockMeters;
+        $isLowStock = ! $product->isCatalog() && $colorId > 0 && $recommended > 0 && $colorStockMeters < $recommended;
 
         $formatMeters = static function (float $meters): string {
             return rtrim(rtrim(number_format($meters, 2, '.', ''), '0'), '.').'m';
@@ -516,7 +549,8 @@ class OrderResource extends Resource
         return [
             'product_id' => (int) $product->id,
             'search' => $search,
-            'stock_meters' => $stockMeters,
+            // data-stock-meters drives JS low-stock class — must be color total.
+            'stock_meters' => $colorStockMeters,
             'recommended' => $recommended,
             'color_id' => $colorId,
             'is_low_stock' => $isLowStock,
@@ -837,17 +871,24 @@ class OrderResource extends Resource
                     ->label('#')
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('user.company_name')
-                    ->label('Customer')
-                    ->searchable()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('user.company_name')
+                        ->label('Customer')
+                        ->searchable()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'customer_name',
+                    fn (Order $record): bool => $record->user_id !== null,
+                ),
 
-                Tables\Columns\TextColumn::make('order_date')
-                    ->label('Order date')
-                    ->date()
-                    ->sortable()
-                    ->placeholder('—'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('order_date')
+                        ->label('Order date')
+                        ->date()
+                        ->sortable()
+                        ->placeholder('—'),
+                    'order_date',
+                ),
 
                 Tables\Columns\TextColumn::make('status')
                     ->label('Status')

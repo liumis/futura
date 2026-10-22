@@ -95,6 +95,49 @@ class OrderQuickOrderTest extends TestCase
         $this->assertStringNotContainsString('data-recommended-stock="1" class="fi-cargo-order-rec-btn"', $html);
     }
 
+    public function test_order_row_low_stock_uses_color_total_not_each_size_sku(): void
+    {
+        $this->actingAsAdmin();
+
+        $collection = Collection::factory()->create(['name' => 'Agnona']);
+        $color = Color::factory()->create([
+            'collection_id' => $collection->id,
+            'color_code' => '103',
+            'color_name' => 'Blanc',
+            'recommended_stock' => 200,
+        ]);
+        Product::factory()->create([
+            'color_id' => $color->id,
+            'name' => '30',
+            'product_code' => 'AG103-30',
+            'current_amount' => 7, // 210 m — above recommended
+        ]);
+        $emptyPartial = Product::factory()->create([
+            'color_id' => $color->id,
+            'name' => '25',
+            'product_code' => 'AG103-25',
+            'current_amount' => 0,
+        ]);
+
+        $html = Livewire::test(CreateOrder::class)->html();
+
+        $this->assertTrue(
+            (bool) preg_match(
+                '/class="([^"]*fi-cargo-order-row[^"]*)"[^>]*data-stock-meters="([^"]*)"[^>]*>[\s\S]*?data-order-amount-input="'.$emptyPartial->id.'"/',
+                $html,
+                $match,
+            ),
+            'AG103-25 catalog row not found',
+        );
+
+        $this->assertStringNotContainsString(
+            'fi-cargo-order-row--low-stock',
+            $match[1],
+            'Empty size SKU should not be low-stock when color total meters meet recommended',
+        );
+        $this->assertSame('210', $match[2], 'data-stock-meters should be the color total, not the empty SKU');
+    }
+
     public function test_amount_input_updates_cart_without_auto_order(): void
     {
         $this->actingAsAdmin();

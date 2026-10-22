@@ -2,21 +2,26 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Filament\Admin\Concerns\HasDoubleClickCellEdit;
 use App\Filament\Admin\Concerns\HasReportMonthQuickFilter;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\SalesReportBuilder;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Pages\Page;
 use Filament\Schemas\Schema;
+use Illuminate\Database\Eloquent\Model;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use UnitEnum;
 
 class ReportsSales extends Page implements HasForms
 {
+    use HasDoubleClickCellEdit;
     use HasReportMonthQuickFilter;
     use InteractsWithForms;
 
@@ -203,5 +208,46 @@ class ReportsSales extends Page implements HasForms
     public static function canAccess(): bool
     {
         return auth()->user()?->canAccessNavigationGroup(static::$navigationGroup) ?? false;
+    }
+
+    protected function doubleClickCellEditRecord(string|int $key): ?Model
+    {
+        return User::query()->find($key);
+    }
+
+    /**
+     * @return array<string, array{label: string, form: mixed, fill: \Closure, save: \Closure, can?: \Closure, description?: mixed}>
+     */
+    protected function doubleClickCellEditFields(): array
+    {
+        return [
+            'company_name' => [
+                'label' => 'Company name',
+                'description' => 'Updates this customer’s company name everywhere it appears.',
+                'form' => fn (): TextInput => TextInput::make('value')
+                    ->label('Company name')
+                    ->required()
+                    ->maxLength(255),
+                'fill' => fn (User $record): ?string => $record->company_name,
+                'save' => function (User $record, mixed $value): void {
+                    $name = (string) $this->doubleClickValidate($value, ['required', 'string', 'max:255']);
+                    $record->update(['company_name' => $name]);
+                },
+            ],
+            'company_code' => [
+                'label' => 'Customer code',
+                'description' => 'Stored as the customer’s company code. Leave blank to fall back to an auto-derived code.',
+                'form' => fn (): TextInput => TextInput::make('value')
+                    ->label('Customer code')
+                    ->maxLength(255),
+                'fill' => fn (User $record): ?string => $record->company_code,
+                'save' => function (User $record, mixed $value): void {
+                    $code = $this->doubleClickValidate($value, ['nullable', 'string', 'max:255']);
+                    $record->update([
+                        'company_code' => filled($code) ? trim((string) $code) : null,
+                    ]);
+                },
+            ],
+        ];
     }
 }

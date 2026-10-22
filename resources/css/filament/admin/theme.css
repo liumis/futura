@@ -913,7 +913,20 @@ html.fi,
 }
 
 .fi-cargo-order-row--low-stock {
-    @apply rounded-md ring-2 ring-red-500 ring-inset;
+    /* Border only — inset rings paint badly in Safari. */
+    @apply rounded-md border-2 border-red-500;
+}
+
+/* Double-click cell edit (Stock and other opted-in tables) */
+.fi-ta-cell.ss-cell-edit,
+.fi-ta-text.ss-cell-edit,
+td.ss-cell-edit {
+    cursor: pointer;
+}
+
+.fi-ta-cell.ss-cell-edit:hover,
+td.ss-cell-edit:hover {
+    @apply bg-primary-50/80 dark:bg-primary-950/40;
 }
 
 .fi-cargo-order-meta {
@@ -1111,7 +1124,8 @@ html.fi,
 .fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-cargo-order-row--low-stock,
 .fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-cargo-order-row--low-stock:not(.fi-cargo-order-row--ordered),
 .fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-cargo-order-row--low-stock.fi-cargo-order-row--ordered {
-    @apply border-2 border-red-500 ring-2 ring-red-500 ring-inset;
+    /* Keep a single red border (no inset ring) so Safari does not double-paint cards. */
+    @apply border-2 border-red-500 shadow-none;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc,

@@ -131,4 +131,26 @@ class Color extends Model
             ->whereHas('products', fn (Builder $products): Builder => $products->artificialLeather())
             ->whereRaw("{$meters} < colors.recommended_stock");
     }
+
+    /**
+     * @param  list<int>  $colorIds
+     * @return array<int, float> color_id => total stock meters
+     */
+    public static function stockMetersByIds(array $colorIds): array
+    {
+        $ids = array_values(array_unique(array_filter(array_map('intval', $colorIds))));
+        if ($ids === []) {
+            return [];
+        }
+
+        $metersSql = self::stockMetersSqlExpression();
+
+        return self::query()
+            ->whereIn('id', $ids)
+            ->select('id')
+            ->selectRaw("{$metersSql} as stock_meters_total")
+            ->pluck('stock_meters_total', 'id')
+            ->map(fn ($meters): float => round((float) $meters, 3))
+            ->all();
+    }
 }

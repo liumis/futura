@@ -48,8 +48,20 @@
             <tbody class="bg-white dark:bg-gray-900">
                 @forelse ($report['rows'] as $row)
                     <tr>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-200">{{ $row['company'] }}</td>
-                        <td class="px-4 py-3 text-gray-700 dark:text-gray-200">{{ $row['code'] }}</td>
+                        <td
+                            class="ss-cell-edit px-4 py-3 text-gray-700 dark:text-gray-200"
+                            data-ss-cell-edit="1"
+                            data-ss-cell-field="company_name"
+                            data-ss-record-key="{{ $row['customer_id'] }}"
+                            title="Double-click to edit"
+                        >{{ $row['company'] }}</td>
+                        <td
+                            class="ss-cell-edit px-4 py-3 text-gray-700 dark:text-gray-200"
+                            data-ss-cell-edit="1"
+                            data-ss-cell-field="company_code"
+                            data-ss-record-key="{{ $row['customer_id'] }}"
+                            title="Double-click to edit"
+                        >{{ $row['code'] }}</td>
                         @foreach ($report['collections'] as $collection)
                             <td class="px-4 py-3 text-right tabular-nums text-gray-700 dark:text-gray-200">
                                 {{ \App\Services\SalesReportBuilder::formatValue($row['values'][$collection['key']] ?? 0, $report['metric']) }}

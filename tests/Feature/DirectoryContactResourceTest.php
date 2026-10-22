@@ -2,10 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Enums\DirectoryContactPriority;
 use App\Filament\Admin\Resources\DirectoryContacts\DirectoryContactResource;
 use App\Filament\Admin\Resources\DirectoryContacts\Pages\CreateDirectoryContact;
 use App\Filament\Admin\Resources\DirectoryContacts\Pages\ListDirectoryContacts;
 use App\Models\DirectoryContact;
+use App\Models\DirectoryContactStage;
 use App\Models\OriginCountry;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -129,6 +131,80 @@ class DirectoryContactResourceTest extends TestCase
             ->assertSee('2')
             ->assertSee(Str::limit($longComment, 60, '...'))
             ->assertSee($longComment);
+    }
+
+    public function test_directory_contact_cells_are_double_click_editable(): void
+    {
+        $this->actingAsAdmin();
+
+        $stage = DirectoryContactStage::default();
+        $otherStage = DirectoryContactStage::query()->create([
+            'name' => 'Qualified',
+            'sort_order' => 2,
+        ]);
+
+        $contact = DirectoryContact::query()->create([
+            'company_name' => 'Edit Me UAB',
+            'type' => 'Manufacturer',
+            'segment' => 'Sofas',
+            'priority' => DirectoryContactPriority::Low,
+            'website' => 'old.example.com',
+            'directory_contact_stage_id' => $stage->id,
+        ]);
+
+        $html = Livewire::test(ListDirectoryContacts::class)->html();
+        foreach (['company_name', 'type', 'segment', 'priority', 'website', 'stage'] as $field) {
+            $this->assertStringContainsString('data-ss-cell-field="'.$field.'"', $html);
+        }
+        $this->assertStringContainsString('data-ss-record-key="'.$contact->id.'"', $html);
+
+        Livewire::test(ListDirectoryContacts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => 'Renamed UAB'], arguments: [
+                'recordKey' => (string) $contact->id,
+                'field' => 'company_name',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame('Renamed UAB', $contact->fresh()?->company_name);
+
+        Livewire::test(ListDirectoryContacts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => 'Retailer'], arguments: [
+                'recordKey' => (string) $contact->id,
+                'field' => 'type',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame('Retailer', $contact->fresh()?->type);
+
+        Livewire::test(ListDirectoryContacts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => 'Leather sofas'], arguments: [
+                'recordKey' => (string) $contact->id,
+                'field' => 'segment',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame('Leather sofas', $contact->fresh()?->segment);
+
+        Livewire::test(ListDirectoryContacts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => DirectoryContactPriority::High->value], arguments: [
+                'recordKey' => (string) $contact->id,
+                'field' => 'priority',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame(DirectoryContactPriority::High, $contact->fresh()?->priority);
+
+        Livewire::test(ListDirectoryContacts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => 'https://New.Example.COM/'], arguments: [
+                'recordKey' => (string) $contact->id,
+                'field' => 'website',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame('new.example.com', $contact->fresh()?->website);
+
+        Livewire::test(ListDirectoryContacts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => $otherStage->id], arguments: [
+                'recordKey' => (string) $contact->id,
+                'field' => 'stage',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame($otherStage->id, (int) $contact->fresh()?->directory_contact_stage_id);
     }
 
     private function actingAsAdmin(): User
