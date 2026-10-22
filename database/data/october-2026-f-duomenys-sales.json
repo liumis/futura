@@ -1,0 +1,590 @@
+{
+  "source": "F Duomenys / Darbai_2.html",
+  "month": "2026-10",
+  "rows": [
+    {
+      "customer_code": "PEDROTAVARES",
+      "customer": "Pedro Tavares Texteis, Lda",
+      "sales_date": "2026-10-07",
+      "item": "BORGA123ELEPHANT30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "PEDROTAVARES",
+      "customer": "Pedro Tavares Texteis, Lda",
+      "sales_date": "2026-10-07",
+      "item": "PALOMA103PEARL30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "PEDROTAVARES",
+      "customer": "Pedro Tavares Texteis, Lda",
+      "sales_date": "2026-10-07",
+      "item": "PALOMA104BISCUIT30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "PEDROTAVARES",
+      "customer": "Pedro Tavares Texteis, Lda",
+      "sales_date": "2026-10-07",
+      "item": "PALOMA105CREAM30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "PEDROTAVARES",
+      "customer": "Pedro Tavares Texteis, Lda",
+      "sales_date": "2026-10-07",
+      "item": "PALOMA106STARFISH30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "PEDROTAVARES",
+      "customer": "Pedro Tavares Texteis, Lda",
+      "sales_date": "2026-10-07",
+      "item": "PALOMA112BRICK30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "PEDROTAVARES",
+      "customer": "Pedro Tavares Texteis, Lda",
+      "sales_date": "2026-10-12",
+      "item": "BORGA124DRIZZLE30",
+      "quantity": 150,
+      "sales_eur": "840,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "SARAMO113BISON30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "AGNONA101WHITE30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "AGNONA121BLACK30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "AGNONA134SPACE30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "BORGA161PICANTE30",
+      "quantity": 30,
+      "sales_eur": "153,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "PALOMA103PEARL30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "PALOMA115CHOCOLATE30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "PALOMA172FIRE30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "SARAMO112RUSTIC30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-12",
+      "item": "SARAMO114COFFEE30",
+      "quantity": 60,
+      "sales_eur": "384,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "AGNONA103BLANC30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "AGNONA108SAFARI30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "AGNONA121BLACK30",
+      "quantity": 60,
+      "sales_eur": "384,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "AGNONA122SHADOW30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "AGNONA123OWL30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "AGNONA124SAGE30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "SARAMO103BONE30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-14",
+      "item": "SARAMO121BLACK30",
+      "quantity": 60,
+      "sales_eur": "384,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-16",
+      "item": "PALOMA103PEARL30",
+      "quantity": 210,
+      "sales_eur": "1 344,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "AGNONA101WHITE30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "AGNONA133NAUTIC30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "BORGA106PEBBLE30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "BORGA111CAMEL30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "BORGA113COGNAC30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "PALOMA121BLACK30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "SARAMO105CAMEL30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "SARAMO111GREIGE30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "SARAMO121BLACK30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "SVETMAR",
+      "customer": "Svetmar d.o.o.",
+      "sales_date": "2026-10-16",
+      "item": "SARAMO141FOREST30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "AGNONA102ARCTIC30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "AGNONA107STARFISH30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "AGNONA109COFFEE30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "AGNONA145GREEN30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "AGNONA162RUST30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "ARGANO102CREAM30",
+      "quantity": 30,
+      "sales_eur": "216,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "ARGANO123SHADOW30",
+      "quantity": 30,
+      "sales_eur": "216,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "ARGANO126HARBOR30",
+      "quantity": 30,
+      "sales_eur": "216,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "ARGANO133POSEIDON30",
+      "quantity": 30,
+      "sales_eur": "216,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "BORGA101WHITE30",
+      "quantity": 60,
+      "sales_eur": "336,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "BORGA102VANILLA30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "BORGA106PEBBLE30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "BORGA122COAL30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "BORGA141LAUREL30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "TYLIGADESBROS",
+      "customer": "Tyligadas Bros S.A.-VIOTAP",
+      "sales_date": "2026-10-19",
+      "item": "BORGA151MUSTARD30",
+      "quantity": 30,
+      "sales_eur": "168,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA108SAFARI30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA111COBBLE30",
+      "quantity": 90,
+      "sales_eur": "621,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA114COCOA30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA117CHESTNUT30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA121BLACK30",
+      "quantity": 60,
+      "sales_eur": "414,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA124SAGE30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA126SHARK30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA127MOON30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA131SKY30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA132BLUE30",
+      "quantity": 60,
+      "sales_eur": "414,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA134SPACE30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA141FLOW30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA142TURQUOISE30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA161ORANGE30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA162RUST30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "TENATEXTRADE",
+      "customer": "TENA TEX TRADE , s.r.o.",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA172AURORA30",
+      "quantity": 30,
+      "sales_eur": "207,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA118MUSTANG30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA119MOCCA30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA120MULCH30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA122SHADOW30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-20",
+      "item": "AGNONA124SAGE30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    },
+    {
+      "customer_code": "VINILAS",
+      "customer": "Vinilas Ltd",
+      "sales_date": "2026-10-20",
+      "item": "SARAMO113BISON30",
+      "quantity": 30,
+      "sales_eur": "192,00"
+    }
+  ]
+}

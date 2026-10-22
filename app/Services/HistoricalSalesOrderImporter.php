@@ -352,7 +352,7 @@ class HistoricalSalesOrderImporter
         return self::HISTORY_NAME_PREFIX.$customerCode.'|'.$salesDate;
     }
 
-    protected function parseEuro(string $value): float
+    public function parseEuro(string $value): float
     {
         $value = trim(str_replace(["\xc2\xa0", ' '], '', $value));
         if ($value === '') {
