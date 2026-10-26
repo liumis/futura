@@ -2,8 +2,10 @@
 
 namespace App\Filament\Admin\Resources\DirectoryContactStages;
 
+use App\Filament\Admin\Resources\DirectoryContacts\DirectoryContactResource;
 use App\Models\DirectoryContactStage;
 use BackedEnum;
+use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
@@ -12,6 +14,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use UnitEnum;
 
 class DirectoryContactStageResource extends Resource
@@ -50,6 +53,16 @@ class DirectoryContactStageResource extends Resource
                     ->searchable()
                     ->sortable(),
 
+                Tables\Columns\TextColumn::make('contacts_count')
+                    ->label('Contacts')
+                    ->counts('contacts')
+                    ->numeric()
+                    ->alignEnd()
+                    ->sortable()
+                    ->url(fn (DirectoryContactStage $record): string => self::contactsListUrl($record))
+                    ->color('primary')
+                    ->tooltip('Show contacts in this stage'),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
@@ -64,6 +77,11 @@ class DirectoryContactStageResource extends Resource
             ->reorderable('sort_order')
             ->paginated(false)
             ->recordActions([
+                Action::make('viewContacts')
+                    ->label('Contacts')
+                    ->icon('heroicon-o-users')
+                    ->color('gray')
+                    ->url(fn (DirectoryContactStage $record): string => self::contactsListUrl($record)),
                 EditAction::make(),
             ])
             ->toolbarActions([
@@ -71,6 +89,22 @@ class DirectoryContactStageResource extends Resource
                     DeleteBulkAction::make(),
                 ]),
             ]);
+    }
+
+    public static function contactsListUrl(DirectoryContactStage $stage): string
+    {
+        return DirectoryContactResource::getUrl('index', [
+            'tableFilters' => [
+                'directory_contact_stage_id' => [
+                    'value' => $stage->getKey(),
+                ],
+            ],
+        ]);
+    }
+
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()->withCount('contacts');
     }
 
     public static function canViewAny(): bool

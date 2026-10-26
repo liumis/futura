@@ -254,7 +254,8 @@ class DirectoryContactResource extends Resource
                             DirectoryContactPriority::Low => 'gray',
                             default => 'gray',
                         })
-                        ->sortable(),
+                        ->sortable()
+                        ->toggleable(),
                     'priority',
                 ),
 

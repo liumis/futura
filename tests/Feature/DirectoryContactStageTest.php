@@ -32,6 +32,30 @@ class DirectoryContactStageTest extends TestCase
         $this->assertNotNull(DirectoryContactStageResource::getUrl('index'));
     }
 
+    public function test_stages_list_shows_contact_counts_and_links_to_filtered_contacts(): void
+    {
+        $this->actingAsAdmin();
+
+        $stage = DirectoryContactStage::query()->create(['name' => 'Buying']);
+        DirectoryContact::query()->create([
+            'company_name' => 'Stage Link Co',
+            'directory_contact_stage_id' => $stage->id,
+        ]);
+        DirectoryContact::query()->create([
+            'company_name' => 'Stage Link Co 2',
+            'directory_contact_stage_id' => $stage->id,
+        ]);
+
+        $html = Livewire::test(ListDirectoryContactStages::class)
+            ->assertOk()
+            ->assertSee('Contacts')
+            ->html();
+
+        $this->assertStringContainsString('Show contacts in this stage', $html);
+        $this->assertStringContainsString((string) $stage->id, DirectoryContactStageResource::contactsListUrl($stage));
+        $this->assertStringContainsString('directory_contact_stage_id', DirectoryContactStageResource::contactsListUrl($stage));
+    }
+
     public function test_admin_can_create_and_reorder_stages(): void
     {
         $this->actingAsAdmin();
