@@ -45,6 +45,12 @@ class CloudDeployDatabase extends Command
             $this->warn('invoices is empty — forcing prod bootstrap import.');
         }
 
-        return $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
+        $bootstrap = $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
+
+        // Bootstrap reloads the dump after migrate, so content repairs must run again here.
+        // Always attempt the repair (even when bootstrap skipped / non-MySQL) — it is idempotent.
+        $fix = $this->call('app:fix-unbalanced-finance-months');
+
+        return $bootstrap !== self::SUCCESS ? $bootstrap : $fix;
     }
 }

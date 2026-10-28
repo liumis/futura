@@ -29,5 +29,6 @@ class CloudDeployDatabaseBootstrapForceTest extends TestCase
             || str_contains($output, 'only runs on MySQL'),
             'Expected forced bootstrap attempt. Output: '.$output,
         );
+        $this->assertStringContainsString('Unbalanced months:', $output);
     }
 }
