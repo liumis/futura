@@ -29,6 +29,12 @@ class ProdDatabaseBootstrap
         'password_reset_tokens',
         'legacy_data_imports',
         'sqlite_sequence',
+        // CRM contacts — never overwrite prod from local bootstrap dump
+        'contacts',
+        'directory_contacts',
+        'directory_contact_stages',
+        'directory_contact_comments',
+        'directory_contact_persons',
     ];
 
     public static function sqlSnapshotPath(): string
