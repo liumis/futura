@@ -17,6 +17,7 @@ use App\Filament\Admin\Pages\OrderCharts;
 use App\Filament\Admin\Pages\PaymentReports;
 use App\Filament\Admin\Pages\ProjectsBoard;
 use App\Filament\Admin\Pages\ReportsBankPayments;
+use App\Filament\Admin\Pages\ReportsInvoicesChart;
 use App\Filament\Admin\Pages\ReportsOrdersChart;
 use App\Filament\Admin\Pages\ReportsStockChart;
 use App\Filament\Admin\Resources\Documents\DocumentResource;
@@ -141,7 +142,7 @@ class AdminPanelProvider extends PanelProvider
                 PanelsRenderHook::SCRIPTS_AFTER,
                 fn (): string => '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>'
                     .'<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.1.0/dist/chartjs-plugin-annotation.min.js"></script>',
-                scopes: [Charts::class, OrderCharts::class, ReportsStockChart::class, ReportsOrdersChart::class, ReportsBankPayments::class],
+                scopes: [Charts::class, OrderCharts::class, ReportsStockChart::class, ReportsOrdersChart::class, ReportsBankPayments::class, ReportsInvoicesChart::class],
             )
             ->renderHook(
                 PanelsRenderHook::HEAD_END,
