@@ -38,7 +38,8 @@
                 No invoices for these filters.
             </div>
         @else
-            <div class="grid gap-6 lg:grid-cols-2">
+            @php($showByMonth = count($report['months']) > 1)
+            <div @class(['grid gap-6', 'lg:grid-cols-2' => $showByMonth])>
                 <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
                     <div class="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/40">
                         <h3 class="text-sm font-semibold tracking-tight text-gray-950 dark:text-white">
@@ -55,21 +56,23 @@
                     </div>
                 </section>
 
-                <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
-                    <div class="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/40">
-                        <h3 class="text-sm font-semibold tracking-tight text-gray-950 dark:text-white">
-                            By month
-                        </h3>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Stacked totals (€)
-                        </p>
-                    </div>
-                    <div class="p-4">
-                        <div class="relative h-80 w-full">
-                            <canvas id="invoices-month-chart-canvas"></canvas>
+                @if ($showByMonth)
+                    <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
+                        <div class="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/40">
+                            <h3 class="text-sm font-semibold tracking-tight text-gray-950 dark:text-white">
+                                By month
+                            </h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                Stacked totals (€)
+                            </p>
                         </div>
-                    </div>
-                </section>
+                        <div class="p-4">
+                            <div class="relative h-80 w-full">
+                                <canvas id="invoices-month-chart-canvas"></canvas>
+                            </div>
+                        </div>
+                    </section>
+                @endif
             </div>
         @endif
     </div>
