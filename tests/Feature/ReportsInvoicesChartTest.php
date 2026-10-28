@@ -82,7 +82,9 @@ class ReportsInvoicesChartTest extends TestCase
         $this->assertSame(200.0, $all['partly_paid_total']);
         $this->assertSame(80.0, $all['unpaid_total']);
         $this->assertSame(230.0, $all['outstanding_total']);
-        $this->assertCount(2, $all['months']);
+        $this->assertCount(3, $all['days']);
+        $this->assertSame('2026-08-01', $all['days'][0]['day']);
+        $this->assertSame(80.0, $all['days'][0]['unpaid']);
 
         $unpaidOnly = InvoicesChartReportBuilder::build(
             '2026-08-01',

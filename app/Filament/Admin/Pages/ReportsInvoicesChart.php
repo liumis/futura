@@ -116,8 +116,8 @@ class ReportsInvoicesChart extends Page implements HasForms
      *     unpaid_total: float,
      *     outstanding_total: float,
      *     grand_total: float,
-     *     months: list<array{
-     *         month: string,
+     *     days: list<array{
+     *         day: string,
      *         label: string,
      *         paid: float,
      *         partly_paid: float,

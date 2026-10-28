@@ -94,8 +94,8 @@ final class InvoicesChartReportBuilder
      *     unpaid_total: float,
      *     outstanding_total: float,
      *     grand_total: float,
-     *     months: list<array{
-     *         month: string,
+     *     days: list<array{
+     *         day: string,
      *         label: string,
      *         paid: float,
      *         partly_paid: float,
@@ -169,7 +169,7 @@ final class InvoicesChartReportBuilder
         $paidCount = 0;
         $partlyPaidCount = 0;
         $unpaidCount = 0;
-        $byMonth = [];
+        $byDay = [];
 
         foreach ($invoices as $invoice) {
             $settlement = $invoice->paymentSettlementStatus();
@@ -186,12 +186,12 @@ final class InvoicesChartReportBuilder
 
             $amount = round(abs($invoice->amountInEur()), 2);
             $outstanding = round($invoice->outstandingAmountInEur(), 2);
-            $monthKey = $invoice->invoice_date instanceof Carbon
-                ? $invoice->invoice_date->format('Y-m')
-                : Carbon::parse((string) $invoice->invoice_date)->format('Y-m');
+            $dayKey = $invoice->invoice_date instanceof Carbon
+                ? $invoice->invoice_date->toDateString()
+                : Carbon::parse((string) $invoice->invoice_date)->toDateString();
 
-            if (! isset($byMonth[$monthKey])) {
-                $byMonth[$monthKey] = [
+            if (! isset($byDay[$dayKey])) {
+                $byDay[$dayKey] = [
                     'paid' => 0.0,
                     'partly_paid' => 0.0,
                     'unpaid' => 0.0,
@@ -201,27 +201,27 @@ final class InvoicesChartReportBuilder
             if ($settlement === self::STATUS_PAID) {
                 $paidTotal += $amount;
                 $paidCount++;
-                $byMonth[$monthKey]['paid'] += $amount;
+                $byDay[$dayKey]['paid'] += $amount;
             } elseif ($settlement === self::STATUS_PARTLY_PAID) {
                 $partlyPaidTotal += $amount;
                 $partlyPaidCount++;
                 $outstandingTotal += $outstanding;
-                $byMonth[$monthKey]['partly_paid'] += $amount;
+                $byDay[$dayKey]['partly_paid'] += $amount;
             } else {
                 $unpaidTotal += $amount;
                 $unpaidCount++;
                 $outstandingTotal += $outstanding;
-                $byMonth[$monthKey]['unpaid'] += $amount;
+                $byDay[$dayKey]['unpaid'] += $amount;
             }
         }
 
-        ksort($byMonth);
+        ksort($byDay);
 
-        $months = [];
-        foreach ($byMonth as $month => $bucket) {
-            $months[] = [
-                'month' => $month,
-                'label' => Carbon::createFromFormat('Y-m', $month)->format('M Y'),
+        $days = [];
+        foreach ($byDay as $day => $bucket) {
+            $days[] = [
+                'day' => $day,
+                'label' => Carbon::parse($day)->format('Y-m-d'),
                 'paid' => round($bucket['paid'], 2),
                 'partly_paid' => round($bucket['partly_paid'], 2),
                 'unpaid' => round($bucket['unpaid'], 2),
@@ -256,7 +256,7 @@ final class InvoicesChartReportBuilder
             'unpaid_total' => round($unpaidTotal, 2),
             'outstanding_total' => round($outstandingTotal, 2),
             'grand_total' => $grandTotal,
-            'months' => $months,
+            'days' => $days,
         ];
     }
 
