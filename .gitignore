@@ -31,3 +31,5 @@ Thumbs.db
 /database/*.sqlite
 /database/*.sqlite-*
 /database/database.sqlite.*
+
+/storage/backups
