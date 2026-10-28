@@ -2,7 +2,6 @@
 
 namespace App\Filament\Admin\Concerns;
 
-use App\Services\WorkTimeTimesheetPdfGenerator;
 use App\Support\ReportDateRange;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Select;
@@ -29,7 +28,7 @@ trait HasReportMonthQuickFilter
     {
         return Select::make('month')
             ->label('Month')
-            ->options(fn (): array => WorkTimeTimesheetPdfGenerator::monthSelectOptions())
+            ->options(fn (): array => ReportDateRange::monthQuickSelectOptions())
             ->placeholder('Custom range')
             ->native(false)
             ->live()
@@ -67,10 +66,10 @@ trait HasReportMonthQuickFilter
     }
 
     /**
-     * @return array{month: string, from: string, until: string}
+     * @return array{month: string, from: ?string, until: ?string}
      */
     protected function defaultReportMonthRangeFill(): array
     {
-        return ReportDateRange::currentMonthFill();
+        return ReportDateRange::lastMonthFill();
     }
 }

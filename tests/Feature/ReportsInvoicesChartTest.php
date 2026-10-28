@@ -145,10 +145,16 @@ class ReportsInvoicesChartTest extends TestCase
 
         Livewire::test(ReportsInvoicesChart::class)
             ->assertSee('Invoices by payment status')
+            ->assertSee('All months')
+            ->assertSee('This month')
+            ->assertSee('Last month')
             ->set('data.status', InvoicesChartReportBuilder::STATUS_UNPAID)
             ->assertSee('Unpaid')
             ->set('data.late_days', '1')
-            ->assertSee('days late');
+            ->assertSee('days late')
+            ->set('data.month', 'any')
+            ->assertSet('data.from', null)
+            ->assertSet('data.until', null);
     }
 
     private function actingAsAdmin(): User
