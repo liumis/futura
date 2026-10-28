@@ -10,5 +10,5 @@
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
 
-*.json.gz binary
-*.sql.gz binary
+*.json.gz -text binary
+*.sql.gz -text binary

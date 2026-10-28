@@ -22,14 +22,27 @@ class CloudDeployDatabase extends Command
         }
 
         $usersMissing = Schema::hasTable('users') && ! DB::table('users')->exists();
+        $bankMissing = Schema::hasTable('bank_statement_transactions')
+            && ! DB::table('bank_statement_transactions')->exists();
+        $invoicesMissing = Schema::hasTable('invoices')
+            && ! DB::table('invoices')->exists();
 
-        // Force when env asks, dump is new, prior import never finished, or login DB is empty.
+        // Force when env asks, dump is new, prior import never finished, login DB is empty,
+        // or finance data is missing (prod can end up migrated but without bootstrap rows).
         $force = filter_var(env('PROD_BOOTSTRAP_FORCE', false), FILTER_VALIDATE_BOOLEAN)
             || ! ProdDatabaseBootstrap::alreadyImported()
-            || $usersMissing;
+            || $usersMissing
+            || $bankMissing
+            || $invoicesMissing;
 
         if ($usersMissing) {
             $this->warn('users table is empty — forcing prod bootstrap import.');
+        }
+        if ($bankMissing) {
+            $this->warn('bank_statement_transactions is empty — forcing prod bootstrap import.');
+        }
+        if ($invoicesMissing) {
+            $this->warn('invoices is empty — forcing prod bootstrap import.');
         }
 
         return $this->call('app:import-prod-bootstrap', $force ? ['--force' => true] : []);
