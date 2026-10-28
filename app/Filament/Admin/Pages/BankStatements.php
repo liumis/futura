@@ -2397,23 +2397,10 @@ class BankStatements extends Page implements HasForms
      */
     private function monthFilterOptions(): array
     {
-        $keys = BankStatementTransaction::query()
-            ->whereNotNull('month_key')
-            ->where('month_key', '!=', '')
-            ->distinct()
-            ->orderByDesc('month_key')
-            ->pluck('month_key')
-            ->filter(fn ($key): bool => is_string($key) && preg_match('/^\d{4}-\d{2}$/', $key) === 1)
-            ->values()
-            ->all();
+        $keys = $this->availableMonthKeys();
 
         if ($keys === []) {
             $keys = [$this->defaultMonthKey()];
-        }
-
-        $current = $this->defaultMonthKey();
-        if (! in_array($current, $keys, true)) {
-            array_unshift($keys, $current);
         }
 
         $options = ['any' => 'All months'];
@@ -2426,7 +2413,35 @@ class BankStatements extends Page implements HasForms
 
     public function defaultMonthKey(): string
     {
-        return now()->format('Y-m');
+        $current = now()->format('Y-m');
+        $available = $this->availableMonthKeys();
+
+        if ($available === []) {
+            return $current;
+        }
+
+        // Prefer the calendar month when it has statements; otherwise latest imported month.
+        if (in_array($current, $available, true)) {
+            return $current;
+        }
+
+        return (string) $available[0];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function availableMonthKeys(): array
+    {
+        return BankStatementTransaction::query()
+            ->whereNotNull('month_key')
+            ->where('month_key', '!=', '')
+            ->distinct()
+            ->orderByDesc('month_key')
+            ->pluck('month_key')
+            ->filter(fn ($key): bool => is_string($key) && preg_match('/^\d{4}-\d{2}$/', $key) === 1)
+            ->values()
+            ->all();
     }
 
     private function selectedMonthKey(): ?string
@@ -2437,15 +2452,7 @@ class BankStatements extends Page implements HasForms
             return null;
         }
 
-        $available = BankStatementTransaction::query()
-            ->whereNotNull('month_key')
-            ->where('month_key', '!=', '')
-            ->distinct()
-            ->orderByDesc('month_key')
-            ->pluck('month_key')
-            ->filter(fn ($key): bool => is_string($key) && preg_match('/^\d{4}-\d{2}$/', $key) === 1)
-            ->values()
-            ->all();
+        $available = $this->availableMonthKeys();
 
         if ($month !== '' && preg_match('/^\d{4}-\d{2}$/', $month) === 1) {
             if ($available === [] || in_array($month, $available, true)) {
@@ -2453,12 +2460,12 @@ class BankStatements extends Page implements HasForms
             }
         }
 
-        // Soft default: current calendar month while month is empty and no other filters are set.
+        // Soft default: current (or latest available) month while month is empty and no other filters are set.
         if ($this->filtersWidenBeyondMonth()) {
             return null;
         }
 
-        return now()->format('Y-m');
+        return $this->defaultMonthKey();
     }
 
     private function filtersWidenBeyondMonth(): bool
