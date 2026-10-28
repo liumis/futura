@@ -33,9 +33,9 @@ const css = readFileSync(source, 'utf8');
 
 // Laravel Cloud's Vite build sometimes emits a default Filament bundle without Futura tokens.
 // Never fail the deploy in that case — keep the committed public/css theme instead.
-if (!css.includes('Jost') || !css.includes('23262a')) {
+if (!css.includes('Jost') || !css.includes('222222')) {
     if (existsSync(dest)) {
-        console.warn('Vite theme missing Futura tokens (Jost / #23262a); keeping committed public/css/filament-admin-theme.css');
+        console.warn('Vite theme missing Futura tokens (Jost / #222222); keeping committed public/css/filament-admin-theme.css');
         process.exit(0);
     }
     console.error('Built theme is missing Futura tokens and no committed CSS fallback exists');

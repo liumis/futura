@@ -101,8 +101,9 @@ class AdminPanelProvider extends PanelProvider
             ->brandLogoHeight('2.35rem')
             ->favicon(asset('images/favicon.png'))
             ->colors([
-                'primary' => Color::hex('#23262A'),
-                'danger' => Color::hex('#A93226'),
+                'primary' => Color::hex('#222222'),
+                'warning' => Color::hex('#EB8027'),
+                'danger' => Color::hex('#222222'),
             ])
             ->darkMode(false)
             ->maxContentWidth(Width::Full)

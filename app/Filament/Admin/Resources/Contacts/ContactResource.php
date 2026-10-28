@@ -16,6 +16,7 @@ use Filament\Actions\BulkAction;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Forms\Components\Select;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
@@ -154,46 +155,103 @@ class ContactResource extends Resource
                 EditAction::make(),
             ])
             ->toolbarActions([
+                BulkAction::make('mergeContacts')
+                    ->label('Merge')
+                    ->icon('heroicon-o-arrows-pointing-in')
+                    ->color('warning')
+                    ->button()
+                    ->modalHeading('Merge selected providers?')
+                    ->modalDescription(function (BulkAction $action): string {
+                        $records = $action->getSelectedRecords();
+                        $lines = $records
+                            ->map(function (Contact $contact): string {
+                                $invoices = (int) ($contact->invoices_count ?? $contact->invoices()->count());
+
+                                return '• #'.$contact->getKey().' '.$contact->company_name
+                                    .' ('.$invoices.' invoice'.($invoices === 1 ? '' : 's').')';
+                            })
+                            ->implode("\n");
+
+                        return "Selected:\n{$lines}\n\n"
+                            ."Invoices, payments, imports and filled profile fields move to the contact you keep.\n"
+                            .'The other selected contacts are permanently deleted. This cannot be undone.';
+                    })
+                    ->modalSubmitActionLabel('Merge')
+                    ->form(function (BulkAction $action): array {
+                        /** @var Collection<int, Contact> $records */
+                        $records = $action->getSelectedRecords();
+                        $records->loadCount('invoices');
+                        $options = $records
+                            ->mapWithKeys(function (Contact $contact): array {
+                                $invoices = (int) ($contact->invoices_count ?? 0);
+
+                                return [
+                                    (string) $contact->getKey() => '#'.$contact->getKey()
+                                        .' · '.$contact->company_name
+                                        .' · '.$invoices.' invoice'.($invoices === 1 ? '' : 's'),
+                                ];
+                            })
+                            ->all();
+
+                        $default = (string) ContactMerger::suggestTargetId($records);
+
+                        return [
+                            Select::make('target_id')
+                                ->label('Keep this provider')
+                                ->options($options)
+                                ->default($default)
+                                ->required()
+                                ->native(false)
+                                ->helperText('Missing fields on the kept contact are filled from the others when blank.'),
+                        ];
+                    })
+                    ->deselectRecordsAfterCompletion()
+                    ->action(function (Collection $records, array $data): void {
+                        if ($records->count() < 2) {
+                            Notification::make()
+                                ->title('Select at least two providers')
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+
+                        $targetId = (int) ($data['target_id'] ?? 0);
+                        $ids = $records->modelKeys();
+                        if ($targetId <= 0 || ! in_array($targetId, array_map('intval', $ids), true)) {
+                            Notification::make()
+                                ->title('Choose which provider to keep')
+                                ->warning()
+                                ->send();
+
+                            return;
+                        }
+
+                        $sources = array_values(array_filter(
+                            array_map('intval', $ids),
+                            fn (int $id): bool => $id !== $targetId,
+                        ));
+
+                        try {
+                            $result = ContactMerger::mergeInto($targetId, $sources);
+                            $target = Contact::query()->find($result['target_id']);
+
+                            Notification::make()
+                                ->title('Providers merged')
+                                ->body(($target?->company_name ?? ('#'.$result['target_id']))
+                                    .' · moved '.$result['invoices'].' invoice(s)'
+                                    .(count($result['merged_ids']) > 0 ? ' · removed '.count($result['merged_ids']).' duplicate(s)' : ''))
+                                ->success()
+                                ->send();
+                        } catch (Throwable $e) {
+                            Notification::make()
+                                ->title('Merge failed')
+                                ->body($e->getMessage())
+                                ->danger()
+                                ->send();
+                        }
+                    }),
                 BulkActionGroup::make([
-                    BulkAction::make('mergeContacts')
-                        ->label('Merge selected')
-                        ->icon('heroicon-o-arrows-pointing-in')
-                        ->color('warning')
-                        ->requiresConfirmation()
-                        ->modalHeading('Merge selected contacts?')
-                        ->modalDescription('Invoices and payments move to the best match (most invoices / longest name). Other selected contacts are deleted.')
-                        ->deselectRecordsAfterCompletion()
-                        ->action(function (Collection $records): void {
-                            if ($records->count() < 2) {
-                                Notification::make()
-                                    ->title('Select at least two contacts')
-                                    ->warning()
-                                    ->send();
-
-                                return;
-                            }
-
-                            try {
-                                $result = ContactMerger::mergeGroup(
-                                    $records->modelKeys()
-                                );
-                                $target = Contact::query()->find($result['target_id']);
-
-                                Notification::make()
-                                    ->title('Contacts merged')
-                                    ->body(($target?->company_name ?? ('#'.$result['target_id']))
-                                        .' · moved '.$result['invoices'].' invoice(s)'
-                                        .(count($result['merged_ids']) > 0 ? ' · removed '.count($result['merged_ids']).' duplicate(s)' : ''))
-                                    ->success()
-                                    ->send();
-                            } catch (Throwable $e) {
-                                Notification::make()
-                                    ->title('Merge failed')
-                                    ->body($e->getMessage())
-                                    ->danger()
-                                    ->send();
-                            }
-                        }),
                     DeleteBulkAction::make()
                         ->modalDescription('Invoices linked to deleted contacts are kept and unlinked (no company/supplier).'),
                 ]),

@@ -3,13 +3,6 @@
     <div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         {{ $this->filtersForm }}
 
-        @if ($this->isUsingSoftMonthDefault())
-            <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                Showing <span class="font-medium text-gray-700 dark:text-gray-200">{{ $this->monthTitle($this->defaultMonthKey()) }}</span> by default.
-                Any other filter (or <span class="font-medium">All months</span>) looks across all months.
-            </p>
-        @endif
-
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
             <div class="flex flex-wrap items-center gap-2">
                 <x-filament::button

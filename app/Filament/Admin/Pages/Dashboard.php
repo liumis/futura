@@ -25,6 +25,7 @@ use App\Models\Order;
 use App\Models\Payment;
 use App\Models\Supplier;
 use App\Models\Todo;
+use App\Services\UnbalancedFinanceMonths;
 use App\Support\Money;
 use BackedEnum;
 use Carbon\CarbonInterface;
@@ -489,6 +490,42 @@ class Dashboard extends Page
     {
         return $this->canSeeModule(AdminModule::Finances)
             || $this->canSeeModule(AdminModule::Reports);
+    }
+
+    /**
+     * Months where debit ≠ credit (invoice journals or own-account bank transfers).
+     *
+     * @return Collection<int, array{
+     *     month_key: string,
+     *     title: string,
+     *     kind: 'journal'|'own_account',
+     *     debit: float,
+     *     credit: float,
+     *     difference: float,
+     *     difference_label: string,
+     *     url: string,
+     * }>
+     */
+    public function getUnbalancedMonths(): Collection
+    {
+        if (! $this->canSeeModule(AdminModule::Finances) && ! $this->canSeeModule(AdminModule::Reports)) {
+            return collect();
+        }
+
+        return UnbalancedFinanceMonths::all()
+            ->map(function (array $row): array {
+                $row['url'] = match ($row['kind']) {
+                    'own_account' => BankStatements::getUrl([
+                        'filters' => [
+                            'month' => $row['month_key'],
+                            'direction' => 'own',
+                        ],
+                    ]),
+                    default => ReportsDebitCredit::getUrl(),
+                };
+
+                return $row;
+            });
     }
 
     public function latePaymentsUrl(): string

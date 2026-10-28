@@ -5,7 +5,6 @@ namespace App\Console\Commands;
 use App\Models\Contact;
 use App\Services\ContactMerger;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
 use Throwable;
 
 class MergeSimilarContacts extends Command
@@ -27,7 +26,10 @@ class MergeSimilarContacts extends Command
                 $this->info('No similar duplicates found for: '.$like);
                 if (count($group) === 1) {
                     $this->line('Only #'.$group[0]->getKey().' '.$group[0]->company_name);
-                    $this->normalizeBankCounterparts($group[0]);
+                    $updated = ContactMerger::normalizeBankCounterparts($group[0]);
+                    if ($updated > 0) {
+                        $this->line("Normalized {$updated} bank counterpart name(s) → {$group[0]->company_name}");
+                    }
                 }
 
                 return self::SUCCESS;
@@ -92,7 +94,10 @@ class MergeSimilarContacts extends Command
             $this->info('Merged into #'.$result['target_id'].' '.$target?->company_name
                 .' (invoices moved: '.$result['invoices'].')');
             if ($target !== null) {
-                $this->normalizeBankCounterparts($target);
+                $updated = ContactMerger::normalizeBankCounterparts($target);
+                if ($updated > 0) {
+                    $this->line("Normalized {$updated} bank counterpart name(s) → {$target->company_name}");
+                }
             }
         } catch (Throwable $e) {
             $this->error($e->getMessage());
@@ -101,38 +106,5 @@ class MergeSimilarContacts extends Command
         }
 
         return self::SUCCESS;
-    }
-
-    private function normalizeBankCounterparts(Contact $contact): void
-    {
-        $name = trim((string) $contact->company_name);
-        if ($name === '') {
-            return;
-        }
-
-        $norm = ContactMerger::normalizeName($name);
-        if ($norm === '' || strlen($norm) < 12) {
-            return;
-        }
-
-        $updated = 0;
-        DB::table('bank_statement_transactions')
-            ->whereNotNull('counterpart_name')
-            ->where('counterpart_name', '!=', '')
-            ->where('counterpart_name', '!=', $name)
-            ->orderBy('id')
-            ->each(function ($row) use ($name, $norm, &$updated): void {
-                $rowNorm = ContactMerger::normalizeName((string) $row->counterpart_name);
-                if ($rowNorm === $norm || str_starts_with($norm, $rowNorm) || str_starts_with($rowNorm, $norm)) {
-                    DB::table('bank_statement_transactions')
-                        ->where('id', $row->id)
-                        ->update(['counterpart_name' => $name]);
-                    $updated++;
-                }
-            });
-
-        if ($updated > 0) {
-            $this->line("Normalized {$updated} bank counterpart name(s) → {$name}");
-        }
     }
 }

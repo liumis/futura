@@ -88,8 +88,6 @@ class Invoices extends Page implements HasForms
 
     public function mount(): void
     {
-        // Month starts empty in the UI; the list soft-defaults to this month until
-        // the user picks a month or widens the search (counterpart / invoice no).
         $filters = [];
 
         $contactId = request()->query('contact_id')
@@ -116,6 +114,13 @@ class Invoices extends Page implements HasForms
             $filters['invoice_number'] = filled($invoiceNumber)
                 ? (string) $invoiceNumber
                 : (string) $editInvoiceId;
+        }
+
+        if (! array_key_exists('month', $filters)) {
+            // Deep-links with contact/invoice search look across all months; otherwise last month.
+            $filters['month'] = (isset($filters['contact_id']) || filled($filters['invoice_number'] ?? null))
+                ? 'any'
+                : 'last';
         }
 
         $this->filters = $filters;
@@ -678,10 +683,8 @@ class Invoices extends Page implements HasForms
                         Select::make('month')
                             ->label('Month')
                             ->options(fn (): array => $this->monthFilterOptions())
-                            ->placeholder('This month')
                             ->native(false)
                             ->live()
-                            ->helperText('Empty = this month. Any other filter without a month looks across all months.')
                             ->columnSpan(['default' => 12, 'md' => 3]),
                     ]),
 
@@ -2582,7 +2585,7 @@ class Invoices extends Page implements HasForms
 
     public function resetFilters(): void
     {
-        $filters = [];
+        $filters = ['month' => 'last'];
 
         $this->filters = $filters;
         $this->filtersForm->fill($filters);
@@ -2699,14 +2702,20 @@ class Invoices extends Page implements HasForms
      */
     private function monthFilterOptions(): array
     {
-        $keys = $this->invoiceMonthKeysWithData();
-        $current = $this->defaultMonthKey();
-        if (! in_array($current, $keys, true)) {
-            array_unshift($keys, $current);
-        }
+        $thisKey = now()->format('Y-m');
+        $lastKey = $this->defaultMonthKey();
 
-        $options = ['any' => 'All months'];
-        foreach ($keys as $key) {
+        $options = [
+            'any' => 'All months',
+            'this' => 'This month',
+            'last' => 'Last month',
+        ];
+
+        foreach ($this->invoiceMonthKeysWithData() as $key) {
+            $key = (string) $key;
+            if ($key === $thisKey || $key === $lastKey) {
+                continue;
+            }
             $options[$key] = $this->monthTitle($key);
         }
 
@@ -2765,7 +2774,7 @@ class Invoices extends Page implements HasForms
 
     public function defaultMonthKey(): string
     {
-        return now()->format('Y-m');
+        return now()->subMonthNoOverflow()->format('Y-m');
     }
 
     private function selectedMonthKey(): ?string
@@ -2776,6 +2785,14 @@ class Invoices extends Page implements HasForms
             return null;
         }
 
+        if ($month === 'this') {
+            return now()->format('Y-m');
+        }
+
+        if ($month === 'last') {
+            return $this->defaultMonthKey();
+        }
+
         $available = $this->invoiceMonthKeysWithData();
 
         if ($month !== '' && preg_match('/^\d{4}-\d{2}$/', $month) === 1) {
@@ -2784,12 +2801,12 @@ class Invoices extends Page implements HasForms
             }
         }
 
-        // Soft default: current calendar month while the month field is empty and no other filters are set.
+        // Soft default: last month while the month field is empty and no other filters are set.
         if ($this->filtersWidenBeyondMonth()) {
             return null;
         }
 
-        return now()->format('Y-m');
+        return $this->defaultMonthKey();
     }
 
     /**

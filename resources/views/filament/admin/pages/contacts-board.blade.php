@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     <style>
         .contacts-dashboard {
-            color: #23262A;
+            color: #222222;
             font-family: 'Jost', sans-serif;
             font-weight: 400;
         }
@@ -20,7 +20,7 @@
         .contact-qv__loading,
         .contact-qv__link,
         .contact-qv__comment-date {
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             letter-spacing: 0.14em;
             text-transform: uppercase;
         }
@@ -37,7 +37,7 @@
             min-height: 420px;
             flex: 1 0 280px;
             flex-direction: column;
-            border: 1px solid #DDDED9;
+            border: 1px solid #C9C9C9;
             background-color: #FFFFFF;
         }
         .contact-kanban-column__header {
@@ -45,7 +45,7 @@
             align-items: baseline;
             justify-content: space-between;
             gap: 8px;
-            border-bottom: 1px solid #23262A;
+            border-bottom: 1px solid #222222;
             margin: 12px 16px 4px;
             padding: 0 0 6px;
             background-color: transparent;
@@ -53,12 +53,12 @@
         .contact-kanban-column__title {
             font-size: 10px;
             font-weight: 400;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-kanban-column__count {
             font-size: 9px;
             font-weight: 400;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-kanban-column__body {
             display: flex;
@@ -70,20 +70,20 @@
         .contact-kanban-card {
             display: flex;
             gap: 8px;
-            border-bottom: 1px solid #EDEEEA;
+            border-bottom: 1px solid #F2F2F2;
             background-color: #FFFFFF;
             cursor: grab;
         }
         .contact-kanban-card:active { cursor: grabbing; }
         .contact-kanban-card--ghost { opacity: 0.45; }
-        .contact-kanban-card--chosen { background-color: #FBFBF9; }
+        .contact-kanban-card--chosen { background-color: #FFFFFF; }
         .contact-kanban-card__handle {
             display: flex;
             align-items: flex-start;
             padding: 11px 0 0;
             font-size: 11px;
             line-height: 1;
-            color: #C9CAC6;
+            color: #C9C9C9;
             cursor: grab;
             user-select: none;
             visibility: hidden;
@@ -100,7 +100,7 @@
         .contact-kanban-card__title {
             font-size: 14px;
             font-weight: 400;
-            color: #23262A;
+            color: #222222;
             line-height: 1.45;
             text-transform: uppercase;
         }
@@ -108,7 +108,7 @@
             margin-top: 2px;
             font-size: 11px;
             letter-spacing: 0.04em;
-            color: #8E9095;
+            color: #6B6B6B;
             line-height: 1.45;
             overflow-wrap: anywhere;
         }
@@ -121,29 +121,39 @@
         .contact-kanban-card__due {
             font-size: 8px;
             letter-spacing: 0.12em;
-            color: #8E9095;
+            color: #6B6B6B;
             white-space: nowrap;
         }
         .contact-kanban-card__due.is-late {
-            color: #A93226;
-            font-weight: 700;
+            color: #222222;
+            font-weight: 500;
+        }
+        .contact-kanban-card__due.is-late::before {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            margin-right: 6px;
+            border-radius: 999px;
+            background: #EB8027;
+            vertical-align: middle;
         }
         .contact-kanban-column__footer {
             margin-top: 8px;
             padding-top: 6px;
-            border-top: 1px solid #EDEEEA;
+            border-top: 1px solid #F2F2F2;
         }
         .contact-kanban-column__footer a {
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             letter-spacing: 0.14em;
             text-transform: uppercase;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
             cursor: pointer;
             text-decoration: none;
         }
         .contact-kanban-column__footer a:hover {
-            color: #23262A;
+            color: #222222;
         }
         .contact-summary {
             display: grid;
@@ -161,7 +171,7 @@
             }
         }
         .contact-summary__item {
-            border: 1px solid #DDDED9;
+            border: 1px solid #C9C9C9;
             background: #FFFFFF;
             padding: 14px 16px 12px;
             min-height: 78px;
@@ -171,22 +181,33 @@
             background: #FDF8F7;
         }
         .contact-summary__label {
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             letter-spacing: 0.14em;
             text-transform: uppercase;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-summary__value {
             margin-top: 8px;
             font-family: 'Jost', sans-serif;
             font-size: 28px;
             line-height: 1;
-            color: #23262A;
+            color: #222222;
             font-weight: 400;
         }
         .contact-summary__item--alert .contact-summary__value {
-            color: #A93226;
+            color: #222222;
+            font-weight: 500;
+        }
+        .contact-summary__item--alert .contact-summary__label::before {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            margin-right: 6px;
+            border-radius: 999px;
+            background: #EB8027;
+            vertical-align: middle;
         }
         .contact-date-lists {
             display: grid;
@@ -201,7 +222,7 @@
         .contact-date-list {
             display: flex;
             flex-direction: column;
-            border: 1px solid #DDDED9;
+            border: 1px solid #C9C9C9;
             background-color: #FFFFFF;
             padding: 12px 16px 14px;
         }
@@ -210,19 +231,19 @@
             align-items: baseline;
             justify-content: space-between;
             gap: 8px;
-            border-bottom: 1px solid #23262A;
+            border-bottom: 1px solid #222222;
             padding: 0 0 6px;
             margin-bottom: 4px;
         }
         .contact-date-list__title {
             font-size: 10px;
             font-weight: 400;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-date-list__count {
             font-size: 9px;
             font-weight: 400;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-date-list__body {
             display: flex;
@@ -233,17 +254,17 @@
             align-items: flex-start;
             justify-content: space-between;
             gap: 12px;
-            border-bottom: 1px solid #EDEEEA;
+            border-bottom: 1px solid #F2F2F2;
             padding: 9px 0;
             cursor: pointer;
         }
         .contact-date-list__row:hover {
-            background-color: #FBFBF9;
+            background-color: #FFFFFF;
         }
         .contact-date-list__name {
             font-size: 14px;
             font-weight: 400;
-            color: #23262A;
+            color: #222222;
             line-height: 1.45;
             text-transform: uppercase;
             flex-shrink: 0;
@@ -263,7 +284,7 @@
             font-size: 12px;
             font-weight: 400;
             line-height: 1.45;
-            color: #8E9095;
+            color: #6B6B6B;
             text-transform: none;
             letter-spacing: 0;
         }
@@ -273,7 +294,7 @@
             gap: 8px;
             font-size: 8px;
             letter-spacing: 0.12em;
-            color: #8E9095;
+            color: #6B6B6B;
             white-space: nowrap;
             padding-top: 4px;
             flex-shrink: 0;
@@ -281,19 +302,29 @@
         .contact-date-list__row--late .contact-date-list__name,
         .contact-date-list__row--late .contact-date-list__meta,
         .contact-date-list__row--late .contact-date-list__comment {
-            color: #A93226;
-            font-weight: 700;
+            color: #222222;
+            font-weight: 500;
         }
         .contact-date-list__late {
             font-size: 8px;
             letter-spacing: 0.12em;
-            color: #A93226;
-            font-weight: 700;
+            color: #222222;
+            font-weight: 500;
+        }
+        .contact-date-list__late::before {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            margin-right: 6px;
+            border-radius: 999px;
+            background: #EB8027;
+            vertical-align: middle;
         }
         .contact-date-list__empty {
             padding: 10px 0;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-date-list__footer {
             padding-top: 4px;
@@ -302,18 +333,18 @@
             border: none;
             background: none;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
             text-decoration: none;
             cursor: pointer;
             padding: 10px 0;
             display: inline-block;
         }
         .contact-date-list__footer a:hover {
-            color: #23262A;
+            color: #222222;
         }
         .contact-qv {
             font-family: 'Jost', sans-serif;
-            color: #23262A;
+            color: #222222;
         }
         .contact-qv__box {
             display: flex;
@@ -321,7 +352,7 @@
             width: 100%;
             max-width: 32rem;
             flex-direction: column;
-            border: 1px solid #23262A;
+            border: 1px solid #222222;
             background: #FFFFFF;
         }
         .contact-qv__header,
@@ -330,13 +361,13 @@
             align-items: center;
             justify-content: space-between;
             gap: 12px;
-            border-bottom: 1px solid #23262A;
+            border-bottom: 1px solid #222222;
             padding: 14px 20px;
         }
         .contact-qv__tabs {
             display: flex;
             gap: 0;
-            border-bottom: 1px solid #EDEEEA;
+            border-bottom: 1px solid #F2F2F2;
             padding: 0 12px;
         }
         .contact-qv__tab {
@@ -347,15 +378,15 @@
             border: none;
             background: none;
             padding: 12px 12px 10px;
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             font-size: 9px;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: #8E9095;
+            color: #6B6B6B;
             cursor: pointer;
         }
         .contact-qv__tab.is-active {
-            color: #23262A;
+            color: #222222;
         }
         .contact-qv__tab.is-active::after {
             content: "";
@@ -364,21 +395,21 @@
             right: 12px;
             bottom: -1px;
             height: 2px;
-            background: #23262A;
+            background: #222222;
         }
         .contact-qv__tab-count {
             display: inline-flex;
             min-width: 1.25rem;
             align-items: center;
             justify-content: center;
-            border: 1px solid #E2E2DE;
+            border: 1px solid #C9C9C9;
             padding: 1px 5px;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-qv__footer {
             border-bottom: none;
-            border-top: 1px solid #EDEEEA;
+            border-top: 1px solid #F2F2F2;
             justify-content: flex-end;
         }
         .contact-qv__title {
@@ -390,12 +421,12 @@
         .contact-qv__close {
             border: none;
             background: none;
-            color: #8E9095;
+            color: #6B6B6B;
             cursor: pointer;
             font-size: 16px;
             line-height: 1;
         }
-        .contact-qv__close:hover { color: #23262A; }
+        .contact-qv__close:hover { color: #222222; }
         .contact-qv__body {
             overflow-y: auto;
             padding: 20px;
@@ -404,37 +435,37 @@
             display: block;
             margin-bottom: 6px;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-qv__input,
         .contact-qv__box textarea {
             width: 100%;
-            border: 1px solid #E2E2DE;
+            border: 1px solid #C9C9C9;
             background: #FFFFFF;
             padding: 8px 10px;
             font-family: 'Jost', sans-serif;
             font-size: 14px;
-            color: #23262A;
+            color: #222222;
             outline: none;
             border-radius: 0;
         }
         .contact-qv__input:focus,
         .contact-qv__box textarea:focus {
-            border-color: #23262A;
-            background: #FBFBF9;
+            border-color: #222222;
+            background: #FFFFFF;
         }
         .contact-qv__comments {
             max-height: 10rem;
             overflow-y: auto;
-            border-top: 1px solid #EDEEEA;
+            border-top: 1px solid #F2F2F2;
         }
         .contact-qv__comment {
-            border-bottom: 1px solid #EDEEEA;
+            border-bottom: 1px solid #F2F2F2;
             padding: 8px 0;
         }
         .contact-qv__comment-date {
             font-size: 8px;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-qv__comment-text {
             margin-top: 4px;
@@ -443,41 +474,41 @@
         }
         .contact-qv__link {
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
             text-decoration: none;
         }
-        .contact-qv__link:hover { color: #23262A; }
+        .contact-qv__link:hover { color: #222222; }
         .contact-qv__person {
-            border: 1px solid #EDEEEA;
+            border: 1px solid #F2F2F2;
             padding: 12px;
         }
         .contact-qv__person-name {
             font-size: 14px;
             font-weight: 500;
-            color: #23262A;
+            color: #222222;
         }
         .contact-qv__person-meta {
             margin-top: 4px;
             font-size: 12px;
-            color: #4A4E54;
+            color: #444444;
         }
         .contact-qv__person-note {
             margin-top: 8px;
             font-size: 12px;
             line-height: 1.45;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-qv__empty {
             padding: 18px 0;
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             font-size: 9px;
             letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .contact-qv__btn {
             border: none;
-            background: #23262A;
+            background: #222222;
             color: #FFFFFF;
             padding: 10px 20px;
             font-family: 'Jost', sans-serif;
@@ -486,19 +517,19 @@
             text-transform: uppercase;
             cursor: pointer;
         }
-        .contact-qv__btn:hover { background: #4A4E54; }
+        .contact-qv__btn:hover { background: #444444; }
         .contact-qv__btn:disabled { opacity: 0.5; cursor: default; }
         .contact-qv__btn--ghost {
             background: #FFFFFF;
-            color: #23262A;
-            border: 1px solid #23262A;
+            color: #222222;
+            border: 1px solid #222222;
         }
-        .contact-qv__btn--ghost:hover { background: #FBFBF9; }
+        .contact-qv__btn--ghost:hover { background: #FFFFFF; }
         .contact-qv__loading {
             padding: 32px 0;
             text-align: center;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
         }
     </style>
 

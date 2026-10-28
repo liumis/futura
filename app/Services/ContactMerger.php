@@ -15,7 +15,7 @@ class ContactMerger
      * Merge $sourceIds into $targetId. Reassigns invoices/payments/manual_imports, then deletes sources.
      *
      * @param  list<int>  $sourceIds
-     * @return array{target_id: int, merged_ids: list<int>, invoices: int, payments: int, manual_imports: int}
+     * @return array{target_id: int, merged_ids: list<int>, invoices: int, payments: int, manual_imports: int, bank_counterparts: int}
      */
     public static function mergeInto(int $targetId, array $sourceIds, bool $preferLongerName = true): array
     {
@@ -60,11 +60,15 @@ class ContactMerger
                         ->update(['contact_id' => $target->getKey()]);
                 }
 
-                $source->delete();
+                // Quiet delete: invoices were remapped above; Contact::deleting would otherwise unlink them.
+                $source->deleteQuietly();
             }
 
             $target->save();
         });
+
+        $target->refresh();
+        $bankCounterparts = self::normalizeBankCounterparts($target);
 
         return [
             'target_id' => (int) $target->getKey(),
@@ -72,29 +76,33 @@ class ContactMerger
             'invoices' => $movedInvoices,
             'payments' => $movedPayments,
             'manual_imports' => $movedManual,
+            'bank_counterparts' => $bankCounterparts,
         ];
     }
 
     /**
-     * Pick the best keeper among contacts and merge the rest into it.
+     * Suggest which contact to keep when merging a selected group.
      *
-     * @param  list<int>  $contactIds
-     * @return array{target_id: int, merged_ids: list<int>, invoices: int, payments: int, manual_imports: int}
+     * @param  list<int>|\Illuminate\Support\Collection<int, Contact>  $contactIds
      */
-    public static function mergeGroup(array $contactIds): array
+    public static function suggestTargetId(array|\Illuminate\Support\Collection $contactIds): int
     {
-        $contactIds = array_values(array_unique(array_map('intval', $contactIds)));
-        if (count($contactIds) < 2) {
-            throw new InvalidArgumentException('Select at least two contacts to merge.');
+        $ids = $contactIds instanceof \Illuminate\Support\Collection
+            ? $contactIds->map(fn ($c): int => $c instanceof Contact ? (int) $c->getKey() : (int) $c)->all()
+            : $contactIds;
+
+        $ids = array_values(array_unique(array_map('intval', $ids)));
+        if ($ids === []) {
+            throw new InvalidArgumentException('Select at least one contact.');
         }
 
         $contacts = Contact::query()
             ->withCount('invoices')
-            ->whereIn('id', $contactIds)
+            ->whereIn('id', $ids)
             ->get();
 
-        if ($contacts->count() < 2) {
-            throw new RuntimeException('Need at least two existing contacts to merge.');
+        if ($contacts->isEmpty()) {
+            throw new RuntimeException('No contacts found.');
         }
 
         $target = $contacts
@@ -106,13 +114,64 @@ class ContactMerger
             ])
             ->first();
 
-        $sources = $contacts
-            ->reject(fn (Contact $c): bool => (int) $c->getKey() === (int) $target->getKey())
-            ->pluck('id')
-            ->map(fn ($id): int => (int) $id)
-            ->all();
+        return (int) $target->getKey();
+    }
 
-        return self::mergeInto((int) $target->getKey(), $sources);
+    /**
+     * Align similar bank statement counterpart names to the kept contact name.
+     */
+    public static function normalizeBankCounterparts(Contact $contact): int
+    {
+        $name = trim((string) $contact->company_name);
+        if ($name === '') {
+            return 0;
+        }
+
+        $norm = self::normalizeName($name);
+        if ($norm === '' || strlen($norm) < 12) {
+            return 0;
+        }
+
+        if (! Schema::hasTable('bank_statement_transactions')) {
+            return 0;
+        }
+
+        $updated = 0;
+        DB::table('bank_statement_transactions')
+            ->whereNotNull('counterpart_name')
+            ->where('counterpart_name', '!=', '')
+            ->where('counterpart_name', '!=', $name)
+            ->orderBy('id')
+            ->each(function ($row) use ($name, $norm, &$updated): void {
+                $rowNorm = self::normalizeName((string) $row->counterpart_name);
+                if ($rowNorm === $norm || str_starts_with($norm, $rowNorm) || str_starts_with($rowNorm, $norm)) {
+                    DB::table('bank_statement_transactions')
+                        ->where('id', $row->id)
+                        ->update(['counterpart_name' => $name]);
+                    $updated++;
+                }
+            });
+
+        return $updated;
+    }
+
+    /**
+     * Pick the best keeper among contacts and merge the rest into it.
+     *
+     * @param  list<int>  $contactIds
+     * @return array{target_id: int, merged_ids: list<int>, invoices: int, payments: int, manual_imports: int, bank_counterparts: int}
+     */
+    public static function mergeGroup(array $contactIds): array
+    {
+        $contactIds = array_values(array_unique(array_map('intval', $contactIds)));
+        if (count($contactIds) < 2) {
+            throw new InvalidArgumentException('Select at least two contacts to merge.');
+        }
+
+        $targetId = self::suggestTargetId($contactIds);
+        $sources = array_values(array_filter($contactIds, fn (int $id): bool => $id !== $targetId));
+
+        return self::mergeInto($targetId, $sources);
     }
 
     /**

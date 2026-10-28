@@ -1,7 +1,7 @@
 <x-filament-panels::page>
     <style>
         .dash-board {
-            color: #23262A;
+            color: #222222;
             font-family: 'Jost', sans-serif;
             font-weight: 400;
         }
@@ -13,7 +13,7 @@
         .dash-col__empty,
         .dash-col__footer a,
         .dash-col__footer button {
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             letter-spacing: 0.14em;
             text-transform: uppercase;
         }
@@ -30,7 +30,7 @@
             min-height: 420px;
             flex: 1 0 260px;
             flex-direction: column;
-            border: 1px solid #DDDED9;
+            border: 1px solid #C9C9C9;
             background-color: #FFFFFF;
             padding: 12px 16px 14px;
         }
@@ -39,7 +39,7 @@
             align-items: baseline;
             justify-content: space-between;
             gap: 8px;
-            border-bottom: 1px solid #23262A;
+            border-bottom: 1px solid #222222;
             padding: 0 0 6px;
             margin-bottom: 2px;
             position: relative;
@@ -50,17 +50,17 @@
             left: 0;
             bottom: -3px;
             width: 42px;
-            border-bottom: 2px solid #23262A;
+            border-bottom: 2px solid #222222;
         }
         .dash-col__title {
             font-size: 10px;
             font-weight: 400;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .dash-col__count {
             font-size: 9px;
             font-weight: 400;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .dash-col__body {
             display: flex;
@@ -74,14 +74,14 @@
             align-items: flex-start;
             justify-content: space-between;
             gap: 12px;
-            border-bottom: 1px solid #EDEEEA;
+            border-bottom: 1px solid #F2F2F2;
             padding: 9px 0;
             text-decoration: none;
             color: inherit;
             cursor: pointer;
         }
         .dash-row:hover {
-            background-color: #FBFBF9;
+            background-color: #FFFFFF;
         }
         .dash-row__main {
             min-width: 0;
@@ -90,18 +90,18 @@
         .dash-row__title {
             font-size: 14px;
             font-weight: 400;
-            color: #23262A;
+            color: #222222;
             line-height: 1.45;
             text-transform: uppercase;
             overflow-wrap: anywhere;
         }
         .dash-row__note {
             margin-top: 2px;
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             font-size: 10px;
             letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: #8E9095;
+            color: #6B6B6B;
             line-height: 1.45;
             overflow-wrap: anywhere;
         }
@@ -116,7 +116,7 @@
         .dash-row__meta {
             font-size: 8px;
             letter-spacing: 0.12em;
-            color: #8E9095;
+            color: #6B6B6B;
             white-space: nowrap;
         }
         .dash-row__badge {
@@ -125,7 +125,7 @@
             gap: 4px;
             font-size: 8px;
             letter-spacing: 0.12em;
-            color: #8E9095;
+            color: #6B6B6B;
             white-space: nowrap;
         }
         .dash-row__badge-mark {
@@ -138,40 +138,56 @@
             border-radius: 999px;
             font-size: 8px;
             line-height: 1;
-            font-weight: 700;
+            font-weight: 500;
         }
         .dash-row--late .dash-row__title,
         .dash-row--late .dash-row__note,
         .dash-row--late .dash-row__meta,
         .dash-row--late .dash-row__badge {
-            color: #A93226;
-            font-weight: 700;
+            color: #222222;
+            font-weight: 500;
+        }
+        .dash-row--late .dash-row__badge-mark {
+            color: #EB8027;
+            border-color: #EB8027;
         }
         .dash-row__status {
-            font-family: 'Azeret Mono', ui-monospace, monospace;
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
             font-size: 8px;
-            font-weight: 700;
+            font-weight: 500;
             letter-spacing: 0.12em;
             text-transform: uppercase;
-            color: #23262A;
+            color: #222222;
             white-space: nowrap;
         }
-        .dash-row--pending .dash-row__status {
-            color: #A93226;
+        .dash-row--pending .dash-row__status::before {
+            content: '';
+            display: inline-block;
+            width: 5px;
+            height: 5px;
+            margin-right: 6px;
+            border-radius: 999px;
+            background: #EB8027;
+            vertical-align: middle;
         }
         .dash-row--alert .dash-row__title,
         .dash-row--alert .dash-row__note,
         .dash-row--alert .dash-row__badge {
-            color: #A93226;
+            color: #222222;
+            font-weight: 500;
+        }
+        .dash-row--alert .dash-row__badge-mark {
+            color: #EB8027;
+            border-color: #EB8027;
         }
         .dash-row--soon .dash-row__badge {
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .dash-col__empty {
             padding: 28px 0;
             text-align: center;
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .dash-col__footer {
             display: flex;
@@ -180,12 +196,12 @@
             gap: 12px;
             margin-top: auto;
             padding-top: 10px;
-            border-top: 1px solid #EDEEEA;
+            border-top: 1px solid #F2F2F2;
         }
         .dash-col__footer a,
         .dash-col__footer button {
             font-size: 9px;
-            color: #8E9095;
+            color: #6B6B6B;
             text-decoration: none;
             background: none;
             border: none;
@@ -197,7 +213,7 @@
         }
         .dash-col__footer a:hover,
         .dash-col__footer button:hover {
-            color: #23262A;
+            color: #222222;
         }
         .dash-col--stack {
             padding: 0;
@@ -213,7 +229,7 @@
             min-height: 0;
             margin-top: 12px;
             padding: 12px 16px 14px;
-            border: 1px solid #DDDED9;
+            border: 1px solid #C9C9C9;
             background-color: #FFFFFF;
         }
         .dash-stack-block:first-child {
@@ -253,9 +269,9 @@
             align-items: center;
             justify-content: center;
             padding: 2px 6px;
-            border: 1px solid #DDDED9;
+            border: 1px solid #C9C9C9;
             background: #FFFFFF;
-            color: #8E9095;
+            color: #6B6B6B;
             font-size: 9px;
             font-family: inherit;
             letter-spacing: 0.04em;
@@ -264,8 +280,8 @@
             line-height: 1.2;
         }
         .dash-row__archive:hover {
-            color: #23262A;
-            border-color: #23262A;
+            color: #222222;
+            border-color: #222222;
         }
         .dash-row__dismiss {
             display: inline-flex;
@@ -276,22 +292,78 @@
             padding: 0;
             border: none;
             background: transparent;
-            color: #8E9095;
+            color: #6B6B6B;
             font-size: 14px;
             font-family: inherit;
             line-height: 1;
             cursor: pointer;
         }
         .dash-row__dismiss:hover {
-            color: #23262A;
+            color: #222222;
         }
         .dash-row__badge--viewed {
-            color: #8E9095;
+            color: #6B6B6B;
         }
         .dash-row--viewed .dash-row__title,
         .dash-row--viewed .dash-row__note,
         .dash-row--viewed .dash-row__meta {
-            color: #8E9095;
+            color: #6B6B6B;
+        }
+        .dash-balance-warnings {
+            margin-bottom: 16px;
+            border: 1px solid #C9C9C9;
+            border-left: 3px solid #EB8027;
+            background: #F2F2F2;
+            padding: 12px 16px;
+        }
+        .dash-balance-warnings__title {
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+            font-size: 10px;
+            font-weight: 500;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #222222;
+            margin-bottom: 8px;
+        }
+        .dash-balance-warnings__list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .dash-balance-warnings__item {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 8px 16px;
+            text-decoration: none;
+            color: #222222;
+            border-bottom: 1px solid #C9C9C9;
+            padding-bottom: 6px;
+        }
+        .dash-balance-warnings__item:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .dash-balance-warnings__item:hover {
+            color: #222222;
+        }
+        .dash-balance-warnings__month {
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+        .dash-balance-warnings__meta {
+            font-size: 12px;
+            color: #6B6B6B;
+        }
+        .dash-balance-warnings__diff {
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+            font-size: 11px;
+            letter-spacing: 0.06em;
+            color: #222222;
+            white-space: nowrap;
         }
     </style>
 
@@ -307,6 +379,7 @@
         $myLatePayments = $this->getMyLatePayments();
         $customerLatePayments = $this->getCustomerLatePayments();
         $stock = $this->getStockAlerts();
+        $unbalancedMonths = $this->getUnbalancedMonths();
         $canDocuments = $this->canSeeModule(\App\Enums\AdminModule::Documents);
         $canTasks = $this->canSeeModule(\App\Enums\AdminModule::Tasks);
         $canCargos = $this->canSeeModule(\App\Enums\AdminModule::WarehouseShipping);
@@ -319,6 +392,29 @@
     @endphp
 
     <div class="dash-board">
+        @if ($unbalancedMonths->isNotEmpty())
+            <div class="dash-balance-warnings" role="status">
+                <div class="dash-balance-warnings__title">Unbalanced months (debit vs credit)</div>
+                <div class="dash-balance-warnings__list">
+                    @foreach ($unbalancedMonths as $row)
+                        <a href="{{ $row['url'] }}" class="dash-balance-warnings__item">
+                            <div>
+                                <div class="dash-balance-warnings__month">{{ $row['title'] }}</div>
+                                <div class="dash-balance-warnings__meta">
+                                    @if ($row['kind'] === 'own_account')
+                                        Own-account transfers · debit {{ $this->formatMoney($row['debit']) }} · credit {{ $this->formatMoney($row['credit']) }}
+                                    @else
+                                        Invoice journals · debit {{ $this->formatMoney($row['debit']) }} · credit {{ $this->formatMoney($row['credit']) }}
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="dash-balance-warnings__diff">Δ {{ $row['difference_label'] }}</div>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         <div class="dash-board-cols">
             {{-- Missing approvals + Tasks + Notes (stacked) --}}
             <section class="dash-col dash-col--stack">

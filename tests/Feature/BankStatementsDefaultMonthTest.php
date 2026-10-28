@@ -11,6 +11,7 @@ use Carbon\Carbon;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use ReflectionMethod;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
@@ -18,7 +19,7 @@ class BankStatementsDefaultMonthTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_defaults_to_latest_month_with_statements_when_current_month_empty(): void
+    public function test_defaults_to_last_month_and_exposes_quick_options(): void
     {
         Carbon::setTestNow(Carbon::parse('2026-10-28'));
 
@@ -48,10 +49,23 @@ class BankStatementsDefaultMonthTest extends TestCase
 
         $page = Livewire::test(BankStatements::class)
             ->assertOk()
+            ->assertSet('filters.month', 'last')
             ->assertSee('September 2026')
             ->assertSee('12.34');
 
         $this->assertSame('2026-09', $page->instance()->defaultMonthKey());
+
+        $optionsMethod = new ReflectionMethod(BankStatements::class, 'monthFilterOptions');
+        $optionsMethod->setAccessible(true);
+        $options = $optionsMethod->invoke($page->instance());
+
+        $this->assertSame(
+            ['any', 'this', 'last'],
+            array_slice(array_keys($options), 0, 3)
+        );
+        $this->assertSame('All months', $options['any']);
+        $this->assertSame('This month', $options['this']);
+        $this->assertSame('Last month', $options['last']);
 
         Carbon::setTestNow();
     }

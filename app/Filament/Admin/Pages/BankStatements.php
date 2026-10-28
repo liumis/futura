@@ -166,9 +166,7 @@ class BankStatements extends Page implements HasForms
     public function mount(): void
     {
         $this->form->fill([]);
-        // Month starts empty in the UI; list soft-defaults to the latest month until
-        // the user picks a month or widens via any other filter.
-        $this->filtersForm->fill([]);
+        $this->filtersForm->fill(['month' => 'last']);
     }
 
     public function filtersForm(Schema $schema): Schema
@@ -199,10 +197,8 @@ class BankStatements extends Page implements HasForms
                         Select::make('month')
                             ->label('Month')
                             ->options(fn (): array => $this->monthFilterOptions())
-                            ->placeholder('This month')
                             ->native(false)
                             ->live()
-                            ->helperText('Empty = this month. Any other filter without a month looks across all months.')
                             ->columnSpan(['default' => 12, 'md' => 3]),
                     ]),
 
@@ -2371,7 +2367,7 @@ class BankStatements extends Page implements HasForms
 
     public function resetFilters(): void
     {
-        $filters = [];
+        $filters = ['month' => 'last'];
 
         $this->filters = $filters;
         $this->filtersForm->fill($filters);
@@ -2397,15 +2393,21 @@ class BankStatements extends Page implements HasForms
      */
     private function monthFilterOptions(): array
     {
-        $keys = $this->availableMonthKeys();
+        $thisKey = now()->format('Y-m');
+        $lastKey = now()->subMonthNoOverflow()->format('Y-m');
 
-        if ($keys === []) {
-            $keys = [$this->defaultMonthKey()];
-        }
+        $options = [
+            'any' => 'All months',
+            'this' => 'This month',
+            'last' => 'Last month',
+        ];
 
-        $options = ['any' => 'All months'];
-        foreach ($keys as $key) {
-            $options[(string) $key] = $this->monthTitle((string) $key);
+        foreach ($this->availableMonthKeys() as $key) {
+            $key = (string) $key;
+            if ($key === $thisKey || $key === $lastKey) {
+                continue;
+            }
+            $options[$key] = $this->monthTitle($key);
         }
 
         return $options;
@@ -2413,19 +2415,7 @@ class BankStatements extends Page implements HasForms
 
     public function defaultMonthKey(): string
     {
-        $current = now()->format('Y-m');
-        $available = $this->availableMonthKeys();
-
-        if ($available === []) {
-            return $current;
-        }
-
-        // Prefer the calendar month when it has statements; otherwise latest imported month.
-        if (in_array($current, $available, true)) {
-            return $current;
-        }
-
-        return (string) $available[0];
+        return now()->subMonthNoOverflow()->format('Y-m');
     }
 
     /**
@@ -2452,6 +2442,14 @@ class BankStatements extends Page implements HasForms
             return null;
         }
 
+        if ($month === 'this') {
+            return now()->format('Y-m');
+        }
+
+        if ($month === 'last') {
+            return $this->defaultMonthKey();
+        }
+
         $available = $this->availableMonthKeys();
 
         if ($month !== '' && preg_match('/^\d{4}-\d{2}$/', $month) === 1) {
@@ -2460,7 +2458,7 @@ class BankStatements extends Page implements HasForms
             }
         }
 
-        // Soft default: current (or latest available) month while month is empty and no other filters are set.
+        // Soft default: last month while month is empty and no other filters are set.
         if ($this->filtersWidenBeyondMonth()) {
             return null;
         }
