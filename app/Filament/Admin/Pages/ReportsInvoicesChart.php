@@ -6,6 +6,7 @@ use App\Filament\Admin\Concerns\HasReportMonthQuickFilter;
 use App\Models\Contact;
 use App\Models\OriginCountry;
 use App\Services\InvoicesChartReportBuilder;
+use App\Support\ReportDateRange;
 use BackedEnum;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
@@ -39,7 +40,7 @@ class ReportsInvoicesChart extends Page implements HasForms
     public function mount(): void
     {
         $this->form->fill([
-            ...$this->defaultReportMonthRangeFill(),
+            ...ReportDateRange::lastMonthFill(),
             'status' => InvoicesChartReportBuilder::STATUS_ALL,
             'late_days' => InvoicesChartReportBuilder::LATE_ANY,
             'contact_id' => null,

@@ -70,6 +70,6 @@ trait HasReportMonthQuickFilter
      */
     protected function defaultReportMonthRangeFill(): array
     {
-        return ReportDateRange::lastMonthFill();
+        return ReportDateRange::currentMonthFill();
     }
 }
