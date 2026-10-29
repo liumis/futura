@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Users\Pages;
 use App\Filament\Admin\Resources\Pages\EditRecord;
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Models\User;
+use App\Services\AdminHomepage;
 use Illuminate\Database\Eloquent\Model;
 
 class EditUser extends EditRecord
@@ -83,6 +84,14 @@ class EditUser extends EditRecord
             ] as $field) {
                 $data[$field] = null;
             }
+
+            $data['homepage_module'] = AdminHomepage::normalize(
+                isset($formState['homepage_module'])
+                    ? (string) $formState['homepage_module']
+                    : (isset($data['homepage_module']) ? (string) $data['homepage_module'] : null)
+            );
+        } else {
+            $data['homepage_module'] = null;
         }
 
         return $data;

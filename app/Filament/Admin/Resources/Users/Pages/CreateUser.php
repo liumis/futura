@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Resources\Users\Pages;
 
 use App\Filament\Admin\Resources\Users\UserResource;
 use App\Models\User;
+use App\Services\AdminHomepage;
 use Filament\Resources\Pages\CreateRecord;
 use Spatie\Permission\Models\Role;
 
@@ -67,6 +68,14 @@ class CreateUser extends CreateRecord
             ] as $field) {
                 $data[$field] = null;
             }
+
+            $data['homepage_module'] = AdminHomepage::normalize(
+                isset($this->data['homepage_module'])
+                    ? (string) $this->data['homepage_module']
+                    : (isset($data['homepage_module']) ? (string) $data['homepage_module'] : null)
+            );
+        } else {
+            $data['homepage_module'] = null;
         }
 
         return $data;

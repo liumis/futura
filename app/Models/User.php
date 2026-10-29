@@ -5,6 +5,7 @@ namespace App\Models;
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use App\Enums\AdminModule;
 use App\Enums\NotificationType;
+use App\Services\AdminHomepage;
 use Database\Factories\UserFactory;
 use Filament\Models\Contracts\FilamentUser;
 use Filament\Models\Contracts\HasName;
@@ -132,6 +133,19 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         }
 
         return in_array($resolved->value, $this->assignedModuleValues(), true);
+    }
+
+    public function homepageUrl(): string
+    {
+        return AdminHomepage::urlFor($this);
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function homepageModuleOptions(): array
+    {
+        return AdminHomepage::optionsFor($this);
     }
 
     public function canAccessNavigationGroup(null|string|UnitEnum $group): bool
@@ -337,6 +351,7 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         'company_vat',
         'notification_types',
         'modules',
+        'homepage_module',
     ];
 
     /**

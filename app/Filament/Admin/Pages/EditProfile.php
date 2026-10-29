@@ -3,6 +3,8 @@
 namespace App\Filament\Admin\Pages;
 
 use App\Models\OriginCountry;
+use App\Models\User;
+use App\Services\AdminHomepage;
 use Filament\Auth\Pages\EditProfile as BaseEditProfile;
 use Filament\Forms;
 use Filament\Schemas\Components\Section;
@@ -35,6 +37,15 @@ class EditProfile extends BaseEditProfile
                     ->tel()
                     ->maxLength(50)
                     ->label('Phone'),
+
+                Forms\Components\Select::make('homepage_module')
+                    ->label('Homepage')
+                    ->helperText('Opened after login and when you click the logo.')
+                    ->options(fn (): array => auth()->user()?->homepageModuleOptions() ?? ['' => 'Dashboard'])
+                    ->native(false)
+                    ->searchable()
+                    ->placeholder('Dashboard')
+                    ->visible(fn (): bool => ! (auth()->user()?->hasRole('customer') ?? false)),
 
                 $this->getPasswordFormComponent(),
                 $this->getPasswordConfirmationFormComponent(),
@@ -97,7 +108,10 @@ class EditProfile extends BaseEditProfile
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        if (! auth()->user()?->hasRole('customer')) {
+        /** @var User|null $user */
+        $user = auth()->user();
+
+        if (! $user?->hasRole('customer')) {
             $data['customer_level_id'] = null;
             foreach ([
                 'company_name',
@@ -109,6 +123,18 @@ class EditProfile extends BaseEditProfile
             ] as $field) {
                 $data[$field] = null;
             }
+
+            $homepage = AdminHomepage::normalize(
+                isset($data['homepage_module']) ? (string) $data['homepage_module'] : null
+            );
+
+            if ($homepage !== null && $user !== null && ! $user->canAccessModule($homepage)) {
+                $homepage = null;
+            }
+
+            $data['homepage_module'] = $homepage;
+        } else {
+            unset($data['homepage_module']);
         }
 
         return parent::mutateFormDataBeforeSave($data);

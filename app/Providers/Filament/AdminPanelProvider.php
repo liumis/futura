@@ -23,6 +23,7 @@ use App\Filament\Admin\Pages\ReportsStockChart;
 use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Filament\Admin\Resources\Orders\OrderResource;
 use App\Filament\Admin\Resources\Tasks\TaskResource;
+use App\Services\AdminHomepage;
 use App\Services\EmailTestMode;
 use App\Support\PanelHosts;
 use Filament\Actions\Action;
@@ -63,7 +64,7 @@ class AdminPanelProvider extends PanelProvider
         $panel = PanelHosts::applyAdmin($panel);
 
         return $panel
-            ->homeUrl(fn (): string => Dashboard::getUrl())
+            ->homeUrl(fn (): string => AdminHomepage::urlFor(auth()->user()))
             ->profile(EditProfile::class)
             ->userMenuItems([
                 'profile' => fn (Action $action): Action => $action

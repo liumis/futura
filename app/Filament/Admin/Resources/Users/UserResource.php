@@ -114,6 +114,16 @@ class UserResource extends Resource
                         is_array($get('roles')) ? $get('roles') : null
                     )),
 
+                Forms\Components\Select::make('homepage_module')
+                    ->label('Homepage')
+                    ->helperText('Opened after login and when the logo is clicked.')
+                    ->options(AdminModule::options())
+                    ->native(false)
+                    ->searchable()
+                    ->placeholder('Dashboard')
+                    ->visible(fn (callable $get): bool => filled($get('roles')) && ! User::formStateIncludesCustomerRole($get('roles')))
+                    ->dehydrated(fn (callable $get): bool => filled($get('roles')) && ! User::formStateIncludesCustomerRole($get('roles'))),
+
                 Forms\Components\Select::make('notification_types')
                     ->label('Notifications')
                     ->helperText('Notification types this user should receive.')
