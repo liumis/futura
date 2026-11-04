@@ -5,6 +5,7 @@ namespace App\Services\BankStatements;
 use App\Enums\BankStatementDirection;
 use App\Exceptions\BankStatementXmlException;
 use App\Models\CompanyBankAccount;
+use App\Support\ExtractedTextNormalizer;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -517,7 +518,7 @@ class BankStatementPdfParser
 
     private function normalizeText(string $text): string
     {
-        $text = str_replace("\0", '', $text);
+        $text = ExtractedTextNormalizer::normalize($text);
         $text = str_replace(["\r\n", "\r"], "\n", $text);
         // Keep tabs (table OCR); collapse other runs of spaces.
         $text = preg_replace('/[^\S\t\n]+/u', ' ', $text) ?? $text;

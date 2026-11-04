@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Support\ExtractedTextNormalizer;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -221,7 +222,7 @@ class InvoiceOcrService
      */
     public function parseRawText(string $text): array
     {
-        $text = self::sanitizeUtf8($text);
+        $text = ExtractedTextNormalizer::normalize($text);
         $templateResult = $this->extractWithTemplate($text);
 
         if (($templateResult['is_own_sales_invoice'] ?? false) === true) {
@@ -428,7 +429,7 @@ class InvoiceOcrService
             return '';
         }
 
-        return trim(self::sanitizeUtf8($this->repairExtractedText((string) $text)));
+        return trim(ExtractedTextNormalizer::normalize((string) $text));
     }
 
     private function extractWithOcrSpace(string $absoluteFilePath): string
@@ -481,7 +482,7 @@ class InvoiceOcrService
             Log::warning('Invoice OCR API error', ['message' => $ocrError]);
         }
 
-        return trim(self::sanitizeUtf8((string) data_get($payload, 'ParsedResults.0.ParsedText', '')));
+        return trim(ExtractedTextNormalizer::normalize((string) data_get($payload, 'ParsedResults.0.ParsedText', '')));
     }
 
     /**
@@ -1658,97 +1659,9 @@ class InvoiceOcrService
         return $start === $prefix;
     }
 
-    private function repairExtractedText(string $text): string
-    {
-        $candidates = [$text];
-
-        if (substr_count($text, "\0") >= 8) {
-            $stripped = str_replace("\0", '', $text);
-            $candidates[] = $stripped;
-            $candidates[] = $this->shiftLatinBytes($stripped, 0x1D);
-            // SRATC / some municipal PDFs mix correct ASCII with -0x1D shifted runs.
-            $candidates[] = $this->mergeShiftedLatinRuns($stripped, 0x1D);
-            $even = strlen($text) % 2 === 0 ? $text : $text."\0";
-            $utf16 = @mb_convert_encoding($even, 'UTF-8', 'UTF-16LE');
-            if (is_string($utf16) && $utf16 !== '') {
-                $candidates[] = $utf16;
-                $candidates[] = str_replace("\0", '', $utf16);
-            }
-        }
-
-        $best = $text;
-        $bestScore = $this->readableTextScore($text);
-        foreach ($candidates as $candidate) {
-            $score = $this->readableTextScore($candidate);
-            if ($score > $bestScore) {
-                $best = $candidate;
-                $bestScore = $score;
-            }
-        }
-
-        return $best;
-    }
-
-    /**
-     * Decode runs that look like Latin letters shifted down by $delta, leave clear words alone.
-     */
-    private function mergeShiftedLatinRuns(string $text, int $delta): string
-    {
-        $fullyShifted = $this->shiftLatinBytes($text, $delta);
-        // Prefer the candidate that exposes more Lithuanian invoice vocabulary.
-        if ($this->readableTextScore($fullyShifted) >= $this->readableTextScore($text)) {
-            return $fullyShifted;
-        }
-
-        return $text;
-    }
-
-    private function shiftLatinBytes(string $text, int $delta): string
-    {
-        $out = '';
-        $length = strlen($text);
-        for ($i = 0; $i < $length; $i++) {
-            $ord = ord($text[$i]);
-            // Keep structural chars intact — municipal PDFs mix shifted letters with real digits/emails.
-            if (
-                $ord === 10 || $ord === 13
-                || ($ord >= 0x30 && $ord <= 0x39)
-                || in_array($ord, [0x20, 0x2D, 0x2E, 0x2F, 0x3A, 0x40, 0x5F], true) // space - . / : @ _
-            ) {
-                $out .= $text[$i];
-            } elseif ($ord >= 0x01 && $ord <= 0x61) {
-                $shifted = $ord + $delta;
-                $out .= $shifted <= 0xFF ? chr($shifted) : $text[$i];
-            } else {
-                $out .= $text[$i];
-            }
-        }
-
-        foreach (['ISO-8859-13', 'ISO-8859-1'] as $encoding) {
-            $converted = @iconv($encoding, 'UTF-8//IGNORE', $out);
-            if (is_string($converted) && $converted !== '' && $this->readableTextScore($converted) >= $this->readableTextScore($out)) {
-                return $converted;
-            }
-        }
-
-        return $out;
-    }
-
     private function readableTextScore(string $text): int
     {
-        $hay = Str::lower($text);
-        $score = 0;
-        foreach ([
-            'pvm', 'suma', 'kodas', 'uab', 'invoice', 'saskait', 'sąskait', 'eur', 'bank', 'moket',
-            'futura', 'pardav', 'pirk', 'serija', 'mokestin', 'rinkliav', 'atliek', 'sratc',
-            'formavimo', 'pareikalauta', 'pranesim', 'pranešim',
-        ] as $needle) {
-            if (str_contains($hay, $needle)) {
-                $score++;
-            }
-        }
-
-        return $score;
+        return ExtractedTextNormalizer::readableScore($text);
     }
 
     private function textLooksUnusable(string $text): bool
@@ -1780,19 +1693,7 @@ class InvoiceOcrService
      */
     public static function sanitizeUtf8(string $text): string
     {
-        $text = str_replace("\0", '', $text);
-
-        $encoded = json_encode($text, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_IGNORE);
-        if (is_string($encoded)) {
-            $decoded = json_decode($encoded);
-            if (is_string($decoded)) {
-                $text = $decoded;
-            }
-        }
-
-        $stripped = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $text);
-
-        return is_string($stripped) ? $stripped : $text;
+        return ExtractedTextNormalizer::sanitizeUtf8($text);
     }
 
     /**

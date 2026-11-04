@@ -216,7 +216,7 @@ final class BusinessTripExpensesExtractor
             return '';
         }
 
-        return is_string($text) ? $text : '';
+        return is_string($text) ? \App\Support\ExtractedTextNormalizer::normalize($text) : '';
     }
 
     public static function parseOtherExpensesTotal(string $text): ?float
