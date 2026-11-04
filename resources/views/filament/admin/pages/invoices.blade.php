@@ -65,6 +65,12 @@
             $invoices = $this->getInvoices();
             $categoryGroups = $this->financeCategorySelectOptions();
         @endphp
+        @if ($this->isInvoiceListTruncated())
+            <div class="border-b border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-100">
+                Showing {{ $invoices->count() }} of {{ number_format($this->filteredRowCount) }} invoices
+                (cap {{ $this->invoiceListCap() }}). Narrow Month or search — loading everything times out behind Cloudflare.
+            </div>
+        @endif
         <table class="invoice-table invoices-table w-full text-sm">
             <colgroup>
                 <col class="inv-col-check" />

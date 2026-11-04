@@ -94,6 +94,19 @@ class Invoices extends Page implements HasForms
 
     public string $sortDirection = 'desc';
 
+    /**
+     * Cap hydrated rows (especially All months) so Cloudflare cannot 504.
+     */
+    public int $rowLimit = 150;
+
+    public int $filteredRowCount = 0;
+
+    /**
+     * When true, the next getInvoices() run attaches bank-payment suggestions
+     * (expensive — only for Scan / suggested filter).
+     */
+    public bool $includePaymentSuggestions = false;
+
     public function mount(): void
     {
         $filters = [];
@@ -247,7 +260,7 @@ class Invoices extends Page implements HasForms
 
         Notification::make()
             ->title($queued === 1 ? 'Invoice import started' : $queued.' invoice imports started')
-            ->body('OCR runs in the background. Check the bell for each file. List switched to All months (newest uploads first) — drafts need a quick review.')
+            ->body('OCR runs in the background. Check the bell for each file. Showing newest uploads first (All months, capped list) — drafts need a quick review.')
             ->info()
             ->send();
     }
@@ -1209,8 +1222,10 @@ class Invoices extends Page implements HasForms
         $scanFilters = $this->filters ?? [];
         unset($scanFilters['payment_status']);
         $this->filters = $scanFilters;
+        $this->includePaymentSuggestions = true;
 
         $invoices = $this->getInvoices();
+        $this->includePaymentSuggestions = false;
         $this->filters = $filtersBackup;
 
         $suggestedCount = $invoices
@@ -2309,7 +2324,7 @@ class Invoices extends Page implements HasForms
                     ->orWhere(function ($uploaded) use ($bounds): void {
                         // Drafts (and incomplete OCR) often have an older invoice_date —
                         // still show them in the month they were uploaded.
-                        if (! DbSchema::hasColumn('invoices', 'is_draft')) {
+                        if (! $this->invoicesHaveDraftColumn()) {
                             return;
                         }
 
@@ -2323,7 +2338,7 @@ class Invoices extends Page implements HasForms
 
         $draftStatus = $filters['draft_status'] ?? null;
         if (
-            DbSchema::hasColumn('invoices', 'is_draft')
+            $this->invoicesHaveDraftColumn()
             && ($draftStatus === 'draft' || $draftStatus === 'published')
         ) {
             $query->where('is_draft', $draftStatus === 'draft');
@@ -2441,10 +2456,30 @@ class Invoices extends Page implements HasForms
             });
         }
 
+        // Count before joins/limit so the UI can warn when the list is truncated.
+        $this->filteredRowCount = (int) (clone $query)->toBase()->getCountForPagination();
+
         $this->applyInvoiceSorting($query);
 
-        $invoices = $query->get();
-        $this->attachSuggestedBankPayments($invoices);
+        $limit = max(50, min(500, (int) $this->rowLimit));
+        if ($monthKey === null) {
+            // All months: keep the newest slice only — full hydrate 504s behind Cloudflare.
+            $limit = min($limit, 150);
+        }
+
+        $invoices = $query->limit($limit)->get();
+
+        $wantsSuggestions = $this->includePaymentSuggestions
+            || ($filters['payment_status'] ?? null) === 'suggested';
+
+        if ($wantsSuggestions) {
+            $this->attachSuggestedBankPayments($invoices);
+        } else {
+            // Default browsing must not run BankStatementInvoiceMatcher::suggestFor.
+            foreach ($invoices as $invoice) {
+                $invoice->setRelation('suggestedBankPayment', null);
+            }
+        }
 
         if (($filters['payment_status'] ?? null) === 'suggested') {
             $invoices = $invoices
@@ -2738,12 +2773,13 @@ class Invoices extends Page implements HasForms
 
     public function resetFilters(): void
     {
-        $filters = ['month' => 'any'];
+        $filters = ['month' => $this->invoiceMonthKeysWithData()[0] ?? 'last'];
 
         $this->filters = $filters;
         $this->filtersForm->fill($filters);
         $this->selectedInvoiceIds = [];
         $this->selectAllInvoices = false;
+        $this->includePaymentSuggestions = false;
         $this->sortColumn = 'upload_date';
         $this->sortDirection = 'desc';
     }
@@ -2752,8 +2788,33 @@ class Invoices extends Page implements HasForms
     {
         $this->filters = array_merge($this->filters ?? [], ['month' => 'any']);
         $this->filtersForm->fill($this->filters);
+        $this->includePaymentSuggestions = false;
         $this->sortColumn = 'upload_date';
         $this->sortDirection = 'desc';
+    }
+
+    public function isInvoiceListTruncated(): bool
+    {
+        $limit = max(50, min(500, (int) $this->rowLimit));
+        if ($this->selectedMonthKey() === null) {
+            $limit = min($limit, 150);
+        }
+
+        return $this->filteredRowCount > $limit;
+    }
+
+    public function invoiceListCap(): int
+    {
+        $limit = max(50, min(500, (int) $this->rowLimit));
+
+        return $this->selectedMonthKey() === null ? min($limit, 150) : $limit;
+    }
+
+    private function invoicesHaveDraftColumn(): bool
+    {
+        static $hasColumn = null;
+
+        return $hasColumn ??= DbSchema::hasColumn('invoices', 'is_draft');
     }
 
     public function hasActiveInvoiceFilters(): bool
