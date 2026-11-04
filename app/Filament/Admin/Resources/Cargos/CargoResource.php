@@ -468,7 +468,7 @@ class CargoResource extends Resource
             return rtrim(rtrim(number_format($meters, 2, '.', ''), '0'), '.').'m';
         };
 
-        $metaHtml = $sizeMeters !== null
+        $formulaHtml = $sizeMeters !== null
             ? e($formatMeters($sizeMeters)).' × '.e((string) $rolls).' = '
                 .'<strong class="fi-cargo-order-meta-total">'.e($formatMeters($stockMeters)).'</strong>'
             : e((string) $rolls).' pcs';
@@ -516,9 +516,8 @@ class CargoResource extends Resource
                 ->dehydrated(false)
                 ->content(new HtmlString(
                     '<div class="fi-cargo-order-meta" title="'.e($formatMeters($stockMeters).' in stock').'">'
-                    .'<span class="fi-cargo-order-meta-text">'.$metaHtml.' (</span>'
-                    .$recommendedControl
-                    .'<span class="fi-cargo-order-meta-text">)</span>'
+                    .'<span class="fi-cargo-order-meta-formula">'.$formulaHtml.'</span>'
+                    .'<span class="fi-cargo-order-meta-rec">('.$recommendedControl.')</span>'
                     .'</div>'
                 )),
             Group::make([

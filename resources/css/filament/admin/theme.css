@@ -944,15 +944,22 @@ td.ss-cell-edit:hover {
 }
 
 .fi-cargo-order-meta {
-    @apply flex flex-wrap items-baseline gap-x-0.5 text-xs tabular-nums text-gray-600 dark:text-gray-300;
+    @apply flex flex-col items-start gap-0.5 text-xs tabular-nums text-gray-600 dark:text-gray-300;
 }
 
+.fi-cargo-order-meta-formula,
+.fi-cargo-order-meta-rec,
 .fi-cargo-order-meta-text {
-    @apply text-xs tabular-nums text-gray-600 dark:text-gray-300;
+    @apply inline-flex max-w-full flex-wrap items-baseline gap-x-0.5 whitespace-nowrap text-xs tabular-nums text-gray-600 dark:text-gray-300;
 }
 
 .fi-cargo-order-meta-total {
     @apply font-semibold text-gray-950 dark:text-white;
+}
+
+/* List layout: keep formula + recommended on one row when space allows. */
+.fi-cargo-order-wrap:not(.fi-cargo-order-wrap--grid) .fi-cargo-order-meta {
+    @apply flex-row flex-wrap items-baseline gap-x-1;
 }
 
 .fi-cargo-order-rec-btn {
@@ -1241,8 +1248,15 @@ td.ss-cell-edit:hover {
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-code,
+.fi-cargo-order-wrap--grid .fi-cargo-order-meta-formula,
+.fi-cargo-order-wrap--grid .fi-cargo-order-meta-rec,
 .fi-cargo-order-wrap--grid .fi-cargo-order-meta-text {
     @apply text-xs text-gray-600 dark:text-gray-300;
+}
+
+.fi-cargo-order-wrap--grid .fi-cargo-order-meta-formula,
+.fi-cargo-order-wrap--grid .fi-cargo-order-meta-rec {
+    @apply whitespace-nowrap;
 }
 
 /* User menu profile row: allow long email + icon (Filament defaults to whitespace-nowrap on items). */

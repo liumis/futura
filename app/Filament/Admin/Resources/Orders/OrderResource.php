@@ -530,12 +530,11 @@ class OrderResource extends Resource
                 : '<span class="fi-cargo-order-rec-btn is-disabled">'.$recommended.' m</span>';
 
             $stockHtml = '<div class="fi-cargo-order-meta" title="'.e($formatMeters($stockMeters).' in stock').'">'
-                .'<span class="fi-cargo-order-meta-text">'
+                .'<span class="fi-cargo-order-meta-formula">'
                 .e($formatMeters($sizeMeters)).' × '.e((string) $displayStockRolls).' = '
                 .'<strong class="fi-cargo-order-meta-total">'.e($formatMeters($stockMeters)).'</strong>'
-                .' (</span>'
-                .$recommendedControl
-                .'<span class="fi-cargo-order-meta-text">)</span>'
+                .'</span>'
+                .'<span class="fi-cargo-order-meta-rec">('.$recommendedControl.')</span>'
                 .'</div>';
         }
 
