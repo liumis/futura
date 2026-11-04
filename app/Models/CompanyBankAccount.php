@@ -107,6 +107,14 @@ class CompanyBankAccount extends Model
         return array_values(array_unique($ids));
     }
 
+    /**
+     * IBAN / alias → account. Built once per request — bank statements call this
+     * many times per row and must not hit the DB for every party cell.
+     *
+     * @var array<string, self>|null
+     */
+    private static ?array $statementAccountResolveMap = null;
+
     public static function resolveFromStatementAccount(?string $accountKey): ?self
     {
         $accountKey = self::normalizeIban($accountKey) ?? strtoupper(trim((string) $accountKey));
@@ -114,30 +122,51 @@ class CompanyBankAccount extends Model
             return null;
         }
 
-        $exact = static::query()->where('iban', $accountKey)->first();
-        if ($exact !== null) {
-            return $exact;
-        }
-
-        foreach (static::query()->whereNotNull('statement_aliases')->get() as $account) {
-            foreach ($account->allIdentifiers() as $id) {
-                if ($id === $accountKey) {
-                    return $account;
-                }
-            }
+        $map = self::statementAccountResolveMap();
+        if (isset($map[$accountKey])) {
+            return $map[$accountKey];
         }
 
         // Excel cash-flow keys like ACC-27101-5504 → match by trailing account number.
         if (preg_match('/(?:ACC-\d+-)?(\d{4})$/i', $accountKey, $matches) === 1) {
             $tail = $matches[1];
+            $match = null;
 
-            return static::query()
-                ->where('iban', 'like', '%'.$tail)
-                ->orderBy('id')
-                ->first();
+            foreach ($map as $identifier => $account) {
+                if (! str_ends_with((string) $identifier, $tail)) {
+                    continue;
+                }
+
+                if ($match === null || (int) $account->getKey() < (int) $match->getKey()) {
+                    $match = $account;
+                }
+            }
+
+            return $match;
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, self>
+     */
+    private static function statementAccountResolveMap(): array
+    {
+        if (self::$statementAccountResolveMap !== null) {
+            return self::$statementAccountResolveMap;
+        }
+
+        $map = [];
+
+        foreach (static::query()->orderBy('id')->get() as $account) {
+            $map[(string) $account->iban] = $account;
+            foreach ($account->allIdentifiers() as $id) {
+                $map[$id] = $account;
+            }
+        }
+
+        return self::$statementAccountResolveMap = $map;
     }
 
     public static function canonicalizeStatementAccount(?string $accountKey): ?string
@@ -189,6 +218,7 @@ class CompanyBankAccount extends Model
 
         if ($fresh) {
             $cache = null;
+            self::$statementAccountResolveMap = null;
         }
 
         if ($cache !== null) {

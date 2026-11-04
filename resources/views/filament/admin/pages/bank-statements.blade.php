@@ -65,7 +65,7 @@
         @php($categoryGroups = $this->financeCategorySelectOptions())
 
     @forelse ($monthGroups as $monthKey => $transactions)
-        @php($summary = $this->monthSummary($transactions))
+        @php($summary = $this->monthSummaryFor((string) $monthKey))
         <div
             class="mb-4 overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
             x-data="{ open: {{ ($expandMonths || $loop->first) ? 'true' : 'false' }} }"
@@ -1034,5 +1034,21 @@
             {{ $this->hasActiveFilters() ? 'No payments match the filters.' : 'No bank statements uploaded yet.' }}
         </div>
     @endforelse
+
+    @if ($this->listIsTruncated())
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm dark:border-gray-700 dark:bg-gray-900">
+            <div class="text-gray-600 dark:text-gray-300">
+                Showing {{ min($this->rowLimit, $this->filteredRowCount) }} of {{ $this->filteredRowCount }} line(s).
+            </div>
+            <x-filament::button
+                type="button"
+                color="gray"
+                wire:click="loadMoreRows"
+                wire:loading.attr="disabled"
+            >
+                Show more
+            </x-filament::button>
+        </div>
+    @endif
     </div>
 </x-filament-panels::page>

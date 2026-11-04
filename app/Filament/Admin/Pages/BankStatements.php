@@ -95,6 +95,20 @@ class BankStatements extends Page implements HasForms
     public ?array $filters = [];
 
     /**
+     * Cap hydrated/rendered rows so Cloudflare cannot 504 on large months.
+     */
+    public int $rowLimit = 100;
+
+    public int $filteredRowCount = 0;
+
+    /**
+     * Full-filter month totals (not limited to the visible page of rows).
+     *
+     * @var array<string, array{income: float, outcome: float, net: float, count: int, banks: string}>
+     */
+    private array $monthSummariesByKey = [];
+
+    /**
      * @return array<int, string>
      */
     protected function getForms(): array
@@ -2251,28 +2265,16 @@ class BankStatements extends Page implements HasForms
      */
     public function getMonthGroups(): Collection
     {
-        $query = BankStatementTransaction::query()
-            ->with([
-                'import',
-                'invoice.contact',
-                'invoice.incomeType',
-                'invoice.expenseType',
-                'invoices.contact',
-                'invoices.incomeType',
-                'invoices.expenseType',
-                'payment.contact',
-                'employeeMonthlyPayment.employee',
-                'employeeMonthlyPayment.payslipDocument',
-                'businessTripRequest.employee',
-                'businessTripRequest.documents',
-                'document.documentType',
-            ])
+        // Warm request-local IBAN map (party cells + own-transfer checks).
+        CompanyBankAccount::ownAccountIdentifierMap();
+
+        $baseQuery = BankStatementTransaction::query()
             ->orderByDesc('booking_date')
             ->orderByDesc('id');
+        $this->applyFilters($baseQuery);
 
-        $this->applyFilters($query);
-
-        $transactions = $query->get();
+        // Lightweight load for totals / filtering — no relation graph.
+        $transactions = (clone $baseQuery)->get();
 
         // Invoice/contract/salary matching scans large candidate sets and routinely
         // exceeds Cloudflare timeouts on production. Only run it when the user opens
@@ -2284,6 +2286,14 @@ class BankStatements extends Page implements HasForms
         $paymentSuggestions = collect();
         $salarySuggestions = collect();
         $tripSuggestions = collect();
+
+        $paymentStatus = $this->filters['payment_status'] ?? null;
+        $needsSettlementFilter = in_array($paymentStatus, ['overpaid', 'settled', 'underpaid', 'refund', 'refunded'], true);
+
+        // Settlement / suggestion paths need relations on the candidate set.
+        if ($shouldSuggest || $needsSettlementFilter) {
+            $transactions = $this->hydrateTransactions($transactions->pluck('id')->all());
+        }
 
         if ($shouldSuggest) {
             $invoiceSuggestions = BankStatementInvoiceMatcher::suggestFor($transactions);
@@ -2301,7 +2311,42 @@ class BankStatements extends Page implements HasForms
             $tripSuggestions = BankStatementBusinessTripMatcher::suggestFor($afterSalary);
         }
 
-        foreach ($transactions as $transaction) {
+        if ($shouldSuggest) {
+            $transactions = $transactions
+                ->filter(fn (BankStatementTransaction $row): bool => ! $row->isResolved()
+                    && ($invoiceSuggestions->has($row->getKey())
+                        || $paymentSuggestions->has($row->getKey())
+                        || $salarySuggestions->has($row->getKey())
+                        || $tripSuggestions->has($row->getKey())))
+                ->values();
+        }
+
+        if ($needsSettlementFilter) {
+            $wanted = (string) $paymentStatus;
+            $transactions = $transactions
+                ->filter(fn (BankStatementTransaction $row): bool => ($row->settlementSummary()['status'] ?? null) === $wanted)
+                ->values();
+        }
+
+        $this->filteredRowCount = $transactions->count();
+        $this->monthSummariesByKey = $transactions
+            ->groupBy('month_key')
+            ->map(fn (Collection $rows): array => $this->monthSummary($rows))
+            ->all();
+
+        $visible = $transactions->take($this->rowLimit)->values();
+
+        // Default browsing: hydrate only the visible page of rows.
+        if (! $shouldSuggest && ! $needsSettlementFilter) {
+            $visible = $this->hydrateTransactions($visible->pluck('id')->all());
+        } else {
+            $visibleIds = $visible->pluck('id')->all();
+            $visible = $transactions
+                ->filter(fn (BankStatementTransaction $row): bool => in_array($row->getKey(), $visibleIds, true))
+                ->values();
+        }
+
+        foreach ($visible as $transaction) {
             $transaction->setRelation(
                 'suggestedInvoice',
                 $invoiceSuggestions->get($transaction->getKey()),
@@ -2327,26 +2372,72 @@ class BankStatements extends Page implements HasForms
             );
         }
 
-        if ($shouldSuggest) {
-            $transactions = $transactions
-                ->filter(fn (BankStatementTransaction $row): bool => ! $row->isResolved()
-                    && ($invoiceSuggestions->has($row->getKey())
-                        || $paymentSuggestions->has($row->getKey())
-                        || $salarySuggestions->has($row->getKey())
-                        || $tripSuggestions->has($row->getKey())))
-                ->values();
-        }
-
-        if (in_array($this->filters['payment_status'] ?? null, ['overpaid', 'settled', 'underpaid', 'refund', 'refunded'], true)) {
-            $wanted = (string) $this->filters['payment_status'];
-            $transactions = $transactions
-                ->filter(fn (BankStatementTransaction $row): bool => ($row->settlementSummary()['status'] ?? null) === $wanted)
-                ->values();
-        }
-
-        return $transactions
+        return $visible
             ->groupBy('month_key')
             ->sortKeysDesc();
+    }
+
+    /**
+     * @param  list<int|string>  $ids
+     * @return Collection<int, BankStatementTransaction>
+     */
+    private function hydrateTransactions(array $ids): Collection
+    {
+        if ($ids === []) {
+            return collect();
+        }
+
+        $order = array_flip(array_map('intval', $ids));
+
+        return BankStatementTransaction::query()
+            ->with([
+                'import',
+                'invoice.contact',
+                'invoice.incomeType',
+                'invoice.expenseType',
+                'invoices.contact',
+                'invoices.incomeType',
+                'invoices.expenseType',
+                'payment.contact',
+                'employeeMonthlyPayment.employee',
+                'employeeMonthlyPayment.payslipDocument',
+                'businessTripRequest.employee',
+                'businessTripRequest.documents',
+                'document.documentType',
+            ])
+            ->whereIn('id', $ids)
+            ->get()
+            ->sortBy(fn (BankStatementTransaction $row): int => $order[(int) $row->getKey()] ?? PHP_INT_MAX)
+            ->values();
+    }
+
+    /**
+     * @return array{income: float, outcome: float, net: float, count: int, banks: string}
+     */
+    public function monthSummaryFor(string $monthKey): array
+    {
+        return $this->monthSummariesByKey[$monthKey] ?? [
+            'income' => 0.0,
+            'outcome' => 0.0,
+            'net' => 0.0,
+            'count' => 0,
+            'banks' => '',
+        ];
+    }
+
+    public function listIsTruncated(): bool
+    {
+        return $this->filteredRowCount > $this->rowLimit;
+    }
+
+    public function loadMoreRows(): void
+    {
+        $this->rowLimit += 100;
+    }
+
+    public function updatedFilters(): void
+    {
+        $this->rowLimit = 100;
     }
 
     /**
@@ -2395,6 +2486,7 @@ class BankStatements extends Page implements HasForms
     {
         $filters = ['month' => 'last'];
 
+        $this->rowLimit = 100;
         $this->filters = $filters;
         $this->filtersForm->fill($filters);
     }
