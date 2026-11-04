@@ -56,4 +56,34 @@ class ExtractedTextNormalizerTest extends TestCase
         $this->assertSame('2020217102573', $result['invoice_number'] ?? null);
         $this->assertSame(8.22, $result['sum_inc_vat'] ?? null);
     }
+
+    public function test_repairs_utf8_misread_as_cp437_box_drawing(): void
+    {
+        $good = 'Šiaulių regiono atliekų tvarkymo centras, VšĮ';
+        $corrupted = iconv('CP437', 'UTF-8', $good);
+        $this->assertIsString($corrupted);
+        $this->assertTrue(ExtractedTextNormalizer::looksCorrupted($corrupted));
+
+        $normalized = ExtractedTextNormalizer::normalize($corrupted);
+
+        $this->assertSame($good, $normalized);
+        $this->assertFalse(ExtractedTextNormalizer::looksCorrupted($normalized));
+    }
+
+    public function test_keeps_already_valid_lithuanian_utf8(): void
+    {
+        $good = 'Šiaulių regiono atliekų tvarkymo centras, VšĮ';
+
+        $this->assertSame($good, ExtractedTextNormalizer::normalize($good));
+    }
+
+    public function test_repairs_cp437_mojibake_for_non_lithuanian_names(): void
+    {
+        $good = 'Achilles Präsentationsprodukte GmbH';
+        $corrupted = iconv('CP437', 'UTF-8', $good);
+        $this->assertIsString($corrupted);
+
+        $this->assertSame($good, ExtractedTextNormalizer::normalize($corrupted));
+        $this->assertSame('Bolt Operations OÜ', ExtractedTextNormalizer::normalize(iconv('CP437', 'UTF-8', 'Bolt Operations OÜ')));
+    }
 }

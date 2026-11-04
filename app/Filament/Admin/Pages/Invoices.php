@@ -125,10 +125,11 @@ class Invoices extends Page implements HasForms
         }
 
         if (! array_key_exists('month', $filters)) {
-            // Deep-links with contact/invoice search look across all months; otherwise last month.
+            // Deep-links with contact/invoice search look across all months; otherwise
+            // the most recent month that actually has invoices (not an empty "last month").
             $filters['month'] = (isset($filters['contact_id']) || filled($filters['invoice_number'] ?? null))
                 ? 'any'
-                : 'last';
+                : ($this->invoiceMonthKeysWithData()[0] ?? 'any');
         }
 
         $this->filters = $filters;
@@ -158,7 +159,7 @@ class Invoices extends Page implements HasForms
             ->components([
                 FileUpload::make('paths')
                     ->label('Upload invoices')
-                    ->helperText(UploadLimits::withExistingNote('PDF, JPG, or PNG. Multiple files OK — complete scans become invoices; incomplete OCR is saved as drafts to finish later. OCR runs in the background (1–2 min for large batches).'))
+                    ->helperText(UploadLimits::withExistingNote('PDF, JPG, or PNG. Multiple files OK — complete scans become invoices; incomplete OCR is saved as drafts. OCR runs after you leave this request (bell notification per file). New uploads switch the list to All months so you can see them even when the invoice date is older.'))
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                     ->maxSize(UploadLimits::MAX_KILOBYTES)
                     ->multiple()
@@ -236,9 +237,17 @@ class Invoices extends Page implements HasForms
             return;
         }
 
+        // OCR invoice_date is often an older month; default "Last month" would hide the new row.
+        $this->filters = array_merge($this->filters ?? [], [
+            'month' => 'any',
+            'draft_status' => null,
+        ]);
+        $this->sortColumn = 'upload_date';
+        $this->sortDirection = 'desc';
+
         Notification::make()
             ->title($queued === 1 ? 'Invoice import started' : $queued.' invoice imports started')
-            ->body('OCR runs in the background. You will get a notification per file — drafts need a quick review, complete scans appear in the list.')
+            ->body('OCR runs in the background. Check the bell for each file. List switched to All months (newest uploads first) — drafts need a quick review.')
             ->info()
             ->send();
     }
@@ -2297,11 +2306,15 @@ class Invoices extends Page implements HasForms
                             ->whereDate('invoice_date', '>=', $bounds['from'])
                             ->whereDate('invoice_date', '<=', $bounds['until']);
                     })
-                    ->orWhere(function ($drafts) use ($bounds): void {
-                        // Drafts without OCR date still show in the upload month.
-                        $drafts
+                    ->orWhere(function ($uploaded) use ($bounds): void {
+                        // Drafts (and incomplete OCR) often have an older invoice_date —
+                        // still show them in the month they were uploaded.
+                        if (! DbSchema::hasColumn('invoices', 'is_draft')) {
+                            return;
+                        }
+
+                        $uploaded
                             ->where('is_draft', true)
-                            ->whereNull('invoice_date')
                             ->whereDate('upload_date', '>=', $bounds['from'])
                             ->whereDate('upload_date', '<=', $bounds['until']);
                     });
@@ -2309,10 +2322,11 @@ class Invoices extends Page implements HasForms
         }
 
         $draftStatus = $filters['draft_status'] ?? null;
-        if ($draftStatus === 'draft') {
-            $query->where('is_draft', true);
-        } elseif ($draftStatus === 'published') {
-            $query->where('is_draft', false);
+        if (
+            DbSchema::hasColumn('invoices', 'is_draft')
+            && ($draftStatus === 'draft' || $draftStatus === 'published')
+        ) {
+            $query->where('is_draft', $draftStatus === 'draft');
         }
 
         $invoiceSearch = trim((string) ($filters['invoice_number'] ?? ''));
@@ -2724,15 +2738,36 @@ class Invoices extends Page implements HasForms
 
     public function resetFilters(): void
     {
-        $filters = ['month' => 'last'];
+        $filters = ['month' => 'any'];
 
         $this->filters = $filters;
         $this->filtersForm->fill($filters);
         $this->selectedInvoiceIds = [];
         $this->selectAllInvoices = false;
+        $this->sortColumn = 'upload_date';
+        $this->sortDirection = 'desc';
+    }
+
+    public function showAllMonths(): void
+    {
+        $this->filters = array_merge($this->filters ?? [], ['month' => 'any']);
+        $this->filtersForm->fill($this->filters);
+        $this->sortColumn = 'upload_date';
+        $this->sortDirection = 'desc';
     }
 
     public function hasActiveInvoiceFilters(): bool
+    {
+        $month = trim((string) (($this->filters ?? [])['month'] ?? ''));
+
+        return $this->hasNonMonthInvoiceFilters()
+            || ($month !== '' && $month !== 'any');
+    }
+
+    /**
+     * Non-month filters widen search across all months when Month is left blank.
+     */
+    private function hasNonMonthInvoiceFilters(): bool
     {
         $filters = $this->filters ?? [];
 
@@ -2954,7 +2989,17 @@ class Invoices extends Page implements HasForms
      */
     private function filtersWidenBeyondMonth(): bool
     {
-        return $this->hasActiveInvoiceFilters();
+        return $this->hasNonMonthInvoiceFilters();
+    }
+
+    public function selectedMonthLabel(): ?string
+    {
+        $key = $this->selectedMonthKey();
+        if ($key === null) {
+            return null;
+        }
+
+        return $this->monthTitle($key);
     }
 
     public function isUsingSoftMonthDefault(): bool

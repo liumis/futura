@@ -50,7 +50,13 @@ class CloudDeployDatabase extends Command
         // Bootstrap reloads the dump after migrate, so content repairs must run again here.
         // Always attempt the repair (even when bootstrap skipped / non-MySQL) — it is idempotent.
         $fix = $this->call('app:fix-unbalanced-finance-months');
+        if ($fix !== self::SUCCESS) {
+            return $fix;
+        }
 
-        return $bootstrap !== self::SUCCESS ? $bootstrap : $fix;
+        // CP437/OEM mojibake in contact names (┼áiauli┼│ → Šiaulių); safe to re-run every deploy.
+        $utf = $this->call('contacts:repair-utf');
+
+        return $bootstrap !== self::SUCCESS ? $bootstrap : $utf;
     }
 }

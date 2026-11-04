@@ -77,7 +77,9 @@ class InvoiceBulkUploadTest extends TestCase
         Livewire::test(Invoices::class)
             ->set('bulkUpload.paths', [$path])
             ->call('importBulkUploads')
-            ->assertNotified('Invoice import started');
+            ->assertNotified('Invoice import started')
+            ->assertSet('filters.month', 'any')
+            ->assertSet('sortColumn', 'upload_date');
 
         Bus::assertDispatched(ImportInvoiceUploadJob::class, function (ImportInvoiceUploadJob $job) use ($path): bool {
             return $job->relativePath === $path

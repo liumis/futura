@@ -8,6 +8,7 @@ use App\Models\Invoice;
 use App\Services\BankStatements\BankStatementInvoiceCreator;
 use App\Services\InvoiceOcrService;
 use App\Services\LithuanianCompanyNameNormalizer;
+use App\Support\ExtractedTextNormalizer;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -87,9 +88,21 @@ trait PrefillsInvoiceFromOcr
 
         $matchedContact = $this->matchContactFromOcr($ocr);
         if ($matchedContact !== null) {
+            $ocrName = trim((string) ($ocr['provider_company_name'] ?? ''));
+            $contactName = trim((string) ($matchedContact->company_name ?? ''));
+            $providerName = $this->resolveProviderCompanyName($ocrName, $contactName);
+
+            if (
+                $providerName !== ''
+                && $providerName !== $contactName
+                && (ExtractedTextNormalizer::looksCorrupted($contactName) || $contactName === '')
+            ) {
+                $matchedContact->forceFill(['company_name' => $providerName])->save();
+            }
+
             $updates['contact_id'] = $matchedContact->getKey();
             $updates['private_provider'] = (bool) $matchedContact->private_provider;
-            $updates['provider_company_name'] = $matchedContact->company_name ?: ($ocr['provider_company_name'] ?? null);
+            $updates['provider_company_name'] = $providerName !== '' ? $providerName : ($contactName !== '' ? $contactName : null);
             $updates['provider_company_id'] = $matchedContact->company_id;
             $updates['provider_company_address'] = $matchedContact->company_address;
             $updates['provider_company_phone'] = $matchedContact->company_phone;
@@ -231,6 +244,51 @@ trait PrefillsInvoiceFromOcr
         $ownName = Str::lower(trim((string) ($own->company_name ?? '')));
 
         return $ownName !== '' && $ownName === Str::lower(trim((string) ($contact->company_name ?? '')));
+    }
+
+    /**
+     * Prefer OCR / repaired UTF-8 over a contact name that was saved as CP437 mojibake.
+     */
+    protected function resolveProviderCompanyName(string $ocrName, string $contactName): string
+    {
+        $ocrClean = $this->cleanCompanyName($ocrName);
+        $contactClean = $this->cleanCompanyName($contactName);
+
+        if ($ocrClean !== '' && (
+            $contactClean === ''
+            || ExtractedTextNormalizer::looksCorrupted($contactName)
+            || (
+                ExtractedTextNormalizer::hasLithuanianLetters($ocrClean)
+                && ! ExtractedTextNormalizer::hasLithuanianLetters($contactClean)
+            )
+        )) {
+            return $ocrClean;
+        }
+
+        return $contactClean !== '' ? $contactClean : $ocrClean;
+    }
+
+    protected function cleanCompanyName(string $name): string
+    {
+        $name = trim($name);
+        if ($name === '') {
+            return '';
+        }
+
+        // Full PDF normalizer can shift clean short ASCII names; only use it for mojibake.
+        $name = ExtractedTextNormalizer::looksCorrupted($name)
+            ? ExtractedTextNormalizer::normalize($name)
+            : ExtractedTextNormalizer::sanitizeUtf8($name);
+        $name = trim($name);
+
+        if ($name !== '' && LithuanianCompanyNameNormalizer::extract($name)['form'] !== null) {
+            $normalized = LithuanianCompanyNameNormalizer::normalize($name);
+            if ($normalized !== '') {
+                return $normalized;
+            }
+        }
+
+        return $name;
     }
 
     private function missingInvoiceOcrHelp(): string

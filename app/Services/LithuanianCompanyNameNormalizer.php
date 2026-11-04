@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Contact;
+use App\Support\ExtractedTextNormalizer;
 use Illuminate\Support\Collection;
 
 class LithuanianCompanyNameNormalizer
@@ -80,6 +81,11 @@ class LithuanianCompanyNameNormalizer
 
     public static function normalize(string $raw): string
     {
+        // Only run full OCR/PDF repair when the name already looks like mojibake;
+        // shifting clean ASCII names (score < 4) would invent junk.
+        $raw = ExtractedTextNormalizer::looksCorrupted($raw)
+            ? ExtractedTextNormalizer::normalize($raw)
+            : ExtractedTextNormalizer::sanitizeUtf8($raw);
         $parts = self::extract($raw);
         $name = self::formatNamePart($parts['name']);
         $form = $parts['form'];

@@ -223,11 +223,41 @@
             <tbody class="bg-white dark:bg-gray-900">
                 @if ($invoices->isEmpty())
                     <tr>
-                        <td colspan="12" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
-                            @if ($this->hasActiveInvoiceFilters())
-                                No invoices match your filters.
+                        <td colspan="12" class="px-4 py-8 text-center text-gray-600 dark:text-gray-300">
+                            @php
+                                $monthLabel = $this->selectedMonthLabel();
+                            @endphp
+                            @if ($monthLabel !== null)
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    No invoices for {{ $monthLabel }}.
+                                </p>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Bulk uploads use the OCR invoice date, which may be an older month. Try All months or check the bell notifications.
+                                </p>
+                                <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+                                    <x-filament::button type="button" color="primary" wire:click="showAllMonths">
+                                        Show all months
+                                    </x-filament::button>
+                                    <x-filament::button type="button" color="gray" wire:click="resetFilters">
+                                        Reset filters
+                                    </x-filament::button>
+                                </div>
+                            @elseif ($this->hasActiveInvoiceFilters())
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    No invoices match your filters.
+                                </p>
+                                <div class="mt-4">
+                                    <x-filament::button type="button" color="gray" wire:click="resetFilters">
+                                        Reset filters
+                                    </x-filament::button>
+                                </div>
                             @else
-                                No invoices uploaded yet.
+                                <p class="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                    No invoices uploaded yet.
+                                </p>
+                                <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                    Use Upload invoices above, then wait for the bell notification.
+                                </p>
                             @endif
                         </td>
                     </tr>

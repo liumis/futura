@@ -7,6 +7,7 @@ use App\Models\Currency;
 use App\Models\Invoice;
 use App\Models\SharepointSetting;
 use App\Models\User;
+use App\Support\ExtractedTextNormalizer;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -76,8 +77,20 @@ class InvoiceFromUploadCreator
         }
 
         $matched = $this->matchContact($ocr);
-        $contactId = $matched?->getKey();
         $providerName = LithuanianCompanyNameNormalizer::normalize(trim((string) ($ocr['provider_company_name'] ?? '')));
+
+        if (
+            $matched !== null
+            && $providerName !== ''
+            && (
+                ExtractedTextNormalizer::looksCorrupted((string) $matched->company_name)
+                || trim((string) $matched->company_name) === ''
+            )
+        ) {
+            $matched->forceFill(['company_name' => $providerName])->save();
+        }
+
+        $contactId = $matched?->getKey();
 
         if ($contactId === null && $providerName !== '') {
             try {
@@ -148,12 +161,17 @@ class InvoiceFromUploadCreator
             Contact::query()->find($contactId)?->rememberDefaultCategoryFromInvoice($invoice);
         }
 
+        $dateHint = filled($invoice->invoice_date)
+            ? ' Invoice date '.$invoice->invoice_date->format('Y-m-d').' — open that month or All months on Invoices.'
+            : '';
+
         return [
             'status' => $isDraft ? 'draft' : 'created',
             'invoice' => $invoice,
-            'message' => $isDraft
+            'message' => ($isDraft
                 ? $filename.': saved as draft (incomplete scan).'
-                : $filename.': invoice created.',
+                : $filename.': invoice created.')
+                .$dateHint,
         ];
     }
 
