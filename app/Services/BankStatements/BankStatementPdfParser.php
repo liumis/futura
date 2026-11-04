@@ -54,8 +54,12 @@ class BankStatementPdfParser
         $text = $this->extractText($path);
 
         if (trim($text) === '') {
+            $hasOcrKey = (string) config('services.ocr_space.key', '') !== '';
+
             throw new BankStatementXmlException(
-                'Could not read text from the PDF bank statement. For scanned PDFs set OCR_SPACE_API_KEY in .env.'
+                $hasOcrKey
+                    ? 'Could not read this PDF bank statement (embedded text is unreadable and OCR returned nothing). Try the bank XML export, or a shorter PDF.'
+                    : 'Could not read this PDF bank statement. Embedded text is unreadable — set OCR_SPACE_API_KEY for SEB PDFs, or upload XML/Excel instead.'
             );
         }
 
@@ -192,20 +196,49 @@ class BankStatementPdfParser
     private function extractText(string $path): string
     {
         $pdfText = $this->extractEmbeddedPdfText($path);
-        if ($pdfText !== '' && $this->looksLikeCashflowExport($pdfText) && $this->hasCashflowTransactionSignals($pdfText)) {
-            return $pdfText;
-        }
 
-        if ($pdfText !== '' && $this->looksLikeAccountStatement($pdfText) && $this->hasTransactionSignals($pdfText)) {
-            return $pdfText;
+        // Font-encoded SEB PDFs often yield mojibake — never treat that as the statement body.
+        if ($this->isUsableStatementText($pdfText)) {
+            if ($this->looksLikeCashflowExport($pdfText) && $this->hasCashflowTransactionSignals($pdfText)) {
+                return $pdfText;
+            }
+
+            if ($this->looksLikeAccountStatement($pdfText) && $this->hasTransactionSignals($pdfText)) {
+                return $pdfText;
+            }
         }
 
         $ocrText = $this->extractWithOcrSpace($path);
-        if ($ocrText !== '') {
+        if ($this->isUsableStatementText($ocrText)) {
             return $ocrText;
         }
 
-        return $pdfText;
+        if (trim($ocrText) !== '') {
+            return $ocrText;
+        }
+
+        return $this->isUsableStatementText($pdfText) ? $pdfText : '';
+    }
+
+    /**
+     * Reject CID-font / binary garbage that Smalot can extract without real words.
+     */
+    private function isUsableStatementText(string $text): bool
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return false;
+        }
+
+        $letters = preg_match_all('/\p{L}/u', $text) ?: 0;
+        $length = max(1, mb_strlen($text));
+        if ($length >= 80 && ($letters / $length) < 0.28) {
+            return false;
+        }
+
+        return $this->looksLikeAccountStatement($text)
+            || $this->looksLikeCashflowExport($text)
+            || ($this->extractAccountIban($text) !== null && $this->hasTransactionSignals($text));
     }
 
     private function hasCashflowTransactionSignals(string $text): bool
@@ -234,6 +267,10 @@ class BankStatementPdfParser
     {
         $apiKey = (string) config('services.ocr_space.key', '');
         if ($apiKey === '') {
+            Log::warning('Bank statement PDF OCR skipped — OCR_SPACE_API_KEY is not set', [
+                'file' => basename($path),
+            ]);
+
             return '';
         }
 
@@ -492,13 +529,16 @@ class BankStatementPdfParser
     {
         $normalized = Str::lower($text);
 
-        return Str::contains($normalized, [
+        if (Str::contains($normalized, [
             'sąskaitos išrašas',
             'saskaitos israsas',
+            'saskaitos išrašas',
+            'sąskaitos israsas',
             'account statement',
             'pradinis likutis',
             'galutinis likutis',
             'operacijos tipas',
+            'operacijos nr',
             'piniginių lėšų judėjimas',
             'piniginiu lesu judejimas',
             'plesjud',
@@ -506,7 +546,19 @@ class BankStatementPdfParser
             'iplaukos',
             'išmokos',
             'ismokos',
-        ]);
+            'tarp savo sąskait',
+            'tarp savo saskait',
+        ])) {
+            return true;
+        }
+
+        // OCR sometimes drops the title — LT IBAN + dated amounts is enough for SEB PDFs.
+        return preg_match('/\bLT\d{18}\b/u', $text) === 1
+            && $this->hasTransactionSignals($text)
+            && (
+                Str::contains($normalized, ['puslapis', 'likutis', 'mokėj', 'mokej', 'kortel', 'eur'])
+                || preg_match('/\b(?:SEB|Swedbank|Luminor)\b/iu', $text) === 1
+            );
     }
 
     private function looksLikeCashflowExport(string $text): bool

@@ -120,6 +120,31 @@ TXT;
         (new BankStatementPdfParser)->parseText($text, 'truncated.pdf');
     }
 
+    public function test_parses_titleless_ocr_with_iban_and_dated_amounts(): void
+    {
+        $text = <<<'TXT'
+UAB FUTURA TEXTILES EUROPE
+AB SEB bankas
+LT117044090110985504
+2026-10-01 - 2026-10-31
+Pradinis likutis	EUR	1000,00
+2026-10-01 Mokėjimas	DSV Road UAB	-177,89
+Sąskaita 1030108, operacijos nr. RO100
+2026-10-02 Kreditas	Remvesta, UAB	9000,00
+KAR13171, operacijos nr. RO101
+Galutinis likutis	EUR	9822,11
+Puslapis 1(1)
+TXT;
+
+        $parsed = (new BankStatementPdfParser)->parseText($text, 'titleless.pdf');
+
+        $this->assertSame('LT117044090110985504', $parsed['account_iban']);
+        $this->assertSame('SEB', $parsed['bank_name']);
+        $this->assertCount(2, $parsed['transactions']);
+        $this->assertSame(177.89, $parsed['transactions'][0]['amount']);
+        $this->assertSame(BankStatementDirection::Debit, $parsed['transactions'][0]['direction']);
+    }
+
     public function test_import_pdf_uses_ocr_when_embedded_text_is_garbled(): void
     {
         config(['services.ocr_space.key' => 'test-key']);
