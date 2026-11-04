@@ -240,6 +240,21 @@ class InvoiceOcrService
             ], static fn ($value): bool => $value !== null && $value !== ''));
         }
 
+        if (($templateResult['is_sratc_mokestinis'] ?? false) === true) {
+            return $this->sanitizeParsed(array_filter([
+                'provider_company_name' => $templateResult['provider_company_name'] ?? null,
+                'provider_company_email' => $templateResult['provider_company_email'] ?? null,
+                'provider_company_vat' => $templateResult['provider_company_vat'] ?? null,
+                'provider_company_id' => $templateResult['provider_company_id'] ?? null,
+                'invoice_number' => $templateResult['invoice_number'] ?? null,
+                'invoice_date' => $templateResult['invoice_date'] ?? null,
+                'sum_without_vat' => $templateResult['sum_without_vat'] ?? null,
+                'vat' => $templateResult['vat'] ?? null,
+                'sum_inc_vat' => $templateResult['sum_inc_vat'] ?? null,
+                'currency' => $templateResult['currency'] ?? 'EUR',
+            ], static fn ($value): bool => $value !== null && $value !== ''));
+        }
+
         $lines = array_values(array_filter(array_map(
             static fn (string $line): string => trim($line),
             preg_split('/\R/', $text) ?: [],
@@ -501,6 +516,10 @@ class InvoiceOcrService
 
         if ($providerKey === 'fte_own') {
             return $this->extractFteOwnSalesInvoice($text);
+        }
+
+        if ($providerKey === 'sratc_mokestinis') {
+            return $this->extractSratcMokestinisPranesimas($text);
         }
 
         if ($providerKey === null) {
@@ -1204,6 +1223,7 @@ class InvoiceOcrService
             Str::contains($normalized, 'dsv road') => 'dsv',
             Str::contains($normalized, ['anthropic', 'antropic']) => 'anthropic',
             $this->looksLikeFteOwnSalesInvoice($normalized) => 'fte_own',
+            $this->looksLikeSratcMokestinisPranesimas($normalized) => 'sratc_mokestinis',
             Str::contains($normalized, 'telia') => 'telia',
             Str::contains($normalized, 'tele2') => 'tele2',
             Str::contains($normalized, 'bite') => 'bite',
@@ -1215,6 +1235,104 @@ class InvoiceOcrService
             $this->looksLikeLithuanianPvmInvoice($normalized) => 'lt_pvm',
             default => null,
         };
+    }
+
+    private function looksLikeSratcMokestinisPranesimas(string $normalized): bool
+    {
+        // PDF text is often half-shifted; issuer markers alone are enough.
+        if (Str::contains($normalized, ['sratc.lt', 'www.sratc', '145787276'])) {
+            return true;
+        }
+
+        return Str::contains($normalized, ['mokestinio pranesimo', 'mokestinis pranesimas', 'mokestinio pranešimo', 'mokestinis pranešimas'])
+            && Str::contains($normalized, ['rinkliav', 'atliek', 'siauliu', 'šiauli']);
+    }
+
+    /**
+     * VšĮ Šiaulių regiono atliekų tvarkymo centras — vietinės rinkliavos mokestinis pranešimas
+     * (not a PVM invoice; total is payable local waste fee).
+     *
+     * @return array<string, string|float|null>
+     */
+    private function extractSratcMokestinisPranesimas(string $text): array
+    {
+        $compact = preg_replace('/[ \t]+/u', ' ', $text) ?? $text;
+
+        $invoiceNumber = $this->extractByRegex(
+            $compact,
+            '/mokestinio\s+prane[sš]imo\s+nr\.?\s*[:\s]*([0-9]{8,20})/iu',
+            1,
+        ) ?? $this->extractByRegex(
+            $compact,
+            '/mokestinis\s+prane[sš]imas\s+nr\.?\s*[:\s]*([0-9]{8,20})/iu',
+            1,
+        ) ?? $this->extractByRegex(
+            $compact,
+            '/prane[sš]imas\s+nr\.?\s*[:\s]*([0-9]{8,20})/iu',
+            1,
+        ) ?? $this->extractByRegex(
+            $compact,
+            '/nr\.?\s*[:\s]*([0-9]{12,16})/iu',
+            1,
+        ) ?? $this->extractByRegex(
+            // Encoded "Nr" becomes "1U" when Latin letters are shifted by -0x1D.
+            $compact,
+            '/1U\s*([0-9]{12,16})/',
+            1,
+        );
+
+        // Last resort: notice numbers are 13 digits starting with 20; password-like
+        // values appear earlier, so prefer the last match.
+        if ($invoiceNumber === null && preg_match_all('/\b(20\d{11})\b/', $compact, $numberMatches) === 1) {
+            $candidates = $numberMatches[1] ?? [];
+            if ($candidates !== []) {
+                $invoiceNumber = (string) $candidates[array_key_last($candidates)];
+            }
+        }
+
+        $invoiceDate = $this->normalizeDate($this->extractByRegex(
+            $compact,
+            '/(?:formavimo\s+data|mokestinio\s+prane[sš]imo\s+formavimo\s+data)\s*[:\s]*([0-3]?\d[\/\.-][01]?\d[\/\.-](?:20)?\d{2}|\d{4}[\/\.-][01]?\d[\/\.-][0-3]?\d)/iu',
+            1,
+        ));
+
+        // Period date is usually printed as YYYY.MM.DD just above "Vietinė rinkliava už … mėn."
+        if ($invoiceDate === null
+            && preg_match('/\b(20\d{2}[.\-\/]\d{2}[.\-\/]\d{2})\b[\s\S]{0,80}vietin[eė]\s+rinkliava/iu', $compact, $dateMatch) === 1
+        ) {
+            $invoiceDate = $this->normalizeDate($dateMatch[1]);
+        }
+
+        if ($invoiceDate === null && preg_match('/\b(20\d{2})[.\-\/](\d{2})[.\-\/](\d{2})\b/', $compact, $dateMatch) === 1) {
+            $invoiceDate = $this->normalizeDate($dateMatch[1].'-'.$dateMatch[2].'-'.$dateMatch[3]);
+        }
+
+        $total = $this->extractAmount($compact, '/i[sš]\s+viso\s+mok[eė]ti\s*[:\s]*([\d\s.,]+)/iu')
+            ?? $this->extractAmount($compact, '/pareikalauta\s+suma\s*[:\s]*([\d\s.,]+)/iu')
+            ?? $this->extractAmount($compact, '/mok[eė]tina\s+suma\s*\/\s*skola\s*[:\s]*([\d\s.,]+)/iu')
+            ?? $this->extractAmount($compact, '/suma\s+u[zž]\s+objekt[aą]\s*[:\s]*([\d\s.,]+)/iu');
+
+        $companyId = $this->extractByRegex($compact, '/[įi]mon[eė]s\s+kodas\s*[:\s]*([0-9]{7,11})/iu', 1)
+            ?? (preg_match('/\b(145787276)\b/', $compact, $idMatch) === 1 ? $idMatch[1] : null);
+
+        $vatCode = $this->extractByRegex($compact, '/pvm\s*kodas\s*[:\s]*(LT\s*\d{8,12})/iu', 1);
+        if (is_string($vatCode)) {
+            $vatCode = strtoupper(preg_replace('/\s+/', '', $vatCode) ?? $vatCode);
+        }
+
+        return array_filter([
+            'provider_company_name' => 'VšĮ Šiaulių regiono atliekų tvarkymo centras',
+            'provider_company_id' => $companyId,
+            'provider_company_vat' => $vatCode,
+            'provider_company_email' => $this->extractByRegex($compact, '/([A-Z0-9._%+\-]+@sratc\.lt)/i', 1),
+            'invoice_number' => $invoiceNumber,
+            'invoice_date' => $invoiceDate,
+            'sum_without_vat' => $total,
+            'vat' => $total !== null ? 0.0 : null,
+            'sum_inc_vat' => $total,
+            'currency' => 'EUR',
+            'is_sratc_mokestinis' => true,
+        ], static fn ($value): bool => $value !== null && $value !== '');
     }
 
     /**
@@ -1548,10 +1666,13 @@ class InvoiceOcrService
             $stripped = str_replace("\0", '', $text);
             $candidates[] = $stripped;
             $candidates[] = $this->shiftLatinBytes($stripped, 0x1D);
+            // SRATC / some municipal PDFs mix correct ASCII with -0x1D shifted runs.
+            $candidates[] = $this->mergeShiftedLatinRuns($stripped, 0x1D);
             $even = strlen($text) % 2 === 0 ? $text : $text."\0";
             $utf16 = @mb_convert_encoding($even, 'UTF-8', 'UTF-16LE');
             if (is_string($utf16) && $utf16 !== '') {
                 $candidates[] = $utf16;
+                $candidates[] = str_replace("\0", '', $utf16);
             }
         }
 
@@ -1568,16 +1689,36 @@ class InvoiceOcrService
         return $best;
     }
 
+    /**
+     * Decode runs that look like Latin letters shifted down by $delta, leave clear words alone.
+     */
+    private function mergeShiftedLatinRuns(string $text, int $delta): string
+    {
+        $fullyShifted = $this->shiftLatinBytes($text, $delta);
+        // Prefer the candidate that exposes more Lithuanian invoice vocabulary.
+        if ($this->readableTextScore($fullyShifted) >= $this->readableTextScore($text)) {
+            return $fullyShifted;
+        }
+
+        return $text;
+    }
+
     private function shiftLatinBytes(string $text, int $delta): string
     {
         $out = '';
         $length = strlen($text);
         for ($i = 0; $i < $length; $i++) {
             $ord = ord($text[$i]);
-            if ($ord === 10 || $ord === 13) {
+            // Keep structural chars intact — municipal PDFs mix shifted letters with real digits/emails.
+            if (
+                $ord === 10 || $ord === 13
+                || ($ord >= 0x30 && $ord <= 0x39)
+                || in_array($ord, [0x20, 0x2D, 0x2E, 0x2F, 0x3A, 0x40, 0x5F], true) // space - . / : @ _
+            ) {
                 $out .= $text[$i];
             } elseif ($ord >= 0x01 && $ord <= 0x61) {
-                $out .= chr($ord + $delta);
+                $shifted = $ord + $delta;
+                $out .= $shifted <= 0xFF ? chr($shifted) : $text[$i];
             } else {
                 $out .= $text[$i];
             }
@@ -1597,7 +1738,11 @@ class InvoiceOcrService
     {
         $hay = Str::lower($text);
         $score = 0;
-        foreach (['pvm', 'suma', 'kodas', 'uab', 'invoice', 'saskait', 'sąskait', 'eur', 'bank', 'moket', 'futura', 'pardav', 'pirk', 'serija'] as $needle) {
+        foreach ([
+            'pvm', 'suma', 'kodas', 'uab', 'invoice', 'saskait', 'sąskait', 'eur', 'bank', 'moket',
+            'futura', 'pardav', 'pirk', 'serija', 'mokestin', 'rinkliav', 'atliek', 'sratc',
+            'formavimo', 'pareikalauta', 'pranesim', 'pranešim',
+        ] as $needle) {
             if (str_contains($hay, $needle)) {
                 $score++;
             }

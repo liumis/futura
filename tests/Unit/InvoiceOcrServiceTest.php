@@ -109,6 +109,45 @@ TXT;
         Http::assertNothingSent();
     }
 
+    public function test_parses_sratc_mokestinis_pranesimas_text(): void
+    {
+        $text = (string) file_get_contents(
+            dirname(__DIR__).DIRECTORY_SEPARATOR.'Fixtures'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'sratc-mokestinis-pranesimas.ocr.txt'
+        );
+
+        $result = (new InvoiceOcrService)->parseRawText($text);
+
+        $this->assertSame('Šiaulių regiono atliekų tvarkymo centras, VšĮ', $result['provider_company_name'] ?? null);
+        $this->assertSame('145787276', $result['provider_company_id'] ?? null);
+        $this->assertSame('LT457872716', $result['provider_company_vat'] ?? null);
+        $this->assertSame('2020217102573', $result['invoice_number'] ?? null);
+        $this->assertSame('2026-09-30', $result['invoice_date'] ?? null);
+        $this->assertSame(8.22, $result['sum_without_vat'] ?? null);
+        $this->assertSame(0.0, $result['vat'] ?? null);
+        $this->assertSame(8.22, $result['sum_inc_vat'] ?? null);
+        $this->assertSame('EUR', $result['currency'] ?? null);
+    }
+
+    public function test_parses_sratc_mokestinis_pranesimas_pdf(): void
+    {
+        config(['services.ocr_space.key' => null]);
+        Http::fake();
+
+        $path = dirname(__DIR__).DIRECTORY_SEPARATOR.'Fixtures'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'sratc-mokestinis-pranesimas.pdf';
+        $this->assertFileExists($path);
+
+        $result = (new InvoiceOcrService)->extract($path);
+
+        $this->assertSame('Šiaulių regiono atliekų tvarkymo centras, VšĮ', $result['provider_company_name'] ?? null);
+        $this->assertSame('145787276', $result['provider_company_id'] ?? null);
+        $this->assertSame('LT457872716', $result['provider_company_vat'] ?? null);
+        $this->assertSame('2020217102573', $result['invoice_number'] ?? null);
+        $this->assertSame('2026-09-30', $result['invoice_date'] ?? null);
+        $this->assertSame(8.22, $result['sum_inc_vat'] ?? null);
+        $this->assertSame(0.0, $result['vat'] ?? null);
+        Http::assertNothingSent();
+    }
+
     public function test_parses_anthropic_stripe_receipt(): void
     {
         config(['services.ocr_space.key' => null]);
