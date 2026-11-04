@@ -27,6 +27,22 @@ class ExtractedTextNormalizer
             return '';
         }
 
+        $best = '';
+        $bestScore = PHP_INT_MIN;
+
+        $consider = function (string $candidate) use (&$best, &$bestScore): void {
+            $candidate = self::sanitizeUtf8($candidate);
+            if ($candidate === '') {
+                return;
+            }
+
+            $score = self::readableScore($candidate);
+            if ($best === '' || self::isBetterCandidate($candidate, $score, $best, $bestScore)) {
+                $best = $candidate;
+                $bestScore = $score;
+            }
+        };
+
         $seeds = [self::sanitizeUtf8($text)];
 
         // Real UTF-16 PDF text must be decoded before NULs are stripped.
@@ -41,26 +57,26 @@ class ExtractedTextNormalizer
             }
         }
 
-        $best = '';
-        $bestScore = PHP_INT_MIN;
-
         foreach (array_unique($seeds) as $seed) {
             if ($seed === '') {
                 continue;
             }
 
             foreach (self::candidates($seed) as $candidate) {
-                $candidate = self::sanitizeUtf8($candidate);
-                if ($candidate === '') {
-                    continue;
-                }
-
-                $score = self::readableScore($candidate);
-                if ($best === '' || self::isBetterCandidate($candidate, $score, $best, $bestScore)) {
-                    $best = $candidate;
-                    $bestScore = $score;
-                }
+                $consider($candidate);
             }
+        }
+
+        // NFM chamber PDFs encode letters/digits as C0 controls; sanitizeUtf8 would
+        // strip them before shift. Shift NUL-stripped raw first, then sanitize.
+        $nulStripped = str_replace("\0", '', $text);
+        if (
+            $nulStripped !== ''
+            && ! self::looksCorrupted($nulStripped)
+            && self::readableScore(self::sanitizeUtf8($nulStripped)) < 4
+        ) {
+            $consider(self::shiftLatinBytes($nulStripped, 0x1D, false));
+            $consider(self::shiftLatinBytes($nulStripped, 0x1D, true));
         }
 
         return self::finalizeLithuanian($best);
@@ -135,10 +151,11 @@ class ExtractedTextNormalizer
 
         $stripped = str_replace("\0", '', $text);
 
-        // Custom PDF font encodings (e.g. SRATC) shift letters by -0x1D but keep digits.
-        // Skip when text is CP437/OEM mojibake — shifting ASCII turns "Achilles" into "^chilles".
+        // Custom PDF font encodings shift letters by -0x1D. SRATC keeps digits; NFM encodes
+        // "PVM"/"NFM" as digit-looking bytes — try both. Skip CP437 mojibake.
         if (! self::looksCorrupted($stripped) && self::readableScore($stripped) < 4) {
-            $out[] = self::shiftLatinBytes($stripped, 0x1D);
+            $out[] = self::shiftLatinBytes($stripped, 0x1D, false);
+            $out[] = self::shiftLatinBytes($stripped, 0x1D, true);
         }
 
         $source = $stripped !== '' ? $stripped : $text;
@@ -251,16 +268,22 @@ class ExtractedTextNormalizer
         return $repaired;
     }
 
-    private static function shiftLatinBytes(string $text, int $delta): string
+    private static function shiftLatinBytes(string $text, int $delta, bool $shiftDigits = false): string
     {
         $out = '';
         $length = strlen($text);
+        // When shifting digits (NFM), also shift "/" which is encoded "L" (LT VAT).
+        // Keep "." so dates like 2026.08.27 survive.
+        $keepPunct = $shiftDigits
+            ? [0x20, 0x2E]
+            : [0x20, 0x2D, 0x2E, 0x2F, 0x3A, 0x40, 0x5F];
         for ($i = 0; $i < $length; $i++) {
             $ord = ord($text[$i]);
+            $keepDigit = ! $shiftDigits && $ord >= 0x30 && $ord <= 0x39;
             if (
                 $ord === 10 || $ord === 13
-                || ($ord >= 0x30 && $ord <= 0x39)
-                || in_array($ord, [0x20, 0x2D, 0x2E, 0x2F, 0x3A, 0x40, 0x5F], true)
+                || $keepDigit
+                || in_array($ord, $keepPunct, true)
             ) {
                 $out .= $text[$i];
             } elseif ($ord >= 0x01 && $ord <= 0x61) {
