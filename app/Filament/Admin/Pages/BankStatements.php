@@ -183,7 +183,6 @@ class BankStatements extends Page implements HasForms
                             ->getSearchResultsUsing(fn (string $search): array => $this->counterpartOptions($search))
                             ->getOptionLabelUsing(fn ($value): ?string => filled($value) ? (string) $value : null)
                             ->searchable()
-                            ->preload()
                             ->placeholder('All counterparts')
                             ->native(false)
                             ->live()
@@ -217,7 +216,6 @@ class BankStatements extends Page implements HasForms
                                 return $this->bankAccountOptions()[(string) $value] ?? (string) $value;
                             })
                             ->searchable()
-                            ->preload()
                             ->placeholder('All accounts')
                             ->native(false)
                             ->live()
@@ -1731,50 +1729,30 @@ class BankStatements extends Page implements HasForms
 
     public function scanSuggestedLinks(): void
     {
-        $query = BankStatementTransaction::query()
-            ->withoutLinkedDocument()
-            ->where('no_document_needed', false)
-            ->where('is_historical', false)
-            ->orderBy('booking_date')
-            ->orderBy('id');
-
-        // Ignore link_status so a previous "Suggested matches" filter does not hide candidates.
-        $filtersBackup = $this->filters;
-        $scanFilters = $this->filters ?? [];
-        unset($scanFilters['link_status'], $scanFilters['invoice_status']);
-        $this->filters = $scanFilters;
-        $this->applyFilters($query);
-        $this->filters = $filtersBackup;
-
-        $unlinked = $query->get();
-        $invoiceSuggestions = BankStatementInvoiceMatcher::suggestFor($unlinked);
-        $remaining = $unlinked->reject(
-            fn (BankStatementTransaction $row): bool => $invoiceSuggestions->has($row->getKey()),
-        )->values();
-        $paymentSuggestions = BankStatementPaymentMatcher::suggestFor($remaining);
-        $afterContracts = $remaining->reject(
-            fn (BankStatementTransaction $row): bool => $paymentSuggestions->has($row->getKey()),
-        )->values();
-        $salarySuggestions = BankStatementSalaryMatcher::suggestFor($afterContracts);
-        $afterSalary = $afterContracts->reject(
-            fn (BankStatementTransaction $row): bool => $salarySuggestions->has($row->getKey()),
-        )->values();
-        $tripSuggestions = BankStatementBusinessTripMatcher::suggestFor($afterSalary);
-
-        $invoiceCount = $invoiceSuggestions->count();
-        $paymentCount = $paymentSuggestions->count();
-        $salaryCount = $salarySuggestions->count();
-        $tripCount = $tripSuggestions->count();
-        $total = $invoiceCount + $paymentCount + $salaryCount + $tripCount;
-
+        // Matching is expensive — only run it when the user asks (not on every page load).
+        // getMonthGroups() computes suggestions when link_status is "suggested".
         $nextFilters = [
             ...($this->filters ?? []),
-            'link_status' => $total > 0 ? 'suggested' : ($this->filters['link_status'] ?? null),
+            'link_status' => 'suggested',
         ];
         $this->filters = $nextFilters;
         $this->filtersForm->fill($nextFilters);
 
+        $rows = $this->getMonthGroups()->flatten(1);
+        $invoiceCount = $rows->filter(fn (BankStatementTransaction $row): bool => $row->suggestedInvoice !== null)->count();
+        $paymentCount = $rows->filter(fn (BankStatementTransaction $row): bool => $row->suggestedPayment !== null)->count();
+        $salaryCount = $rows->filter(fn (BankStatementTransaction $row): bool => $row->suggestedSalaryPayment !== null)->count();
+        $tripCount = $rows->filter(fn (BankStatementTransaction $row): bool => $row->suggestedBusinessTrip !== null)->count();
+        $total = $invoiceCount + $paymentCount + $salaryCount + $tripCount;
+
         if ($total === 0) {
+            $cleared = [
+                ...($this->filters ?? []),
+                'link_status' => null,
+            ];
+            $this->filters = $cleared;
+            $this->filtersForm->fill($cleared);
+
             Notification::make()
                 ->title('No suggested links found')
                 ->body('No confident invoice, contract, salary, or business-trip matches for the current filters.')
@@ -2287,7 +2265,6 @@ class BankStatements extends Page implements HasForms
                 'employeeMonthlyPayment.payslipDocument',
                 'businessTripRequest.employee',
                 'businessTripRequest.documents',
-                'businessTripRequest.bankStatementTransactions',
                 'document.documentType',
             ])
             ->orderByDesc('booking_date')
@@ -2297,17 +2274,41 @@ class BankStatements extends Page implements HasForms
 
         $transactions = $query->get();
 
-        $invoiceSuggestions = BankStatementInvoiceMatcher::suggestFor($transactions);
-        $paymentSuggestions = BankStatementPaymentMatcher::suggestFor($transactions);
-        $salarySuggestions = BankStatementSalaryMatcher::suggestFor($transactions);
-        $tripSuggestions = BankStatementBusinessTripMatcher::suggestFor($transactions);
+        // Invoice/contract/salary matching scans large candidate sets and routinely
+        // exceeds Cloudflare timeouts on production. Only run it when the user opens
+        // "Suggested matches" (Scan for links sets that filter).
+        $linkStatus = $this->filters['link_status'] ?? $this->filters['invoice_status'] ?? null;
+        $shouldSuggest = $linkStatus === 'suggested';
+
+        $invoiceSuggestions = collect();
+        $paymentSuggestions = collect();
+        $salarySuggestions = collect();
+        $tripSuggestions = collect();
+
+        if ($shouldSuggest) {
+            $invoiceSuggestions = BankStatementInvoiceMatcher::suggestFor($transactions);
+            $remaining = $transactions->reject(
+                fn (BankStatementTransaction $row): bool => $invoiceSuggestions->has($row->getKey()),
+            )->values();
+            $paymentSuggestions = BankStatementPaymentMatcher::suggestFor($remaining);
+            $afterContracts = $remaining->reject(
+                fn (BankStatementTransaction $row): bool => $paymentSuggestions->has($row->getKey()),
+            )->values();
+            $salarySuggestions = BankStatementSalaryMatcher::suggestFor($afterContracts);
+            $afterSalary = $afterContracts->reject(
+                fn (BankStatementTransaction $row): bool => $salarySuggestions->has($row->getKey()),
+            )->values();
+            $tripSuggestions = BankStatementBusinessTripMatcher::suggestFor($afterSalary);
+        }
 
         foreach ($transactions as $transaction) {
             $transaction->setRelation(
                 'suggestedInvoice',
                 $invoiceSuggestions->get($transaction->getKey()),
             );
-            $batch = BankStatementInvoiceMatcher::batchInvoicesFor($transaction);
+            $batch = $shouldSuggest
+                ? BankStatementInvoiceMatcher::batchInvoicesFor($transaction)
+                : collect();
             $transaction->setRelation(
                 'suggestedInvoiceBatch',
                 $batch->isNotEmpty() ? $batch : collect(),
@@ -2326,8 +2327,7 @@ class BankStatements extends Page implements HasForms
             );
         }
 
-        $linkStatus = $this->filters['link_status'] ?? $this->filters['invoice_status'] ?? null;
-        if ($linkStatus === 'suggested') {
+        if ($shouldSuggest) {
             $transactions = $transactions
                 ->filter(fn (BankStatementTransaction $row): bool => ! $row->isResolved()
                     && ($invoiceSuggestions->has($row->getKey())

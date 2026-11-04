@@ -70,6 +70,47 @@ class BankStatementsDefaultMonthTest extends TestCase
         Carbon::setTestNow();
     }
 
+    public function test_default_page_load_skips_link_matching(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-28'));
+
+        $this->actingAsAdmin();
+
+        $import = BankStatementImport::query()->create([
+            'original_filename' => 'sep.xml',
+            'content_hash' => 'hash-sep-no-match',
+            'uploaded_by' => auth()->id(),
+            'transaction_count' => 1,
+            'imported_count' => 1,
+            'skipped_count' => 0,
+        ]);
+
+        BankStatementTransaction::query()->create([
+            'bank_statement_import_id' => $import->id,
+            'fingerprint' => 'sep-no-match-1',
+            'month_key' => '2026-09',
+            'booking_date' => '2026-09-15',
+            'direction' => BankStatementDirection::Credit,
+            'amount' => 100,
+            'currency' => 'EUR',
+            'account_iban' => 'LT121000011101001000',
+            'counterpart_name' => 'Customer UAB',
+            'description' => 'INV-9999',
+        ]);
+
+        $page = Livewire::test(BankStatements::class)->assertOk();
+        $groups = $page->instance()->getMonthGroups();
+        $row = $groups->flatten(1)->first();
+
+        $this->assertNotNull($row);
+        $this->assertNull($row->suggestedInvoice);
+        $this->assertNull($row->suggestedPayment);
+        $this->assertNull($row->suggestedSalaryPayment);
+        $this->assertNull($row->suggestedBusinessTrip);
+
+        Carbon::setTestNow();
+    }
+
     private function actingAsAdmin(): User
     {
         Role::findOrCreate(User::ROLE_ADMIN, 'web');
