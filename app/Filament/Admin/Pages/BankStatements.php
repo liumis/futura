@@ -8,6 +8,7 @@ use App\Exceptions\BankStatementXmlException;
 use App\Filament\Admin\Concerns\PrefillsInvoiceFromOcr;
 use App\Filament\Admin\Resources\Documents\DocumentResource;
 use App\Filament\Admin\Resources\Payments\PaymentResource;
+use App\Jobs\ImportBankStatementJob;
 use App\Models\BankStatementTransaction;
 use App\Models\CompanyBankAccount;
 use App\Models\Contact;
@@ -289,7 +290,7 @@ class BankStatements extends Page implements HasForms
             ->components([
                 FileUpload::make('file_paths')
                     ->label('Upload bank statements')
-                    ->helperText(UploadLimits::withExistingNote('ISO 20022 XML (camt.053 / camt.052), accounting Excel (.xls / .xlsx, all sheets), or bank PDF statements (e.g. SEB sąskaitos išrašas — multi-account PDFs are split by account). Long scanned PDFs may hit the OCR page limit; if import warns about missing pages, upload one account (or fewer pages) per file. Duplicate files and lines already in the system are not imported. Files are stored on SharePoint and registered as Documents (Banko išrašas). Multiple files are merged into the matching month.'))
+                    ->helperText(UploadLimits::withExistingNote('ISO 20022 XML (camt.053 / camt.052), accounting Excel (.xls / .xlsx, all sheets), or bank PDF statements (e.g. SEB sąskaitos išrašas — multi-account PDFs are split by account). PDF import runs in the background (OCR can take 1–2 minutes) — you get a notification when it finishes. Long scanned PDFs may hit the OCR page limit; if import warns about missing pages, upload one account (or fewer pages) per file. Duplicate files and lines already in the system are not imported. Files are stored on SharePoint and registered as Documents (Banko išrašas). Multiple files are merged into the matching month.'))
                     ->acceptedFileTypes([
                         'application/xml',
                         'text/xml',
@@ -352,8 +353,11 @@ class BankStatements extends Page implements HasForms
         $imported = 0;
         $skipped = 0;
         $files = 0;
+        $queuedPdfs = 0;
         $errors = [];
         $duplicates = [];
+        $comment = isset($state['comment']) ? (string) $state['comment'] : null;
+        $userId = auth()->id();
 
         foreach ($paths as $path) {
             if (! is_string($path) || $path === '') {
@@ -366,6 +370,20 @@ class BankStatements extends Page implements HasForms
                 continue;
             }
 
+            // PDF OCR often exceeds Cloudflare/proxy limits (~30–60s) — finish the HTTP
+            // response first, then import in the same request lifecycle.
+            if (str_ends_with(strtolower($path), '.pdf')) {
+                ImportBankStatementJob::dispatch(
+                    $path,
+                    basename($path),
+                    $userId !== null ? (int) $userId : null,
+                    $comment,
+                )->afterResponse();
+                $queuedPdfs++;
+
+                continue;
+            }
+
             $absolutePath = Storage::disk('local')->path($path);
             $binary = (string) Storage::disk('local')->get($path);
 
@@ -374,8 +392,8 @@ class BankStatements extends Page implements HasForms
                     $absolutePath,
                     basename($path),
                     $path,
-                    auth()->id(),
-                    isset($state['comment']) ? (string) $state['comment'] : null,
+                    $userId,
+                    $comment,
                 );
             } catch (BankStatementDuplicateException $exception) {
                 $duplicates[] = basename($path).': '.$exception->getMessage();
@@ -410,6 +428,14 @@ class BankStatements extends Page implements HasForms
             $files++;
             $imported += $result['imported'];
             $skipped += $result['skipped'];
+        }
+
+        if ($queuedPdfs > 0) {
+            Notification::make()
+                ->title($queuedPdfs === 1 ? 'PDF import started' : $queuedPdfs.' PDF imports started')
+                ->body('OCR can take 1–2 minutes. You will get a notification when it finishes — then refresh Bank statements.')
+                ->info()
+                ->send();
         }
 
         if ($files > 0) {
