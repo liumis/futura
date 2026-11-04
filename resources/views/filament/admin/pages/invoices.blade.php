@@ -1,6 +1,18 @@
 <x-filament-panels::page>
     <div class="invoices-page">
     <div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+        <form wire:submit="importBulkUploads" class="space-y-3">
+            {{ $this->bulkUploadForm }}
+
+            <div class="flex justify-end">
+                <x-filament::button type="submit" size="lg" icon="heroicon-o-arrow-up-tray">
+                    Upload invoices
+                </x-filament::button>
+            </div>
+        </form>
+    </div>
+
+    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         {{ $this->filtersForm }}
 
         <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
@@ -258,6 +270,15 @@
                             </div>
                         </td>
                         <td class="inv-td">
+                            <div class="flex flex-col items-start gap-1">
+                            @if ($invoice->isDraft())
+                                <span
+                                    class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
+                                    title="Incomplete OCR — open and finish fields"
+                                >
+                                    Draft
+                                </span>
+                            @endif
                             <div
                                 wire:key="inv-number-{{ $invoice->getKey() }}"
                                 class="bs-inline-edit"
@@ -322,9 +343,10 @@
                                     </div>
                                 </div>
                             </div>
+                            </div>
                         </td>
                         <td class="inv-td inv-td--date">
-                            {{ optional($invoice->invoice_date)->format('Y-m-d') }}
+                            {{ optional($invoice->invoice_date)->format('Y-m-d') ?: '—' }}
                         </td>
                         <td @class([
                             'inv-td inv-td--num font-medium tabular-nums',

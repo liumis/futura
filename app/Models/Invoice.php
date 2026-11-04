@@ -36,6 +36,7 @@ class Invoice extends Model
         'private_provider',
         'comment',
         'is_history',
+        'is_draft',
         'income_type_id',
         'expense_type_id',
         'is_own_account',
@@ -73,6 +74,7 @@ class Invoice extends Model
             'private_provider' => 'boolean',
             'is_own_account' => 'boolean',
             'is_history' => 'boolean',
+            'is_draft' => 'boolean',
             'upload_date' => 'date',
             'additional_documents' => 'array',
             'sharepoint_files' => 'array',
@@ -1445,6 +1447,30 @@ class Invoice extends Model
     public function isHistoricalRecord(): bool
     {
         return (bool) $this->is_history;
+    }
+
+    public function isDraft(): bool
+    {
+        return (bool) $this->is_draft;
+    }
+
+    /**
+     * Draft can be published once company, date, and a total are present.
+     */
+    public function isReadyToPublish(): bool
+    {
+        if ($this->contact_id === null) {
+            return false;
+        }
+
+        if ($this->invoice_date === null) {
+            return false;
+        }
+
+        $total = (float) ($this->sum_inc_vat ?? 0);
+        $net = (float) ($this->sum_without_vat ?? 0);
+
+        return $total > 0.004 || $net > 0.004;
     }
 
     /**

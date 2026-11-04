@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages;
 
 use App\Enums\InvoiceLanguage;
 use App\Filament\Admin\Concerns\ManagesInvoiceUploads;
+use App\Jobs\ImportInvoiceUploadJob;
 use App\Models\BankStatementTransaction;
 use App\Models\CompanySetting;
 use App\Models\Contact;
@@ -12,6 +13,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceCode;
 use App\Models\InvoiceFinanceLine;
 use App\Models\OriginCountry;
+use App\Models\SharepointSetting;
 use App\Services\ActivityLogger;
 use App\Services\BankStatements\BankStatementInvoiceMatcher;
 use App\Services\InvoiceDefaultFinanceLines;
@@ -21,6 +23,7 @@ use App\Services\InvoiceSepaExporter;
 use App\Support\Money;
 use App\Support\ReportDateRange;
 use App\Support\UploadLimits;
+use Illuminate\Support\Facades\Storage;
 use BackedEnum;
 use Carbon\Carbon;
 use Filament\Actions\Action;
@@ -76,6 +79,11 @@ class Invoices extends Page implements HasForms
     public ?array $filters = [];
 
     /**
+     * @var array<string, mixed>|null
+     */
+    public ?array $bulkUpload = [];
+
+    /**
      * @var list<string>
      */
     public array $selectedInvoiceIds = [];
@@ -125,6 +133,7 @@ class Invoices extends Page implements HasForms
 
         $this->filters = $filters;
         $this->filtersForm->fill($filters);
+        $this->bulkUploadForm->fill([]);
 
         if (is_numeric($editInvoiceId)) {
             $this->mountAction('invoiceDetails', ['invoiceId' => (int) $editInvoiceId]);
@@ -138,7 +147,100 @@ class Invoices extends Page implements HasForms
     {
         return [
             'filtersForm',
+            'bulkUploadForm',
         ];
+    }
+
+    public function bulkUploadForm(Schema $schema): Schema
+    {
+        return $schema
+            ->statePath('bulkUpload')
+            ->components([
+                FileUpload::make('paths')
+                    ->label('Upload invoices')
+                    ->helperText(UploadLimits::withExistingNote('PDF, JPG, or PNG. Multiple files OK — complete scans become invoices; incomplete OCR is saved as drafts to finish later. OCR runs in the background (1–2 min for large batches).'))
+                    ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
+                    ->maxSize(UploadLimits::MAX_KILOBYTES)
+                    ->multiple()
+                    ->disk('public')
+                    ->directory('invoices/bulk')
+                    ->visibility('public')
+                    ->required()
+                    ->columnSpanFull()
+                    ->extraAttributes([
+                        'class' => 'invoice-fancy-upload',
+                    ]),
+            ]);
+    }
+
+    public function importBulkUploads(): void
+    {
+        $state = $this->bulkUploadForm->getState();
+        $paths = $state['paths'] ?? [];
+        if (is_string($paths)) {
+            $paths = [$paths];
+        }
+
+        if (! is_array($paths) || $paths === []) {
+            Notification::make()
+                ->title('No files selected')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        if (! SharepointSetting::instance()->isReady()) {
+            Notification::make()
+                ->title('SharePoint is not configured')
+                ->body('Enable SharePoint under System → SharePoint. Invoice files are stored only on SharePoint.')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $queued = 0;
+        $missing = 0;
+        $userId = auth()->id();
+
+        foreach ($paths as $path) {
+            if (! is_string($path) || $path === '') {
+                continue;
+            }
+
+            if (! Storage::disk('public')->exists($path)) {
+                $missing++;
+
+                continue;
+            }
+
+            ImportInvoiceUploadJob::dispatch(
+                $path,
+                basename($path),
+                $userId !== null ? (int) $userId : null,
+                'public',
+            )->afterResponse();
+            $queued++;
+        }
+
+        $this->bulkUploadForm->fill([]);
+
+        if ($queued === 0) {
+            Notification::make()
+                ->title('No files could be queued')
+                ->body($missing > 0 ? 'Uploaded files were not found on the server — try again.' : null)
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        Notification::make()
+            ->title($queued === 1 ? 'Invoice import started' : $queued.' invoice imports started')
+            ->body('OCR runs in the background. You will get a notification per file — drafts need a quick review, complete scans appear in the list.')
+            ->info()
+            ->send();
     }
 
     public static function canAccess(): bool
@@ -814,6 +916,17 @@ class Invoices extends Page implements HasForms
                             ->options([
                                 'with' => 'With comment',
                                 'without' => 'No comment',
+                            ])
+                            ->placeholder('All')
+                            ->native(false)
+                            ->live()
+                            ->columnSpan(['default' => 6, 'md' => 3]),
+
+                        Select::make('draft_status')
+                            ->label('Draft')
+                            ->options([
+                                'draft' => 'Drafts only',
+                                'published' => 'Published only',
                             ])
                             ->placeholder('All')
                             ->native(false)
@@ -1748,7 +1861,13 @@ class Invoices extends Page implements HasForms
                             'income_type_id' => $category['income_type_id'],
                             'expense_type_id' => $category['expense_type_id'],
                             'is_own_account' => $category['is_own_account'],
-                        ])->save();
+                        ]);
+
+                        if ($invoice->isDraft() && $invoice->isReadyToPublish()) {
+                            $invoice->is_draft = false;
+                        }
+
+                        $invoice->save();
 
                         $invoice->financeLines()->delete();
 
@@ -2171,9 +2290,29 @@ class Invoices extends Page implements HasForms
         $monthKey = $this->selectedMonthKey();
         if ($monthKey !== null) {
             $bounds = ReportDateRange::boundsForMonthKey($monthKey);
-            $query
-                ->whereDate('invoice_date', '>=', $bounds['from'])
-                ->whereDate('invoice_date', '<=', $bounds['until']);
+            $query->where(function ($builder) use ($bounds): void {
+                $builder
+                    ->where(function ($dated) use ($bounds): void {
+                        $dated
+                            ->whereDate('invoice_date', '>=', $bounds['from'])
+                            ->whereDate('invoice_date', '<=', $bounds['until']);
+                    })
+                    ->orWhere(function ($drafts) use ($bounds): void {
+                        // Drafts without OCR date still show in the upload month.
+                        $drafts
+                            ->where('is_draft', true)
+                            ->whereNull('invoice_date')
+                            ->whereDate('upload_date', '>=', $bounds['from'])
+                            ->whereDate('upload_date', '<=', $bounds['until']);
+                    });
+            });
+        }
+
+        $draftStatus = $filters['draft_status'] ?? null;
+        if ($draftStatus === 'draft') {
+            $query->where('is_draft', true);
+        } elseif ($draftStatus === 'published') {
+            $query->where('is_draft', false);
         }
 
         $invoiceSearch = trim((string) ($filters['invoice_number'] ?? ''));
@@ -2603,6 +2742,7 @@ class Invoices extends Page implements HasForms
             || filled($filters['customer_market'] ?? null)
             || filled($filters['finance_kind'] ?? null)
             || filled($filters['finance_type'] ?? null)
+            || filled($filters['draft_status'] ?? null)
             || filled($filters['private_provider'] ?? null)
             || filled($filters['payment_status'] ?? null)
             || filled($filters['comment'] ?? null)

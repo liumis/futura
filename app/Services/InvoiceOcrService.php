@@ -328,6 +328,16 @@ class InvoiceOcrService
     }
 
     /**
+     * Whether OCR extracted enough fields to save a normal (non-draft) invoice.
+     *
+     * @param  array<string, mixed>  $parsed
+     */
+    public function isCompleteParse(array $parsed): bool
+    {
+        return ! $this->needsRemoteOcr($parsed);
+    }
+
+    /**
      * @param  array<string, mixed>  $parsed
      */
     private function needsRemoteOcr(array $parsed): bool
