@@ -4,12 +4,15 @@ namespace Tests\Unit;
 
 use App\Services\InvoiceOcrService;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class InvoiceOcrServiceTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_parses_lithuanian_invoice_text(): void
     {
         $text = <<<'TXT'
@@ -510,5 +513,80 @@ TXT;
         $this->assertSame('2026-09-16', $result['invoice_date'] ?? null);
         $this->assertSame(50.0, $result['sum_without_vat'] ?? null);
         Http::assertSent(fn ($request): bool => $request->url() === 'https://api.ocr.space/parse/image');
+    }
+
+    public function test_extract_uses_ai_as_primary_for_unknown_layout(): void
+    {
+        config([
+            'services.ocr_space.key' => 'test-ocr-key',
+            'services.invoice_ai.key' => 'test-ai-key',
+            'services.invoice_ai.base_url' => 'https://api.openai.com/v1',
+            'services.invoice_ai.model' => 'gpt-4o-mini',
+        ]);
+
+        Http::fake([
+            'api.ocr.space/*' => Http::response([
+                'ParsedResults' => [[
+                    // Weak / buyer-labelled OCR — heuristics alone would keep a bad provider name.
+                    'ParsedText' => "INVOICE\nBill to: Futura Textiles\nCustomer\nDoc ref somewhere\nAmount due 40.00\n",
+                ]],
+            ], 200),
+            'api.openai.com/*' => Http::response([
+                'choices' => [[
+                    'message' => [
+                        'content' => json_encode([
+                            'provider_company_name' => 'Nordic Logistics, UAB',
+                            'provider_company_id' => '305551111',
+                            'provider_company_vat' => 'LT100055111111',
+                            'invoice_number' => 'NL-2026-42',
+                            'invoice_date' => '2026-09-12',
+                            'sum_without_vat' => 80,
+                            'vat' => 16.8,
+                            'sum_inc_vat' => 96.8,
+                            'currency' => 'EUR',
+                            'confidence' => 0.88,
+                        ]),
+                    ],
+                ]],
+            ], 200),
+        ]);
+
+        $path = sys_get_temp_dir().DIRECTORY_SEPARATOR.'invoice-ai-unknown-'.uniqid('', true).'.jpg';
+        file_put_contents($path, 'fake-image');
+
+        try {
+            $result = (new InvoiceOcrService)->extract($path);
+        } finally {
+            @unlink($path);
+        }
+
+        $this->assertSame('Nordic Logistics, UAB', $result['provider_company_name'] ?? null);
+        $this->assertSame('NL-2026-42', $result['invoice_number'] ?? null);
+        $this->assertSame('2026-09-12', $result['invoice_date'] ?? null);
+        $this->assertSame(96.8, $result['sum_inc_vat'] ?? null);
+        $this->assertArrayNotHasKey('ai_confidence', $result);
+        Http::assertSent(fn ($request): bool => str_contains($request->url(), 'chat/completions'));
+    }
+
+    public function test_extract_skips_ai_for_strong_complete_template(): void
+    {
+        config([
+            'services.ocr_space.key' => null,
+            'services.invoice_ai.key' => 'test-ai-key',
+            'services.invoice_ai.base_url' => 'https://api.openai.com/v1',
+        ]);
+
+        Http::fake([
+            'api.openai.com/*' => Http::response(['choices' => [['message' => ['content' => '{}']]]], 200),
+        ]);
+
+        $path = dirname(__DIR__).DIRECTORY_SEPARATOR.'Fixtures'.DIRECTORY_SEPARATOR.'invoices'.DIRECTORY_SEPARATOR.'dsv-road-1025402.pdf';
+        $this->assertFileExists($path);
+
+        $result = (new InvoiceOcrService)->extract($path);
+
+        $this->assertSame('DSV Road, UAB', $result['provider_company_name'] ?? null);
+        $this->assertSame('1025402', $result['invoice_number'] ?? null);
+        Http::assertNothingSent();
     }
 }

@@ -32,19 +32,33 @@ class InvoiceAiMapperTest extends TestCase
                             'sum_without_vat' => 50,
                             'vat' => 0,
                             'sum_inc_vat' => 50,
+                            'confidence' => 0.91,
                         ]),
                     ],
                 ]],
             ], 200),
         ]);
 
-        $mapped = app(InvoiceAiMapper::class)->map('SĄSKAITA NFM 0000253 Suma be PVM 50,00');
+        $mapped = app(InvoiceAiMapper::class)->map('SĄSKAITA NFM 0000253 Suma be PVM 50,00', [
+            'invoice_number' => 'WRONG',
+        ]);
 
         $this->assertSame('Šiaulių prekybos, pramonės ir amatų rūmai', $mapped['provider_company_name'] ?? null);
         $this->assertSame('NFM-0000253', $mapped['invoice_number'] ?? null);
         $this->assertSame('2026-08-27', $mapped['invoice_date'] ?? null);
         $this->assertSame(50.0, $mapped['sum_inc_vat'] ?? null);
-        Http::assertSent(fn ($request): bool => str_contains($request->url(), 'chat/completions'));
+        $this->assertSame(0.91, $mapped['ai_confidence'] ?? null);
+        Http::assertSent(function ($request): bool {
+            if (! str_contains($request->url(), 'chat/completions')) {
+                return false;
+            }
+
+            $body = $request->body();
+
+            return str_contains($body, 'Partial extraction hints')
+                && str_contains($body, 'WRONG')
+                && str_contains($body, 'confidence');
+        });
     }
 
     public function test_ai_mapper_is_disabled_without_key(): void

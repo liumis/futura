@@ -11,9 +11,10 @@ use Throwable;
 class InvoiceAiMapper
 {
     /**
+     * @param  array<string, mixed>  $hints  Partial fields already extracted by templates/heuristics
      * @return array<string, string|float|null>
      */
-    public function map(string $text): array
+    public function map(string $text, array $hints = []): array
     {
         $text = InvoiceOcrService::sanitizeUtf8(trim($text));
         if ($text === '' || ! $this->isEnabled()) {
@@ -23,7 +24,7 @@ class InvoiceAiMapper
         $own = CompanySetting::instance();
 
         try {
-            $response = Http::timeout(25)
+            $response = Http::timeout(35)
                 ->withToken((string) config('services.invoice_ai.key'))
                 ->acceptJson()
                 ->post($this->endpoint(), [
@@ -37,7 +38,7 @@ class InvoiceAiMapper
                         ],
                         [
                             'role' => 'user',
-                            'content' => Str::limit($text, 12000, ''),
+                            'content' => $this->userPayload($text, $hints),
                         ],
                     ],
                 ]);
@@ -81,20 +82,49 @@ class InvoiceAiMapper
         $ownId = trim((string) ($own->company_id ?? ''));
 
         return trim(<<<PROMPT
-Extract purchase-invoice fields from messy OCR / PDF text (Lithuanian or English).
+You extract purchase-invoice fields from messy OCR / PDF text (Lithuanian, English, or German).
 Return JSON only with keys:
 provider_company_name, provider_company_id, provider_company_vat, provider_company_email,
-invoice_number, invoice_date, sum_without_vat, vat, sum_inc_vat, currency.
+invoice_number, invoice_date, sum_without_vat, vat, sum_inc_vat, currency, confidence.
+
 Rules:
-- provider_* is the SELLER / issuer (Pardavėjas), never the buyer (Pirkėjas / Bill to / GAVĖJAS).
-- Our company is the buyer and must not be used as provider: {$ownName} / {$ownId} / {$ownVat}.
-- invoice_date as YYYY-MM-DD (also accept 2026.08.27 or 27.08.2026).
-- Amounts as numbers. currency is ISO 4217 (EUR, USD, GBP). Default EUR if the invoice is in euro or unmarked.
-- If PVM is 0% / neapmokestinama / reverse charge, vat is 0.
-- invoice_number is the document number (series + number, e.g. NFM-0000253), not an IBAN.
-- provider_company_id is the seller company code (9 digits in Lithuania), not the buyer.
-- Use null for unknown values. Do not invent amounts.
+- provider_* is the SELLER / issuer (Pardavėjas / Seller / Lieferant / Rechnungsteller), never the buyer (Pirkėjas / Bill to / GAVĖJAS / Empfänger / Customer).
+- Our company is the buyer and must never be the provider: {$ownName} / {$ownId} / {$ownVat}.
+- Lithuanian legal forms: prefer "Name, UAB" / "Name, VšĮ" / "Name, MB" / "Name, IĮ" (form at the end). Keep diacritics (Š ų Į ė).
+- invoice_date as YYYY-MM-DD (also accept 2026.08.27, 27.08.2026, 27/08/2026).
+- Amounts as numbers (use dot decimal). currency is ISO 4217 (EUR, USD, GBP). Default EUR if euro or unmarked.
+- If PVM/VAT is 0% / neapmokestinama / reverse charge / reverse-charge, vat is 0.
+- invoice_number is the document number (series + number, e.g. NFM-0000253 or SF-2026-10), not an IBAN, order id, or password.
+- provider_company_id is the seller company code (usually 7–11 digits in Lithuania), not the buyer.
+- provider_company_vat like LT100675917 (no spaces).
+- confidence: number from 0 to 1 for overall extraction quality (1 = clear invoice, fields certain).
+- Use null for unknown values. Do not invent amounts, dates, or company ids.
+- If hints are provided, correct wrong buyer/seller swaps and fill gaps; keep clearly correct hint values.
 PROMPT);
+    }
+
+    /**
+     * @param  array<string, mixed>  $hints
+     */
+    private function userPayload(string $text, array $hints): string
+    {
+        $parts = [Str::limit($text, 12000, '')];
+
+        $cleanHints = array_filter(
+            $hints,
+            static fn ($value, $key): bool => is_string($key)
+                && ! str_starts_with($key, '_')
+                && $value !== null
+                && $value !== '',
+            ARRAY_FILTER_USE_BOTH,
+        );
+
+        if ($cleanHints !== []) {
+            $parts[] = "\n\n---\nPartial extraction hints (may be wrong):\n"
+                .json_encode($cleanHints, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        }
+
+        return implode('', $parts);
     }
 
     /**
@@ -119,6 +149,13 @@ PROMPT);
     private function normalizeMappedFields(array $mapped, CompanySetting $own): array
     {
         $name = $this->nullableString($mapped['provider_company_name'] ?? null);
+        if ($name !== null && LithuanianCompanyNameNormalizer::extract($name)['form'] !== null) {
+            $normalized = LithuanianCompanyNameNormalizer::normalize($name);
+            if ($normalized !== '') {
+                $name = $normalized;
+            }
+        }
+
         $id = $this->digits($mapped['provider_company_id'] ?? null);
         $vat = $this->nullableString($mapped['provider_company_vat'] ?? null);
         $vat = $vat !== null ? strtoupper(preg_replace('/\s+/', '', $vat) ?? $vat) : null;
@@ -137,6 +174,8 @@ PROMPT);
             }
         }
 
+        $confidence = $this->normalizeConfidence($mapped['confidence'] ?? null);
+
         $parsed = array_filter([
             'provider_company_name' => $name,
             'provider_company_id' => $id,
@@ -148,6 +187,7 @@ PROMPT);
             'vat' => $this->nullableAmount($mapped['vat'] ?? null),
             'sum_inc_vat' => $this->nullableAmount($mapped['sum_inc_vat'] ?? null),
             'currency' => $this->normalizeCurrency($mapped['currency'] ?? null),
+            'ai_confidence' => $confidence,
         ], static fn ($value): bool => $value !== null && $value !== '');
 
         foreach ($parsed as $key => $value) {
@@ -157,6 +197,24 @@ PROMPT);
         }
 
         return $parsed;
+    }
+
+    private function normalizeConfidence(mixed $value): ?float
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        if (is_numeric($value)) {
+            $n = (float) $value;
+            if ($n > 1 && $n <= 100) {
+                $n = $n / 100;
+            }
+
+            return round(max(0, min(1, $n)), 2);
+        }
+
+        return null;
     }
 
     private function isOwnCompany(?string $name, ?string $id, ?string $vat, CompanySetting $own): bool

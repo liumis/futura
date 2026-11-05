@@ -199,11 +199,25 @@ class InvoiceOcrService
             }
         }
 
-        if ($this->needsAiMapping($parsed)) {
-            $fromAi = app(InvoiceAiMapper::class)->map($bestText);
+        if ($bestText !== '' && $this->needsAiMapping($parsed, $bestText)) {
+            $fromAi = app(InvoiceAiMapper::class)->map($bestText, $parsed);
             if ($fromAi !== []) {
-                $parsed = $this->preferBetterParse($parsed, $fromAi);
+                $confidence = isset($fromAi['ai_confidence']) && is_numeric($fromAi['ai_confidence'])
+                    ? (float) $fromAi['ai_confidence']
+                    : null;
+                unset($fromAi['ai_confidence']);
+
+                $aiPrimary = $this->shouldPreferAiOverTemplate($parsed, $bestText, $confidence);
+                $parsed = $aiPrimary
+                    ? $this->preferBetterParse($fromAi, $parsed)
+                    : $this->preferBetterParse($parsed, $fromAi);
                 $source .= $source === 'none' ? 'ai' : '+ai';
+
+                Log::info('Invoice OCR AI mapping applied', [
+                    'file' => basename($absoluteFilePath),
+                    'ai_primary' => $aiPrimary,
+                    'ai_confidence' => $confidence,
+                ]);
             }
         }
 
@@ -332,15 +346,65 @@ class InvoiceOcrService
     }
 
     /**
+     * AI runs for unknown / weak / incomplete layouts. Strong known templates that
+     * already produced a complete parse skip the model call.
+     *
      * @param  array<string, mixed>  $parsed
      */
-    private function needsAiMapping(array $parsed): bool
+    private function needsAiMapping(array $parsed, string $text = ''): bool
     {
         if (! app(InvoiceAiMapper::class)->isEnabled()) {
             return false;
         }
 
-        return $this->needsRemoteOcr($parsed) || ! filled($parsed['invoice_number'] ?? null);
+        if ($this->isStrongCompleteParse($parsed, $text)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
+     * Dedicated provider extractors (not generic LT/DE catch-alls) with a full field set.
+     *
+     * @param  array<string, mixed>  $parsed
+     */
+    private function isStrongCompleteParse(array $parsed, string $text): bool
+    {
+        if (($parsed['is_own_sales_invoice'] ?? false) === true) {
+            return $this->isCompleteParse($parsed) && filled($parsed['invoice_number'] ?? null);
+        }
+
+        $key = $this->detectProviderKey(ExtractedTextNormalizer::normalize($text));
+        if ($key === null || in_array($key, ['lt_pvm', 'german_rechnung'], true)) {
+            return false;
+        }
+
+        return $this->isCompleteParse($parsed) && filled($parsed['invoice_number'] ?? null);
+    }
+
+    /**
+     * Unknown / generic layouts prefer AI values; strong known templates stay template-first.
+     *
+     * @param  array<string, mixed>  $parsed
+     */
+    private function shouldPreferAiOverTemplate(array $parsed, string $text, ?float $confidence): bool
+    {
+        if (($parsed['is_own_sales_invoice'] ?? false) === true) {
+            return false;
+        }
+
+        $key = $this->detectProviderKey(ExtractedTextNormalizer::normalize($text));
+        if ($key !== null && ! in_array($key, ['lt_pvm', 'german_rechnung'], true)) {
+            return false;
+        }
+
+        // Low-confidence AI should only fill gaps, not overwrite heuristics.
+        if ($confidence !== null && $confidence < 0.4) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
@@ -1702,7 +1766,15 @@ class InvoiceOcrService
      */
     private function sanitizeParsed(array $parsed): array
     {
+        unset($parsed['ai_confidence']);
+
         foreach ($parsed as $key => $value) {
+            if (is_string($key) && str_starts_with($key, '_')) {
+                unset($parsed[$key]);
+
+                continue;
+            }
+
             if (is_string($value)) {
                 $parsed[$key] = self::sanitizeUtf8($value);
             }
