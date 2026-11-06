@@ -79,6 +79,15 @@ class CompanyProfileSchema
                 ->helperText('Used as the Category when uploading an invoice for this contact.')
                 ->columnSpanFull();
 
+            $components[] = Forms\Components\TextInput::make('payment_term')
+                ->label('Default payment term')
+                ->numeric()
+                ->integer()
+                ->minValue(0)
+                ->default(Invoice::DEFAULT_PAYMENT_TERM_DAYS)
+                ->suffix('days')
+                ->helperText('Used on new invoices for this contact. Default is '.Invoice::DEFAULT_PAYMENT_TERM_DAYS.' days.');
+
             $components[] = Forms\Components\TextInput::make('bank_account')
                 ->label('Bank account (IBAN)')
                 ->helperText('Used as the payee account for invoice bank payments (SEB).')

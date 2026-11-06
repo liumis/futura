@@ -20,6 +20,10 @@ final class InvoicesChartReportBuilder
 
     public const LATE_ANY = 'any';
 
+    public const DATE_BASIS_INVOICE = 'invoice_date';
+
+    public const DATE_BASIS_DUE = 'due_date';
+
     /**
      * @return array<string, string>
      */
@@ -31,6 +35,24 @@ final class InvoicesChartReportBuilder
             self::STATUS_PARTLY_PAID => 'Partly paid',
             self::STATUS_UNPAID => 'Unpaid',
         ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public static function dateBasisOptions(): array
+    {
+        return [
+            self::DATE_BASIS_INVOICE => 'Invoice date',
+            self::DATE_BASIS_DUE => 'Payment due date',
+        ];
+    }
+
+    public static function normalizeDateBasis(mixed $basis): string
+    {
+        return (string) $basis === self::DATE_BASIS_DUE
+            ? self::DATE_BASIS_DUE
+            : self::DATE_BASIS_INVOICE;
     }
 
     /**
@@ -82,6 +104,8 @@ final class InvoicesChartReportBuilder
      *     contact_label: string,
      *     country: ?string,
      *     country_label: string,
+     *     date_basis: string,
+     *     date_basis_label: string,
      *     from: ?string,
      *     until: ?string,
      *     as_of: string,
@@ -93,13 +117,29 @@ final class InvoicesChartReportBuilder
      *     partly_paid_total: float,
      *     unpaid_total: float,
      *     outstanding_total: float,
+     *     due_to_pay_total: float,
      *     grand_total: float,
      *     days: list<array{
      *         day: string,
      *         label: string,
      *         paid: float,
      *         partly_paid: float,
-     *         unpaid: float
+     *         unpaid: float,
+     *         due_to_pay: float
+     *     }>,
+     *     rows: list<array{
+     *         id: int,
+     *         number: string,
+     *         invoice_date: ?string,
+     *         due_date: ?string,
+     *         company: string,
+     *         status: string,
+     *         status_label: string,
+     *         amount: float,
+     *         outstanding: float,
+     *         days_late: int,
+     *         late: bool,
+     *         sort_day: string
      *     }>
      * }
      */
@@ -111,8 +151,10 @@ final class InvoicesChartReportBuilder
         mixed $contactId = null,
         mixed $country = null,
         mixed $asOf = null,
+        mixed $dateBasis = self::DATE_BASIS_INVOICE,
     ): array {
         $status = self::normalizeStatus($status);
+        $dateBasis = self::normalizeDateBasis($dateBasis);
         $minLateDays = self::normalizeLateDays($lateDays);
         $fromDate = self::normalizeDate($from);
         $untilDate = self::normalizeDate($until);
@@ -128,12 +170,27 @@ final class InvoicesChartReportBuilder
             ->with(['contact:id,company_name,company_country'])
             ->whereNotNull('invoice_date');
 
-        if ($fromDate !== null) {
-            $query->whereDate('invoice_date', '>=', $fromDate);
-        }
+        if ($dateBasis === self::DATE_BASIS_INVOICE) {
+            if ($fromDate !== null) {
+                $query->whereDate('invoice_date', '>=', $fromDate);
+            }
 
-        if ($untilDate !== null) {
-            $query->whereDate('invoice_date', '<=', $untilDate);
+            if ($untilDate !== null) {
+                $query->whereDate('invoice_date', '<=', $untilDate);
+            }
+        } else {
+            // Due date = invoice_date + term; widen the SQL window, filter exact due in PHP.
+            if ($untilDate !== null) {
+                $query->whereDate('invoice_date', '<=', $untilDate);
+            }
+
+            if ($fromDate !== null) {
+                $query->whereDate(
+                    'invoice_date',
+                    '>=',
+                    Carbon::parse($fromDate)->subDays(400)->toDateString(),
+                );
+            }
         }
 
         if ($contactId !== null && $contactId > 0) {
@@ -152,6 +209,7 @@ final class InvoicesChartReportBuilder
             ->get([
                 'id',
                 'contact_id',
+                'invoice_number',
                 'invoice_date',
                 'payment_term',
                 'sum_inc_vat',
@@ -166,10 +224,12 @@ final class InvoicesChartReportBuilder
         $partlyPaidTotal = 0.0;
         $unpaidTotal = 0.0;
         $outstandingTotal = 0.0;
+        $dueToPayTotal = 0.0;
         $paidCount = 0;
         $partlyPaidCount = 0;
         $unpaidCount = 0;
         $byDay = [];
+        $rows = [];
 
         foreach ($invoices as $invoice) {
             $settlement = $invoice->paymentSettlementStatus();
@@ -184,35 +244,76 @@ final class InvoicesChartReportBuilder
                 continue;
             }
 
+            $dayKey = self::bucketDayKey($invoice, $dateBasis);
+            if ($dayKey === null) {
+                continue;
+            }
+
+            if ($fromDate !== null && $dayKey < $fromDate) {
+                continue;
+            }
+
+            if ($untilDate !== null && $dayKey > $untilDate) {
+                continue;
+            }
+
             $amount = round(abs($invoice->amountInEur()), 2);
             $outstanding = round($invoice->outstandingAmountInEur(), 2);
-            $dayKey = $invoice->invoice_date instanceof Carbon
+            $dueDate = $invoice->dueDate()?->toDateString();
+            $invoiceDate = $invoice->invoice_date instanceof Carbon
                 ? $invoice->invoice_date->toDateString()
-                : Carbon::parse((string) $invoice->invoice_date)->toDateString();
+                : self::normalizeDate($invoice->invoice_date);
+
+            // Cashflow on due date: still-to-pay amount; on invoice date: face total.
+            $chartAmount = $dateBasis === self::DATE_BASIS_DUE
+                ? ($settlement === self::STATUS_PAID ? $amount : $outstanding)
+                : $amount;
 
             if (! isset($byDay[$dayKey])) {
                 $byDay[$dayKey] = [
                     'paid' => 0.0,
                     'partly_paid' => 0.0,
                     'unpaid' => 0.0,
+                    'due_to_pay' => 0.0,
                 ];
             }
 
             if ($settlement === self::STATUS_PAID) {
                 $paidTotal += $amount;
                 $paidCount++;
-                $byDay[$dayKey]['paid'] += $amount;
+                $byDay[$dayKey]['paid'] += $chartAmount;
             } elseif ($settlement === self::STATUS_PARTLY_PAID) {
                 $partlyPaidTotal += $amount;
                 $partlyPaidCount++;
                 $outstandingTotal += $outstanding;
-                $byDay[$dayKey]['partly_paid'] += $amount;
+                $dueToPayTotal += $outstanding;
+                $byDay[$dayKey]['partly_paid'] += $chartAmount;
+                $byDay[$dayKey]['due_to_pay'] += $outstanding;
             } else {
                 $unpaidTotal += $amount;
                 $unpaidCount++;
                 $outstandingTotal += $outstanding;
-                $byDay[$dayKey]['unpaid'] += $amount;
+                $dueToPayTotal += $outstanding;
+                $byDay[$dayKey]['unpaid'] += $chartAmount;
+                $byDay[$dayKey]['due_to_pay'] += $outstanding;
             }
+
+            $rows[] = [
+                'id' => (int) $invoice->getKey(),
+                'number' => filled($invoice->invoice_number)
+                    ? (string) $invoice->invoice_number
+                    : 'Invoice #'.$invoice->getKey(),
+                'invoice_date' => $invoiceDate,
+                'due_date' => $dueDate,
+                'company' => (string) ($invoice->contact?->company_name ?: '—'),
+                'status' => $settlement,
+                'status_label' => self::statusOptions()[$settlement] ?? $settlement,
+                'amount' => $amount,
+                'outstanding' => $outstanding,
+                'days_late' => $daysLate,
+                'late' => $daysLate > 0,
+                'sort_day' => $dayKey,
+            ];
         }
 
         ksort($byDay);
@@ -225,15 +326,25 @@ final class InvoicesChartReportBuilder
                 'paid' => round($bucket['paid'], 2),
                 'partly_paid' => round($bucket['partly_paid'], 2),
                 'unpaid' => round($bucket['unpaid'], 2),
+                'due_to_pay' => round($bucket['due_to_pay'], 2),
             ];
         }
+
+        usort($rows, static function (array $a, array $b): int {
+            return [$a['sort_day'], $a['company'], $a['number']]
+                <=> [$b['sort_day'], $b['company'], $b['number']];
+        });
 
         $invoiceCount = $paidCount + $partlyPaidCount + $unpaidCount;
         $grandTotal = round($paidTotal + $partlyPaidTotal + $unpaidTotal, 2);
 
         return [
-            'title' => 'Invoices by payment status',
+            'title' => $dateBasis === self::DATE_BASIS_DUE
+                ? 'Invoices by payment due date'
+                : 'Invoices by payment status',
             'period_label' => self::periodLabel($fromDate, $untilDate),
+            'date_basis' => $dateBasis,
+            'date_basis_label' => self::dateBasisOptions()[$dateBasis] ?? 'Invoice date',
             'status' => $status,
             'status_label' => self::statusOptions()[$status] ?? 'All',
             'late_days' => $minLateDays,
@@ -255,9 +366,43 @@ final class InvoicesChartReportBuilder
             'partly_paid_total' => round($partlyPaidTotal, 2),
             'unpaid_total' => round($unpaidTotal, 2),
             'outstanding_total' => round($outstandingTotal, 2),
+            'due_to_pay_total' => round($dueToPayTotal, 2),
             'grand_total' => $grandTotal,
             'days' => $days,
+            'rows' => $rows,
         ];
+    }
+
+    public static function formatDate(?string $value): string
+    {
+        if ($value === null || $value === '') {
+            return '—';
+        }
+
+        try {
+            return Carbon::parse($value)->format('Y-m-d');
+        } catch (Throwable) {
+            return $value;
+        }
+    }
+
+    private static function bucketDayKey(Invoice $invoice, string $dateBasis): ?string
+    {
+        if ($dateBasis === self::DATE_BASIS_DUE) {
+            $due = $invoice->dueDate();
+
+            return $due?->toDateString();
+        }
+
+        if ($invoice->invoice_date instanceof Carbon) {
+            return $invoice->invoice_date->toDateString();
+        }
+
+        try {
+            return Carbon::parse((string) $invoice->invoice_date)->toDateString();
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     public static function formatEuro(float $value): string

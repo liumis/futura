@@ -128,6 +128,21 @@ class ContactResource extends Resource
                     ->selectablePlaceholder(true)
                     ->toggleable(),
 
+                Tables\Columns\TextInputColumn::make('payment_term')
+                    ->label('Payment term')
+                    ->type('number')
+                    ->rules(['nullable', 'integer', 'min:0'])
+                    ->placeholder((string) Invoice::DEFAULT_PAYMENT_TERM_DAYS)
+                    ->width('6rem')
+                    ->grow(false)
+                    ->extraAttributes([
+                        'min' => '0',
+                        'step' => '1',
+                        'title' => 'Days until payment is due (default '.Invoice::DEFAULT_PAYMENT_TERM_DAYS.')',
+                    ])
+                    ->alignEnd()
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('invoices_count')
                     ->counts('invoices')
                     ->label('Invoices')
@@ -152,7 +167,9 @@ class ContactResource extends Resource
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->recordActions([
-                EditAction::make(),
+                EditAction::make()
+                    ->label('Full edit')
+                    ->url(fn (Contact $record): string => static::getUrl('edit', ['record' => $record])),
             ])
             ->toolbarActions([
                 BulkAction::make('mergeContacts')

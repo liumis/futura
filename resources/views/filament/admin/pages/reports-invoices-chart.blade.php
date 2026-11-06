@@ -5,7 +5,7 @@
         <div class="fi-report-filters__header">
             <h2 class="fi-report-filters__title">Filters</h2>
             <p class="fi-report-filters__description">
-                Invoice totals (EUR) by payment status. Filter by date range, late days, counterpart, and country.
+                Invoice totals (EUR) by payment status. Group by invoice date or payment due date (invoice date + term) to plan when cash goes out.
             </p>
         </div>
         <div class="fi-report-filters__body">
@@ -15,18 +15,20 @@
 
     @include('filament.admin.components.report-stat-summary', [
         'title' => $report['title'],
-        'description' => $report['period_label'].' · '.$report['status_label'].' · '.$report['late_days_label'].' · '.$report['contact_label'].' · '.$report['country_label'],
-        'footer' => $report['invoice_count'].' invoice(s) across '.count($report['days']).' day(s). Outstanding still due: '.\App\Services\InvoicesChartReportBuilder::formatEuro($report['outstanding_total']).'.',
-        'stats' => $report['invoice_count'] === 0 ? [] : [
+        'description' => $report['period_label'].' · '.$report['date_basis_label'].' · '.$report['status_label'].' · '.$report['late_days_label'].' · '.$report['contact_label'].' · '.$report['country_label'],
+        'footer' => $report['invoice_count'].' invoice(s) across '.count($report['days']).' day(s). Outstanding still due: '.\App\Services\InvoicesChartReportBuilder::formatEuro($report['outstanding_total']).(($report['date_basis'] ?? '') === \App\Services\InvoicesChartReportBuilder::DATE_BASIS_DUE ? ' · To pay in period: '.\App\Services\InvoicesChartReportBuilder::formatEuro($report['due_to_pay_total'] ?? 0) : '').'.',
+        'stats' => $report['invoice_count'] === 0 ? [] : array_values(array_filter([
             ['label' => 'Paid', 'value' => \App\Services\InvoicesChartReportBuilder::formatEuro($report['paid_total']).' ('.$report['paid_count'].')'],
             ['label' => 'Partly paid', 'value' => \App\Services\InvoicesChartReportBuilder::formatEuro($report['partly_paid_total']).' ('.$report['partly_paid_count'].')'],
             ['label' => 'Unpaid', 'value' => \App\Services\InvoicesChartReportBuilder::formatEuro($report['unpaid_total']).' ('.$report['unpaid_count'].')'],
-            [
-                'label' => 'Total',
-                'value' => \App\Services\InvoicesChartReportBuilder::formatEuro($report['grand_total']),
-                'emphasis' => true,
-            ],
-        ],
+            ($report['date_basis'] ?? '') === \App\Services\InvoicesChartReportBuilder::DATE_BASIS_DUE
+                ? ['label' => 'Still to pay', 'value' => \App\Services\InvoicesChartReportBuilder::formatEuro($report['due_to_pay_total'] ?? 0), 'emphasis' => true]
+                : [
+                    'label' => 'Total',
+                    'value' => \App\Services\InvoicesChartReportBuilder::formatEuro($report['grand_total']),
+                    'emphasis' => true,
+                ],
+        ])),
         'class' => 'mt-6',
     ])
 
@@ -58,10 +60,10 @@
                 <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
                     <div class="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/40">
                         <h3 class="text-sm font-semibold tracking-tight text-gray-950 dark:text-white">
-                            By day
+                            {{ ($report['date_basis'] ?? '') === \App\Services\InvoicesChartReportBuilder::DATE_BASIS_DUE ? 'By payment due day' : 'By invoice day' }}
                         </h3>
                         <p class="text-xs text-gray-500 dark:text-gray-400">
-                            Stacked totals (€)
+                            {{ ($report['date_basis'] ?? '') === \App\Services\InvoicesChartReportBuilder::DATE_BASIS_DUE ? 'Cash to pay (€)' : 'Stacked totals (€)' }}
                         </p>
                     </div>
                     <div class="p-4">
@@ -72,6 +74,82 @@
                 </section>
             </div>
         @endif
+    </div>
+
+    <div class="invoice-table-wrap mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <table class="invoice-table invoices-chart-table min-w-full table-auto text-sm">
+            <thead class="bg-gray-50 dark:bg-gray-800">
+                <tr>
+                    <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Number</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Invoice date</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Company</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Due date</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Status</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-200">Sum</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-200">Still to pay</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200"></th>
+                </tr>
+            </thead>
+            <tbody class="bg-white dark:bg-gray-900">
+                @forelse (($report['rows'] ?? []) as $row)
+                    <tr @class([
+                        'even:bg-gray-50 dark:even:bg-gray-800/40',
+                    ])>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-200">
+                            @php($url = $this->rowUrl($row))
+                            @if (filled($url))
+                                <a href="{{ $url }}" class="font-medium text-primary-600 hover:underline dark:text-primary-400">
+                                    {{ $row['number'] }}
+                                </a>
+                            @else
+                                <span class="font-medium text-gray-900 dark:text-gray-100">{{ $row['number'] }}</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-gray-700 dark:text-gray-200">
+                            {{ \App\Services\InvoicesChartReportBuilder::formatDate($row['invoice_date'] ?? null) }}
+                        </td>
+                        <td class="px-4 py-3 text-gray-700 dark:text-gray-200">{{ $row['company'] }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-gray-700 dark:text-gray-200">
+                            {{ \App\Services\InvoicesChartReportBuilder::formatDate($row['due_date'] ?? null) }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-gray-700 dark:text-gray-200">
+                            {{ $row['status_label'] }}
+                        </td>
+                        <td class="px-4 py-3 text-right tabular-nums font-medium text-gray-900 dark:text-gray-100">
+                            {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) ($row['amount'] ?? 0)) }}
+                        </td>
+                        <td class="px-4 py-3 text-right tabular-nums font-medium text-gray-900 dark:text-gray-100">
+                            {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) ($row['outstanding'] ?? 0)) }}
+                        </td>
+                        <td class="px-4 py-3">
+                            @if ($row['late'] ?? false)
+                                <span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-red-600 text-white">Late</span>
+                            @endif
+                        </td>
+                    </tr>
+                @empty
+                    <tr>
+                        <td colspan="8" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                            No invoices for these filters.
+                        </td>
+                    </tr>
+                @endforelse
+            </tbody>
+            @if (($report['rows'] ?? []) !== [])
+                <tfoot class="bg-gray-50 dark:bg-gray-800">
+                    <tr>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white" colspan="5">Total</th>
+                        <th class="px-4 py-3 text-right tabular-nums font-semibold text-gray-900 dark:text-white">
+                            {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) $report['grand_total']) }}
+                        </th>
+                        <th class="px-4 py-3 text-right tabular-nums font-semibold text-gray-900 dark:text-white">
+                            {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) ($report['due_to_pay_total'] ?? $report['outstanding_total'])) }}
+                        </th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            @endif
+        </table>
     </div>
 
     @assets
@@ -176,40 +254,64 @@
             }
 
             const days = Array.isArray(report.days) ? report.days : [];
+            const byDueDate = (report.date_basis || '') === 'due_date';
             if (dayCanvas && days.length > 0) {
                 invoicesDayChart = new Chart(dayCanvas.getContext('2d'), {
                     type: 'bar',
                     data: {
                         labels: days.map((day) => day.label ?? day.day),
-                        datasets: [
-                            {
-                                label: 'Paid',
-                                data: days.map((day) => Number(day.paid ?? 0)),
-                                backgroundColor: 'rgba(34, 34, 34, 0.9)',
-                                borderColor: 'rgba(34, 34, 34, 1)',
-                                borderWidth: 1,
-                            },
-                            {
-                                label: 'Partly paid',
-                                data: days.map((day) => Number(day.partly_paid ?? 0)),
-                                backgroundColor: 'rgba(235, 128, 39, 0.9)',
-                                borderColor: 'rgba(235, 128, 39, 1)',
-                                borderWidth: 1,
-                            },
-                            {
-                                label: 'Unpaid',
-                                data: days.map((day) => Number(day.unpaid ?? 0)),
-                                backgroundColor: 'rgba(201, 201, 201, 0.95)',
-                                borderColor: 'rgba(201, 201, 201, 1)',
-                                borderWidth: 1,
-                            },
-                        ],
+                        datasets: byDueDate
+                            ? [
+                                {
+                                    label: 'Still to pay',
+                                    data: days.map((day) => Number(day.due_to_pay ?? 0)),
+                                    backgroundColor: 'rgba(235, 128, 39, 0.9)',
+                                    borderColor: 'rgba(235, 128, 39, 1)',
+                                    borderWidth: 1,
+                                },
+                                {
+                                    label: 'Already paid (due that day)',
+                                    data: days.map((day) => Number(day.paid ?? 0)),
+                                    backgroundColor: 'rgba(34, 34, 34, 0.55)',
+                                    borderColor: 'rgba(34, 34, 34, 1)',
+                                    borderWidth: 1,
+                                },
+                            ]
+                            : [
+                                {
+                                    label: 'Paid',
+                                    data: days.map((day) => Number(day.paid ?? 0)),
+                                    backgroundColor: 'rgba(34, 34, 34, 0.9)',
+                                    borderColor: 'rgba(34, 34, 34, 1)',
+                                    borderWidth: 1,
+                                },
+                                {
+                                    label: 'Partly paid',
+                                    data: days.map((day) => Number(day.partly_paid ?? 0)),
+                                    backgroundColor: 'rgba(235, 128, 39, 0.9)',
+                                    borderColor: 'rgba(235, 128, 39, 1)',
+                                    borderWidth: 1,
+                                },
+                                {
+                                    label: 'Unpaid',
+                                    data: days.map((day) => Number(day.unpaid ?? 0)),
+                                    backgroundColor: 'rgba(201, 201, 201, 0.95)',
+                                    borderColor: 'rgba(201, 201, 201, 1)',
+                                    borderWidth: 1,
+                                },
+                            ],
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
                         scales: {
-                            x: { stacked: true, title: { display: true, text: 'Days' } },
+                            x: {
+                                stacked: true,
+                                title: {
+                                    display: true,
+                                    text: byDueDate ? 'Payment due date' : 'Invoice date',
+                                },
+                            },
                             y: {
                                 stacked: true,
                                 beginAtZero: true,

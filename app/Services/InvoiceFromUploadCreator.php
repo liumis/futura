@@ -95,39 +95,20 @@ class InvoiceFromUploadCreator
         if ($contactId === null && $providerName !== '') {
             try {
                 $contactId = $this->createOrReuseContact($ocr, $providerName);
-            } catch (Throwable $exception) {
-                if ($isComplete) {
-                    return [
-                        'status' => 'failed',
-                        'invoice' => null,
-                        'message' => $filename.': could not create contact — '.$exception->getMessage(),
-                    ];
-                }
+            } catch (Throwable) {
+                // Keep as draft without contact — user can pick/create on review.
             }
         }
 
-        if ($isComplete && $contactId === null) {
-            return [
-                'status' => 'draft',
-                'invoice' => $this->storeInvoice(
-                    ocr: $ocr,
-                    contactId: null,
-                    isDraft: true,
-                    binary: $binary,
-                    mime: $mime,
-                    relativePath: $relativePath,
-                    filename: $filename,
-                    uploadedBy: $uploadedBy,
-                    note: 'OCR looked complete but no provider/contact could be resolved.',
-                ),
-                'message' => $filename.': saved as draft (provider missing).',
-            ];
-        }
-
-        $isDraft = ! $isComplete || $contactId === null;
-        if (isset($ocrError) && $ocr === []) {
-            $isDraft = true;
-        }
+        // Bulk / OCR uploads always stay draft until someone opens and confirms.
+        $isDraft = true;
+        $note = match (true) {
+            isset($ocrError) && $ocr === [] => 'OCR failed: '.$ocrError,
+            $contactId === null && $providerName !== '' => 'Review needed — provider not matched to a contact.',
+            $contactId === null => 'Review needed — provider/contact missing.',
+            ! $isComplete => 'Review needed — OCR/AI fields incomplete.',
+            default => 'OCR/AI prefilled — review and confirm to publish.',
+        };
 
         try {
             $invoice = $this->storeInvoice(
@@ -139,7 +120,7 @@ class InvoiceFromUploadCreator
                 relativePath: $relativePath,
                 filename: $filename,
                 uploadedBy: $uploadedBy,
-                note: isset($ocrError) ? 'OCR failed: '.$ocrError : ($isDraft ? 'Incomplete OCR — finish fields and save.' : null),
+                note: $note,
             );
         } catch (UniqueConstraintViolationException) {
             $existing = Invoice::findByNumber($invoiceNumber);
@@ -157,21 +138,14 @@ class InvoiceFromUploadCreator
             ];
         }
 
-        if ($contactId !== null && ! $isDraft) {
-            Contact::query()->find($contactId)?->rememberDefaultCategoryFromInvoice($invoice);
-        }
-
         $dateHint = filled($invoice->invoice_date)
-            ? ' Invoice date '.$invoice->invoice_date->format('Y-m-d').' — open that month or All months on Invoices.'
+            ? ' Invoice date '.$invoice->invoice_date->format('Y-m-d').'.'
             : '';
 
         return [
-            'status' => $isDraft ? 'draft' : 'created',
+            'status' => 'draft',
             'invoice' => $invoice,
-            'message' => ($isDraft
-                ? $filename.': saved as draft (incomplete scan).'
-                : $filename.': invoice created.')
-                .$dateHint,
+            'message' => $filename.': saved as draft — open, check, then Confirm & publish.'.$dateHint,
         ];
     }
 
@@ -212,6 +186,10 @@ class InvoiceFromUploadCreator
      */
     private function createOrReuseContact(array $ocr, string $name): int
     {
+        if ($this->looksLikeBogusProviderName($name)) {
+            throw new RuntimeException('OCR provider name looks invalid: '.$name);
+        }
+
         $existing = ContactMerger::matchExisting($name);
         if ($existing !== null) {
             return (int) $existing->getKey();
@@ -235,6 +213,36 @@ class InvoiceFromUploadCreator
         ]);
 
         return (int) $contact->getKey();
+    }
+
+    private function looksLikeBogusProviderName(string $name): bool
+    {
+        $name = trim($name);
+        if ($name === '' || mb_strlen($name) < 3) {
+            return true;
+        }
+
+        $lower = Str::lower($name);
+
+        if (preg_match('/^\d{1,2}[.\-\/]\d{1,2}[.\-\/](?:\d{2}|\d{4})$/', $name) === 1) {
+            return true;
+        }
+
+        if (preg_match('/^\d{4}[.\-\/]\d{1,2}[.\-\/]\d{1,2}$/', $name) === 1) {
+            return true;
+        }
+
+        if (preg_match('/^(january|february|march|april|may|june|july|august|september|october|november|december)\b/i', $name) === 1) {
+            return true;
+        }
+
+        return Str::contains($lower, [
+            'payment term',
+            'bill to',
+            'invoice date',
+            'sąskaitos data',
+            'saskaitos data',
+        ]);
     }
 
     /**
@@ -293,6 +301,8 @@ class InvoiceFromUploadCreator
             throw new RuntimeException('No user available for uploaded_by.');
         }
 
+        $contact = $contactId !== null ? Contact::query()->find($contactId) : null;
+
         $invoice = Invoice::query()->create([
             'contact_id' => $contactId,
             'invoice_number' => filled($ocr['invoice_number'] ?? null) ? trim((string) $ocr['invoice_number']) : null,
@@ -301,7 +311,7 @@ class InvoiceFromUploadCreator
             'vat' => $vat,
             'sum_inc_vat' => $sumInc,
             'currency' => Currency::normalize(isset($ocr['currency']) && is_string($ocr['currency']) ? $ocr['currency'] : null),
-            'payment_term' => Invoice::DEFAULT_PAYMENT_TERM_DAYS,
+            'payment_term' => Invoice::paymentTermFromContact($contact),
             'paid_amount' => 0,
             'paid' => false,
             'private_provider' => false,

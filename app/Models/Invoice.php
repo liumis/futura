@@ -1025,13 +1025,38 @@ class Invoice extends Model
         return static::query()->where('invoice_number', $number)->first();
     }
 
+    /**
+     * Payment term days used for due-date math (falls back to company default).
+     */
+    public function effectivePaymentTermDays(): int
+    {
+        if ($this->payment_term === null || $this->payment_term === '') {
+            return self::DEFAULT_PAYMENT_TERM_DAYS;
+        }
+
+        return max(0, (int) $this->payment_term);
+    }
+
     public function dueDate(): ?Carbon
     {
-        if ($this->invoice_date === null || $this->payment_term === null) {
+        if ($this->invoice_date === null) {
             return null;
         }
 
-        return $this->invoice_date->copy()->addDays(max(0, (int) $this->payment_term));
+        return $this->invoice_date->copy()->addDays($this->effectivePaymentTermDays());
+    }
+
+    /**
+     * Signed day count until due date (negative = overdue). Null when no invoice date.
+     */
+    public function daysUntilDue(): ?int
+    {
+        $due = $this->dueDate();
+        if ($due === null) {
+            return null;
+        }
+
+        return (int) now()->startOfDay()->diffInDays($due->copy()->startOfDay(), false);
     }
 
     public function outstandingAmount(): float
@@ -1382,6 +1407,18 @@ class Invoice extends Model
         }
 
         return self::DEFAULT_PAYMENT_TERM_DAYS;
+    }
+
+    /**
+     * Payment term for purchase invoices linked to a provider contact.
+     */
+    public static function paymentTermFromContact(?Contact $contact): int
+    {
+        if ($contact === null) {
+            return self::DEFAULT_PAYMENT_TERM_DAYS;
+        }
+
+        return $contact->resolvedPaymentTermDays();
     }
 
     /**

@@ -587,6 +587,18 @@ class InvoiceOcrService
             return $this->extractSratcMokestinisPranesimas($text);
         }
 
+        if ($providerKey === 'telia') {
+            return $this->extractTeliaInvoice($text);
+        }
+
+        if ($providerKey === 'tele2') {
+            return $this->extractTelecomLtInvoice($text, 'Tele2', 'Tele2');
+        }
+
+        if ($providerKey === 'bite') {
+            return $this->extractTelecomLtInvoice($text, 'Bite', 'Bitė');
+        }
+
         if ($providerKey === null) {
             return [];
         }
@@ -690,6 +702,83 @@ class InvoiceOcrService
             'sum_without_vat' => $subtotal ?? $total,
             'vat' => $vat,
             'sum_inc_vat' => $total ?? $subtotal,
+        ], static fn ($value): bool => $value !== null && $value !== '');
+    }
+
+    /**
+     * Telia Lietuva invoices (LT PVM labels + English billing variants).
+     *
+     * @return array<string, string|float|null>
+     */
+    private function extractTeliaInvoice(string $text): array
+    {
+        $parsed = $this->extractTelecomLtInvoice($text, 'Telia Lietuva, AB', 'Telia');
+        $parsed['provider_company_name'] = $parsed['provider_company_name']
+            ?? $this->extractByRegex($text, '/\b(Telia(?:[^\S\n]+[A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]+){0,3})\b/u')
+            ?? 'Telia Lietuva, AB';
+
+        return array_filter($parsed, static fn ($value): bool => $value !== null && $value !== '');
+    }
+
+    /**
+     * Lithuanian telecom-style invoices (Telia / Tele2 / Bite): LT totals + EN fallbacks.
+     *
+     * @return array<string, string|float|null>
+     */
+    private function extractTelecomLtInvoice(string $text, string $fallbackName, string $brand): array
+    {
+        $net = $this->extractAmount($text, '/suma\s+be\s+pvm[^\d]{0,40}([\d\s.,]+)/iu')
+            ?? $this->extractAmount($text, '/i[šs]\s+viso(?:\s+eur)?\s+be\s+pvm[^\d]{0,40}([\d\s.,]+)/iu')
+            ?? $this->extractAmount($text, '/\b(?:subtotal|net\s*(?:amount|total)|sum\s*without\s*vat)\b[^\d]{0,40}([\d\s.,]+)/iu');
+
+        $total = $this->extractAmount($text, '/mok[eė]tina\s+suma[^\d]{0,40}([\d\s.,]+)/iu')
+            ?? $this->extractAmount($text, '/(?:bendra\s+suma|i[šs]\s+viso)(?:\s+eur)?[^\d]{0,40}([\d\s.,]+)/iu')
+            ?? $this->extractAmount($text, '/\b(?:total|amount\s*due|grand\s*total|payable)\b[^\d]{0,40}([\d\s.,]+)/iu');
+
+        $vat = $this->extractAmount($text, '/(?:pvm\s*suma|pvm\s+suma)[^\d]{0,40}([\d\s.,]+)/iu')
+            ?? $this->extractAmount($text, '/\d+\s*%\s*(?:pvm|vat)[^\d]{0,40}([\d\s.,]+)/iu')
+            ?? $this->extractAmount($text, '/\b(?:vat|pvm)\b[^\d]{0,40}([\d\s.,]+)/iu');
+
+        if ($vat !== null && $total !== null && $vat > $total + 0.009) {
+            $vat = null;
+        }
+        if ($vat === null && $net !== null && $total !== null) {
+            $vat = round(max(0, $total - $net), 2);
+        }
+        if ($total === null && $net !== null && $vat !== null) {
+            $total = round($net + $vat, 2);
+        }
+        if ($net === null && $total !== null && $vat !== null) {
+            $net = round(max(0, $total - $vat), 2);
+        }
+
+        $invoiceDate = $this->normalizeDate($this->extractByRegex(
+            $text,
+            '/(?:s[aą]skaitos\s+data|i[šs]ra[šs]ymo\s+data|invoice\s*date|date)[:\s\-]*([0-3]?\d[\/\.-][01]?\d[\/\.-](?:20)?\d{2}|\d{4}[\/\.-][01]?\d[\/\.-][0-3]?\d)/iu',
+            1,
+        ))
+            ?? $this->normalizeDate($this->extractByRegex($text, '/\b(\d{4}[\/\.-][01]?\d[\/\.-][0-3]?\d)\b/', 1));
+
+        $invoiceNumber = $this->extractInvoiceNumber($text)
+            ?? $this->extractByRegex($text, '/(?:s[aą]skaitos\s+nr\.?|invoice\s*(?:no\.?|number)|nr\.?)[:\s]*([A-Z0-9][A-Z0-9\/\-]{3,40})/iu', 1);
+
+        $brandName = $this->extractByRegex(
+            $text,
+            '/\b('.preg_quote($brand, '/').'(?:[^\S\n]+[A-Za-zĄČĘĖĮŠŲŪŽąčęėįšųūž]+){0,3})\b/iu',
+        );
+
+        return array_filter([
+            'provider_company_name' => $brandName ?: $fallbackName,
+            'provider_company_email' => $this->extractByRegex($text, '/[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}/i'),
+            'provider_company_vat' => $this->extractSellerVat($text)
+                ?? $this->extractByRegex($text, '/\b(?:VAT|PVM)(?:\s*mok[eė]tojo\s+kodas)?[:\s#\-]*([A-Z0-9\-]+)/iu', 1),
+            'provider_company_id' => $this->extractByRegex($text, '/(?:[įi]mon[eė]s\s+kodas|company\s*(?:code|id))[:\s]*([0-9]{7,11})/iu', 1),
+            'invoice_number' => $invoiceNumber,
+            'invoice_date' => $invoiceDate,
+            'sum_without_vat' => $net,
+            'vat' => $vat,
+            'sum_inc_vat' => $total,
+            'currency' => $this->extractCurrency($text) ?? 'EUR',
         ], static fn ($value): bool => $value !== null && $value !== '');
     }
 

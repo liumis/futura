@@ -28,7 +28,7 @@ class InvoiceUploadFinishedNotification extends Notification
     {
         $title = match ($this->status) {
             'created' => 'Invoice uploaded',
-            'draft' => 'Invoice saved as draft',
+            'draft' => 'Invoice ready for review',
             'duplicate' => 'Duplicate invoice skipped',
             default => 'Invoice upload failed',
         };
@@ -54,7 +54,7 @@ class InvoiceUploadFinishedNotification extends Notification
                 default => 'danger',
             },
             'url' => $url,
-            'link_label' => $this->invoiceId !== null ? 'Open invoice' : 'Open invoices',
+            'link_label' => $this->invoiceId !== null ? 'Review invoice' : 'Open invoices',
             'filename' => $this->filename,
             'invoice_id' => $this->invoiceId,
         ];

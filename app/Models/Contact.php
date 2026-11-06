@@ -23,6 +23,7 @@ class Contact extends Model
         'contact_phone',
         'private_provider',
         'default_finance_type',
+        'payment_term',
         'bank_account',
         'bank_bic',
     ];
@@ -34,7 +35,20 @@ class Contact extends Model
     {
         return [
             'private_provider' => 'boolean',
+            'payment_term' => 'integer',
         ];
+    }
+
+    /**
+     * Days until payment is due for invoices of this contact.
+     */
+    public function resolvedPaymentTermDays(): int
+    {
+        if ($this->payment_term === null) {
+            return Invoice::DEFAULT_PAYMENT_TERM_DAYS;
+        }
+
+        return max(0, (int) $this->payment_term);
     }
 
     public function invoices(): HasMany

@@ -1,16 +1,208 @@
 <x-filament-panels::page>
     <div class="invoices-page">
     <div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-        <form wire:submit="importBulkUploads" class="space-y-3">
+        <form
+            wire:submit="importBulkUploads"
+            class="space-y-3"
+            x-data="invoiceBulkProcess"
+            x-on:submit="importing = true"
+            x-on:bulk-import-finished="importing = false; $nextTick(() => syncFromPond())"
+            x-on:livewire-upload-start.window="syncFromPond()"
+            x-on:livewire-upload-finish.window="syncFromPond()"
+            x-on:livewire-upload-error.window="syncFromPond()"
+            x-on:livewire-upload-cancel.window="syncFromPond()"
+        >
             {{ $this->bulkUploadForm }}
 
-            <div class="flex justify-end">
-                <x-filament::button type="submit" size="lg" icon="heroicon-o-arrow-up-tray">
-                    Upload invoices
-                </x-filament::button>
+            @if (filled($bulkImportFlash))
+                <div
+                    class="flex flex-col gap-3 rounded-lg border border-success-300 bg-success-50 px-3 py-3 text-sm text-success-800 dark:border-success-700 dark:bg-success-950/40 dark:text-success-200 sm:flex-row sm:items-center sm:justify-between"
+                    role="status"
+                >
+                    <p class="min-w-0 flex-1">{{ $bulkImportFlash }}</p>
+                    <div class="flex shrink-0 flex-wrap items-center gap-2">
+                        <x-filament::button
+                            type="button"
+                            size="sm"
+                            color="success"
+                            icon="heroicon-o-clipboard-document-check"
+                            wire:click="showReviewQueue"
+                        >
+                            Review drafts
+                        </x-filament::button>
+                        <x-filament::button
+                            type="button"
+                            size="sm"
+                            color="gray"
+                            icon="heroicon-o-arrow-path"
+                            wire:click="refreshList"
+                            wire:loading.attr="disabled"
+                            wire:target="refreshList"
+                        >
+                            Refresh OCR progress
+                        </x-filament::button>
+                    </div>
+                </div>
+            @endif
+
+            <div class="flex flex-col items-stretch gap-3">
+                <p class="text-sm text-gray-500 dark:text-gray-400" x-text="statusText"></p>
+                <button
+                    type="submit"
+                    wire:loading.attr="disabled"
+                    wire:target="importBulkUploads"
+                    x-bind:disabled="! canProcess"
+                    x-bind:class="canProcess ? 'is-ready' : 'is-blocked'"
+                    class="invoice-bulk-process-btn inline-flex w-full flex-row items-center justify-center gap-3 rounded-xl bg-primary-600 text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-400/60"
+                >
+                    <span
+                        x-show="importing"
+                        class="inline-flex flex-row items-center justify-center gap-3"
+                        style="display: none;"
+                    >
+                        <x-filament::loading-indicator class="h-7 w-7 shrink-0" />
+                        <span>Starting import…</span>
+                    </span>
+                    <span
+                        x-show="! importing && uploading"
+                        class="inline-flex flex-row items-center justify-center gap-3"
+                        style="display: none;"
+                    >
+                        <x-filament::loading-indicator class="h-7 w-7 shrink-0" />
+                        <span>Uploading files…</span>
+                    </span>
+                    <span
+                        x-show="! importing && ! uploading"
+                        class="inline-flex flex-row items-center justify-center gap-3"
+                    >
+                        <x-filament::icon icon="heroicon-o-play" class="h-8 w-8 shrink-0" />
+                        <span x-text="processLabel">2. Process files</span>
+                    </span>
+                </button>
             </div>
         </form>
     </div>
+
+    @script
+    <script>
+        Alpine.data('invoiceBulkProcess', () => {
+            const busyStatuses = new Set([1, 3, 4, 8]) // INIT, PROCESSING_QUEUED, PROCESSING, LOADING
+
+            return {
+                uploading: false,
+                importing: false,
+                readyCount: 0,
+                totalCount: 0,
+                _timer: null,
+
+                get canProcess() {
+                    return ! this.uploading && ! this.importing && this.readyCount > 0
+                },
+
+                get processLabel() {
+                    if (this.importing) {
+                        return 'Starting import…'
+                    }
+
+                    if (this.readyCount < 1) {
+                        return '2. Process files'
+                    }
+
+                    return this.readyCount === 1
+                        ? '2. Process 1 file'
+                        : `2. Process ${this.readyCount} files`
+                },
+
+                get statusText() {
+                    if (this.importing) {
+                        return 'Queuing OCR/AI import — please wait.'
+                    }
+
+                    if (this.uploading) {
+                        return 'Wait — files are still uploading. Process unlocks when they turn green.'
+                    }
+
+                    if (this.readyCount > 0) {
+                        return `${this.readyCount} file(s) ready — click Process to create draft invoices.`
+                    }
+
+                    return 'Step 2: after files show green, click Process.'
+                },
+
+                init() {
+                    this.syncFromPond()
+
+                    const events = [
+                        'FilePond:init',
+                        'FilePond:addfile',
+                        'FilePond:addfilestart',
+                        'FilePond:processfilestart',
+                        'FilePond:processfile',
+                        'FilePond:processfileprogress',
+                        'FilePond:processfileabort',
+                        'FilePond:processfilerevert',
+                        'FilePond:removefile',
+                        'FilePond:updatefiles',
+                        'FilePond:error',
+                    ]
+
+                    events.forEach((name) => {
+                        this.$el.addEventListener(name, () => {
+                            this.$nextTick(() => this.syncFromPond())
+                        })
+                    })
+
+                    this._timer = setInterval(() => this.syncFromPond(), 400)
+                },
+
+                destroy() {
+                    if (this._timer) {
+                        clearInterval(this._timer)
+                    }
+                },
+
+                syncFromPond() {
+                    const FilePond = window.FilePond
+                    if (! FilePond) {
+                        return
+                    }
+
+                    const roots = this.$el.querySelectorAll('.filepond--root')
+                    let uploading = false
+                    let readyCount = 0
+                    let totalCount = 0
+
+                    roots.forEach((root) => {
+                        const pond = FilePond.find(root)
+                        if (! pond) {
+                            return
+                        }
+
+                        pond.getFiles().forEach((file) => {
+                            totalCount++
+                            const status = file.status
+
+                            if (busyStatuses.has(status)) {
+                                uploading = true
+
+                                return
+                            }
+
+                            // IDLE (2) or PROCESSING_COMPLETE (5)
+                            if (status === 2 || status === 5) {
+                                readyCount++
+                            }
+                        })
+                    })
+
+                    this.uploading = uploading
+                    this.readyCount = readyCount
+                    this.totalCount = totalCount
+                },
+            }
+        })
+    </script>
+    @endscript
 
     <div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
         {{ $this->filtersForm }}
@@ -60,7 +252,11 @@
         </div>
     </div>
 
-    <div class="invoice-table-wrap invoices-table-wrap rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <div
+        id="invoice-review-queue"
+        class="invoice-table-wrap invoices-table-wrap scroll-mt-4 rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+        x-on:scroll-to-review-queue.window="$el.scrollIntoView({ behavior: 'smooth', block: 'start' })"
+    >
         @php
             $invoices = $this->getInvoices();
             $categoryGroups = $this->financeCategorySelectOptions();
@@ -77,6 +273,7 @@
                 <col class="inv-col-buyer" />
                 <col class="inv-col-number" />
                 <col class="inv-col-date" />
+                <col class="inv-col-term" />
                 <col class="inv-col-sum" />
                 <col class="inv-col-sum" />
                 <col class="inv-col-paid" />
@@ -143,6 +340,9 @@
                                 <x-heroicon-m-chevron-up-down class="h-3.5 w-3.5 text-gray-400" />
                             @endif
                         </button>
+                    </th>
+                    <th class="inv-th inv-th--term whitespace-nowrap" title="Due / payment date from invoice date + term days. Double-click to edit term (also updates supplier default).">
+                        Payment date
                     </th>
                     <th class="inv-th inv-th--num">
                         <button
@@ -229,7 +429,7 @@
             <tbody class="bg-white dark:bg-gray-900">
                 @if ($invoices->isEmpty())
                     <tr>
-                        <td colspan="12" class="px-4 py-8 text-center text-gray-600 dark:text-gray-300">
+                        <td colspan="13" class="px-4 py-8 text-center text-gray-600 dark:text-gray-300">
                             @php
                                 $monthLabel = $this->selectedMonthLabel();
                             @endphp
@@ -310,9 +510,9 @@
                             @if ($invoice->isDraft())
                                 <span
                                     class="inline-flex items-center gap-1 rounded-md bg-amber-50 px-1.5 py-0.5 text-[11px] font-medium text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
-                                    title="Incomplete OCR — open and finish fields"
+                                    title="Waiting for review — open, check OCR/AI fields, then Confirm & publish"
                                 >
-                                    Draft
+                                    Review
                                 </span>
                             @endif
                             <div
@@ -382,7 +582,146 @@
                             </div>
                         </td>
                         <td class="inv-td inv-td--date">
-                            {{ optional($invoice->invoice_date)->format('Y-m-d') ?: '—' }}
+                            <div class="inv-date-stack">
+                                <span class="inv-date-stack__inv tabular-nums" title="Invoice date">
+                                    {{ optional($invoice->invoice_date)->format('Y-m-d') ?: '—' }}
+                                </span>
+                            </div>
+                        </td>
+                        <td class="inv-td inv-td--term">
+                            @php
+                                $termDays = $invoice->effectivePaymentTermDays();
+                                $daysLeft = $invoice->daysUntilDue();
+                                $dueLabel = optional($invoice->dueDate())?->format('Y-m-d');
+                                $isPaid = $invoice->isFullyPaid();
+                                if ($isPaid) {
+                                    $remainingText = 'paid';
+                                    $remainingClass = 'text-gray-400 dark:text-gray-500';
+                                } elseif ($daysLeft === null) {
+                                    $remainingText = '—';
+                                    $remainingClass = 'text-gray-400';
+                                } elseif ($daysLeft < 0) {
+                                    $remainingText = abs($daysLeft).' overdue';
+                                    $remainingClass = 'text-danger-600 dark:text-danger-400 font-medium';
+                                } elseif ($daysLeft === 0) {
+                                    $remainingText = 'due today';
+                                    $remainingClass = 'text-amber-600 dark:text-amber-400 font-medium';
+                                } elseif ($daysLeft <= 7) {
+                                    $remainingText = $daysLeft.' left';
+                                    $remainingClass = 'text-amber-600 dark:text-amber-400 font-medium';
+                                } else {
+                                    $remainingText = $daysLeft.' left';
+                                    $remainingClass = 'text-gray-500 dark:text-gray-400';
+                                }
+                            @endphp
+                            <div
+                                wire:key="inv-term-{{ $invoice->getKey() }}"
+                                class="bs-inline-edit"
+                                x-data="{
+                                    editing: false,
+                                    saving: false,
+                                    term: {{ (int) $termDays }},
+                                    daysLeft: {{ $daysLeft === null ? 'null' : (int) $daysLeft }},
+                                    dueDate: @js($dueLabel),
+                                    paid: {{ $isPaid ? 'true' : 'false' }},
+                                    remainingText: @js($remainingText),
+                                    remainingClass: @js($remainingClass),
+                                    draft: '',
+                                    start() {
+                                        this.draft = String(this.term ?? '');
+                                        this.editing = true;
+                                        this.$nextTick(() => this.$refs.input?.focus());
+                                    },
+                                    cancel() {
+                                        this.editing = false;
+                                        this.saving = false;
+                                    },
+                                    refreshRemaining() {
+                                        if (this.paid) {
+                                            this.remainingText = 'paid';
+                                            this.remainingClass = 'text-gray-400 dark:text-gray-500';
+                                            return;
+                                        }
+                                        if (this.daysLeft === null) {
+                                            this.remainingText = '—';
+                                            this.remainingClass = 'text-gray-400';
+                                            return;
+                                        }
+                                        if (this.daysLeft < 0) {
+                                            this.remainingText = Math.abs(this.daysLeft) + ' overdue';
+                                            this.remainingClass = 'text-danger-600 dark:text-danger-400 font-medium';
+                                            return;
+                                        }
+                                        if (this.daysLeft === 0) {
+                                            this.remainingText = 'due today';
+                                            this.remainingClass = 'text-amber-600 dark:text-amber-400 font-medium';
+                                            return;
+                                        }
+                                        this.remainingText = this.daysLeft + ' left';
+                                        this.remainingClass = this.daysLeft <= 7
+                                            ? 'text-amber-600 dark:text-amber-400 font-medium'
+                                            : 'text-gray-500 dark:text-gray-400';
+                                    },
+                                    async save() {
+                                        const raw = (this.draft ?? '').trim();
+                                        const next = raw === '' ? null : Number(raw);
+                                        if (raw !== '' && (! Number.isFinite(next) || next < 0 || ! Number.isInteger(next))) {
+                                            return;
+                                        }
+                                        if (next !== null && next === this.term) {
+                                            this.editing = false;
+                                            return;
+                                        }
+                                        this.saving = true;
+                                        try {
+                                            const saved = await $wire.updateInvoicePaymentTerm({{ $invoice->getKey() }}, next);
+                                            if (! saved) {
+                                                return;
+                                            }
+                                            this.term = saved.payment_term;
+                                            this.daysLeft = saved.days_until_due;
+                                            this.dueDate = saved.due_date;
+                                            this.refreshRemaining();
+                                            this.editing = false;
+                                        } finally {
+                                            this.saving = false;
+                                        }
+                                    }
+                                }"
+                            >
+                                <button
+                                    type="button"
+                                    x-show="! editing"
+                                    @dblclick.prevent="start()"
+                                    class="bs-inline-edit__trigger w-full text-left"
+                                    title="{{ ($dueLabel ? 'Payment date '.$dueLabel.'. ' : '') }}{{ $termDays }}d term. Double-click to edit term (also updates supplier default)"
+                                >
+                                    <span class="flex flex-col items-start gap-0.5 leading-tight">
+                                        <span class="tabular-nums font-semibold text-primary-700 dark:text-primary-300" x-text="dueDate || '—'">{{ $dueLabel ?: '—' }}</span>
+                                        <span class="text-[11px] tabular-nums text-gray-600 dark:text-gray-300">
+                                            <span x-text="term + 'd'">{{ $termDays }}d</span>
+                                            <span aria-hidden="true"> · </span>
+                                            <span class="{{ $remainingClass }}" :class="remainingClass" x-text="remainingText">{{ $remainingText }}</span>
+                                        </span>
+                                    </span>
+                                </button>
+                                <div x-show="editing" x-cloak class="bs-inline-edit__editor">
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        step="1"
+                                        x-ref="input"
+                                        x-model="draft"
+                                        class="bs-inline-edit__input w-16"
+                                        @keydown.enter.prevent="save()"
+                                        @keydown.escape.prevent="cancel()"
+                                    />
+                                    <div class="bs-inline-edit__actions">
+                                        <button type="button" class="bs-inline-edit__save" @click="save()" :disabled="saving">Save</button>
+                                        <button type="button" class="bs-inline-edit__cancel" @click="cancel()" :disabled="saving">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
                         </td>
                         <td @class([
                             'inv-td inv-td--num font-medium tabular-nums',

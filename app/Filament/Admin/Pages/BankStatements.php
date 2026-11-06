@@ -191,20 +191,20 @@ class BankStatements extends Page implements HasForms
             ->components([
                 Grid::make(12)
                     ->schema([
-                        Select::make('counterpart')
-                            ->label('Counterpart')
-                            ->options(fn (): array => $this->counterpartOptions())
-                            ->getSearchResultsUsing(fn (string $search): array => $this->counterpartOptions($search))
-                            ->getOptionLabelUsing(fn ($value): ?string => filled($value) ? (string) $value : null)
-                            ->searchable()
+                Select::make('counterpart')
+                    ->label('Counterpart')
+                    ->options(fn (): array => $this->counterpartOptions())
+                    ->getSearchResultsUsing(fn (string $search): array => $this->counterpartOptions($search))
+                    ->getOptionLabelUsing(fn ($value): ?string => filled($value) ? (string) $value : null)
+                    ->searchable()
                             ->placeholder('All counterparts')
-                            ->native(false)
+                    ->native(false)
                             ->live()
                             ->columnSpan(['default' => 12, 'md' => 4]),
 
-                        TextInput::make('description')
+                TextInput::make('description')
                             ->label('Search')
-                            ->placeholder('Payment details, invoice no…')
+                    ->placeholder('Payment details, invoice no…')
                             ->live(debounce: 400)
                             ->columnSpan(['default' => 12, 'md' => 5]),
 
@@ -541,9 +541,9 @@ class BankStatements extends Page implements HasForms
             return;
         }
 
-        $transaction->update([
-            'comment' => $comment,
-        ]);
+                $transaction->update([
+                    'comment' => $comment,
+                ]);
     }
 
     public function updateDirection(int $transactionId, string $direction): void
@@ -1950,7 +1950,7 @@ class BankStatements extends Page implements HasForms
             $title = 'Document unlinked';
         }
 
-        Notification::make()
+            Notification::make()
             ->title($title)
             ->success()
             ->send();
@@ -2051,8 +2051,8 @@ class BankStatements extends Page implements HasForms
         $transaction = $this->resolveTransaction($transactionId);
 
         if ($transaction->isLinked()) {
-            BankStatementInvoiceMatcher::unlink($transaction);
-            BankStatementPaymentMatcher::unlink($transaction->fresh() ?? $transaction);
+        BankStatementInvoiceMatcher::unlink($transaction);
+        BankStatementPaymentMatcher::unlink($transaction->fresh() ?? $transaction);
             BankStatementSalaryMatcher::unlink($transaction->fresh() ?? $transaction);
             BankStatementBusinessTripMatcher::unlink($transaction->fresh() ?? $transaction);
             BankStatementDocumentMatcher::unlink($transaction->fresh() ?? $transaction);
@@ -2296,7 +2296,7 @@ class BankStatements extends Page implements HasForms
         }
 
         if ($shouldSuggest) {
-            $invoiceSuggestions = BankStatementInvoiceMatcher::suggestFor($transactions);
+        $invoiceSuggestions = BankStatementInvoiceMatcher::suggestFor($transactions);
             $remaining = $transactions->reject(
                 fn (BankStatementTransaction $row): bool => $invoiceSuggestions->has($row->getKey()),
             )->values();
@@ -2688,7 +2688,7 @@ class BankStatements extends Page implements HasForms
                             ->orWhere('description', 'like', $pattern)
                             ->orWhere('counterpart_name', 'like', $pattern);
                     }
-                });
+            });
         } elseif ($linkStatus === 'missing') {
             $query
                 ->withoutLinkedDocument()

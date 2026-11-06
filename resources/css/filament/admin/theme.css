@@ -1363,6 +1363,52 @@ td.ss-cell-edit:hover {
     @apply bg-primary-700;
 }
 
+/* Make the Process step obvious after files are staged. */
+.invoice-bulk-process-btn {
+    display: inline-flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-height: 5.5rem;
+    padding: 1.25rem 2.5rem;
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease, background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.invoice-bulk-process-btn.is-blocked,
+.invoice-bulk-process-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    filter: grayscale(0.35);
+    box-shadow: none;
+    transform: none;
+}
+
+.invoice-bulk-process-btn.is-ready:hover:not(:disabled) {
+    transform: translateY(-2px) scale(1.01);
+    filter: brightness(1.08);
+    box-shadow: 0 14px 30px rgba(15, 23, 42, 0.28);
+    cursor: pointer;
+    background-color: var(--color-primary-500, #6366f1);
+}
+
+.invoice-bulk-process-btn.is-ready:active:not(:disabled) {
+    transform: translateY(1px) scale(0.99);
+    filter: brightness(0.95);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}
+
+.invoice-bulk-process-btn.is-ready:hover:not(:disabled) svg {
+    transform: scale(1.1);
+}
+
+.invoice-bulk-process-btn svg {
+    transition: transform 0.15s ease;
+}
+
 /* Invoices list table readability */
 .invoice-table {
     border-collapse: separate;
@@ -3323,18 +3369,14 @@ td.ss-cell-edit:hover {
 }
 
 .invoices-table-wrap {
-    overflow-x: hidden;
-    width: 100%;
-}
-
-.invoices-table-wrap:has(.bs-inline-edit:focus-within) {
     overflow-x: auto;
-    overflow-y: visible;
+    width: 100%;
 }
 
 .invoices-table {
     table-layout: fixed;
     width: 100%;
+    min-width: 72rem;
 }
 
 .invoices-table .inv-col-check {
@@ -3353,8 +3395,28 @@ td.ss-cell-edit:hover {
     width: 7%;
 }
 
+.invoices-table .inv-col-term {
+    width: 9%;
+    min-width: 7rem;
+}
+
+.invoices-table .inv-th--term {
+    white-space: nowrap;
+    color: rgb(15 23 42);
+    font-weight: 600;
+}
+
+.invoices-table .inv-td--term {
+    white-space: nowrap;
+    vertical-align: top;
+}
+
+.invoices-table .inv-td--term .bs-inline-edit__trigger {
+    display: block;
+}
+
 .invoices-table .inv-col-sum {
-    width: 8%;
+    width: 7%;
 }
 
 .invoices-table .inv-col-paid {

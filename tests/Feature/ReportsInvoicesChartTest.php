@@ -24,10 +24,98 @@ class ReportsInvoicesChartTest extends TestCase
         Livewire::test(ReportsInvoicesChart::class)
             ->assertOk()
             ->assertSee('Invoices chart')
+            ->assertSee('Group by')
+            ->assertSee('Payment due date')
             ->assertSee('Payment')
             ->assertSee('Late days')
             ->assertSee('Counterpart')
-            ->assertSee('Country');
+            ->assertSee('Country')
+            ->assertSee('Still to pay')
+            ->assertSee('Due date');
+    }
+
+    public function test_builder_groups_by_payment_due_date_for_cashflow(): void
+    {
+        $admin = $this->actingAsAdmin();
+        $contact = Contact::query()->create([
+            'company_name' => 'Cashflow Co',
+            'company_id' => '444',
+            'company_address' => 'Vilnius',
+            'company_country' => 'Lithuania',
+        ]);
+
+        // Invoice 2026-09-01 + 14 days => due 2026-09-15
+        $this->makeInvoice($admin, $contact, [
+            'invoice_number' => 'INV-DUE-UNPAID',
+            'invoice_date' => '2026-09-01',
+            'sum_inc_vat' => 120,
+            'paid_amount' => 0,
+            'paid' => false,
+            'payment_term' => 14,
+        ]);
+        // Invoice 2026-09-01 + 30 days => due 2026-10-01 (outside Sep range)
+        $this->makeInvoice($admin, $contact, [
+            'invoice_number' => 'INV-DUE-OCT',
+            'invoice_date' => '2026-09-01',
+            'sum_inc_vat' => 50,
+            'paid_amount' => 0,
+            'paid' => false,
+            'payment_term' => 30,
+        ]);
+        // Paid invoice still lands on due day but not in "still to pay"
+        $this->makeInvoice($admin, $contact, [
+            'invoice_number' => 'INV-DUE-PAID',
+            'invoice_date' => '2026-09-05',
+            'sum_inc_vat' => 40,
+            'paid_amount' => 40,
+            'paid' => true,
+            'payment_term' => 10,
+        ]);
+
+        $byInvoice = InvoicesChartReportBuilder::build(
+            '2026-09-01',
+            '2026-09-30',
+            InvoicesChartReportBuilder::STATUS_ALL,
+            InvoicesChartReportBuilder::LATE_ANY,
+            null,
+            null,
+            null,
+            InvoicesChartReportBuilder::DATE_BASIS_INVOICE,
+        );
+        $this->assertSame(3, $byInvoice['invoice_count']);
+        $this->assertSame(InvoicesChartReportBuilder::DATE_BASIS_INVOICE, $byInvoice['date_basis']);
+
+        $byDue = InvoicesChartReportBuilder::build(
+            '2026-09-01',
+            '2026-09-30',
+            InvoicesChartReportBuilder::STATUS_ALL,
+            InvoicesChartReportBuilder::LATE_ANY,
+            null,
+            null,
+            null,
+            InvoicesChartReportBuilder::DATE_BASIS_DUE,
+        );
+
+        $this->assertSame(InvoicesChartReportBuilder::DATE_BASIS_DUE, $byDue['date_basis']);
+        $this->assertSame('Invoices by payment due date', $byDue['title']);
+        // Oct-due invoice excluded from September due-date window
+        $this->assertSame(2, $byDue['invoice_count']);
+        $this->assertSame(120.0, $byDue['due_to_pay_total']);
+        $this->assertSame(40.0, $byDue['paid_total']);
+
+        // Both remaining invoices due on 2026-09-15 (Sep 1+14 unpaid, Sep 5+10 paid)
+        $this->assertCount(1, $byDue['days']);
+        $this->assertSame('2026-09-15', $byDue['days'][0]['day']);
+        $this->assertSame(120.0, $byDue['days'][0]['due_to_pay']);
+        $this->assertSame(40.0, $byDue['days'][0]['paid']);
+
+        $this->assertCount(2, $byDue['rows']);
+        $this->assertSame('2026-09-15', $byDue['rows'][0]['due_date']);
+        $this->assertSame('2026-09-15', $byDue['rows'][1]['due_date']);
+        $numbers = collect($byDue['rows'])->pluck('number')->all();
+        $this->assertContains('INV-DUE-UNPAID', $numbers);
+        $this->assertContains('INV-DUE-PAID', $numbers);
+        $this->assertNotContains('INV-DUE-OCT', $numbers);
     }
 
     public function test_builder_groups_paid_partly_and_unpaid_totals(): void
@@ -146,10 +234,12 @@ class ReportsInvoicesChartTest extends TestCase
         ]);
 
         Livewire::test(ReportsInvoicesChart::class)
-            ->assertSee('Invoices by payment status')
+            ->assertSee('Invoices by payment due date')
             ->assertSee('All months')
             ->assertSee('This month')
             ->assertSee('Last month')
+            ->set('data.date_basis', InvoicesChartReportBuilder::DATE_BASIS_INVOICE)
+            ->assertSee('Invoices by payment status')
             ->set('data.status', InvoicesChartReportBuilder::STATUS_UNPAID)
             ->assertSee('Unpaid')
             ->set('data.late_days', '1')

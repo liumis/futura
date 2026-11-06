@@ -308,7 +308,7 @@ class OrderResource extends Resource
                     $color = $product?->color;
                     $label = $color
                         ? htmlspecialchars($color->color_name.' ('.$color->color_code.')', ENT_QUOTES, 'UTF-8')
-                        : '—';
+                    : '—';
                 }
 
                 $rows[] = '• '.$label.': '.(int) $item->amount;
@@ -329,7 +329,7 @@ class OrderResource extends Resource
 
         foreach (
             CollectionModel::query()
-                ->orderBy('name')
+            ->orderBy('name')
                 ->with(['products' => fn ($query) => $query->with(['productType', 'color.collection'])->orderBy('color_id')])
                 ->get() as $collection
         ) {
@@ -486,7 +486,7 @@ class OrderResource extends Resource
 
         $sizeLabel = $product->sizeMeters() !== null
             ? rtrim(rtrim(number_format((float) $product->name, 2, '.', ''), '0'), '.').' m'
-            : '—';
+                                : '—';
 
         $nameHtml = $product->isCatalog()
             ? '<div class="fi-cargo-order-name">'.e($product->name ?: '—').'</div>'
@@ -871,11 +871,11 @@ class OrderResource extends Resource
                     ->sortable(),
 
                 DoubleClickCellEdit::enable(
-                    Tables\Columns\TextColumn::make('user.company_name')
+                Tables\Columns\TextColumn::make('user.company_name')
                         ->label('Customer')
-                        ->searchable()
-                        ->sortable()
-                        ->placeholder('—'),
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—'),
                     'customer_name',
                     fn (Order $record): bool => $record->user_id !== null,
                 ),
@@ -900,9 +900,9 @@ class OrderResource extends Resource
                             ->modalDescription('When confirming or shipping an order, you can review the email before sending it.')
                             ->schema([
                                 Select::make('status')
-                                    ->options(OrderStatus::class)
+                    ->options(OrderStatus::class)
                                     ->required()
-                                    ->native(false)
+                    ->native(false)
                                     ->live()
                                     ->afterStateUpdated(function ($state, Set $set, Order $record): void {
                                         if (self::isTransitionToApproved($state, $record->status)) {
@@ -1371,7 +1371,7 @@ class OrderResource extends Resource
                     ->columnSpan(2)
                     ->query(function (Builder $query, array $data): void {
                         if (filled($data['from'] ?? null)) {
-                            $query->whereHas(
+                        $query->whereHas(
                                 'invoices',
                                 fn (Builder $invoiceQuery) => $invoiceQuery->whereDate('invoice_date', '>=', $data['from']),
                             );
@@ -1432,10 +1432,10 @@ class OrderResource extends Resource
                         Select::make('finance_type')
                             ->label('Category')
                             ->options(fn (): array => Invoice::financeCategorySelectOptions())
-                            ->searchable()
-                            ->preload()
+                    ->searchable()
+                    ->preload()
                             ->placeholder('All')
-                            ->native(false)
+                    ->native(false)
                             ->live()
                             ->visible(fn (Get $get): bool => ($get('finance_kind') ?? null) !== 'missing')
                             ->afterStateUpdated(function (?string $state, Set $set): void {

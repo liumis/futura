@@ -83,6 +83,8 @@ class Invoices extends Page implements HasForms
      */
     public ?array $bulkUpload = [];
 
+    public ?string $bulkImportFlash = null;
+
     /**
      * @var list<string>
      */
@@ -171,8 +173,8 @@ class Invoices extends Page implements HasForms
             ->statePath('bulkUpload')
             ->components([
                 FileUpload::make('paths')
-                    ->label('Upload invoices')
-                    ->helperText(UploadLimits::withExistingNote('PDF, JPG, or PNG. Multiple files OK — complete scans become invoices; incomplete OCR is saved as drafts. OCR runs after you leave this request (bell notification per file). New uploads switch the list to All months so you can see them even when the invoice date is older.'))
+                    ->label('1. Choose files')
+                    ->helperText(UploadLimits::withExistingNote('PDF, JPG, or PNG — multiple OK. Green “Upload complete” only means the file is staged here. Nothing is imported until you click Process below. OCR/AI then creates a draft for each file (bell notification).'))
                     ->acceptedFileTypes(['application/pdf', 'image/jpeg', 'image/png'])
                     ->maxSize(UploadLimits::MAX_KILOBYTES)
                     ->multiple()
@@ -180,6 +182,7 @@ class Invoices extends Page implements HasForms
                     ->directory('invoices/bulk')
                     ->visibility('public')
                     ->required()
+                    ->live()
                     ->columnSpanFull()
                     ->extraAttributes([
                         'class' => 'invoice-fancy-upload',
@@ -187,8 +190,26 @@ class Invoices extends Page implements HasForms
             ]);
     }
 
+    public function bulkUploadFileCount(): int
+    {
+        $paths = $this->bulkUpload['paths'] ?? null;
+
+        if ($paths === null || $paths === '' || $paths === []) {
+            return 0;
+        }
+
+        if (! is_array($paths)) {
+            return filled($paths) ? 1 : 0;
+        }
+
+        // FilePond / Livewire may hold TemporaryUploadedFile objects, not only strings.
+        return count(array_filter($paths, static fn ($path): bool => filled($path)));
+    }
+
     public function importBulkUploads(): void
     {
+        $this->bulkImportFlash = null;
+
         $state = $this->bulkUploadForm->getState();
         $paths = $state['paths'] ?? [];
         if (is_string($paths)) {
@@ -198,8 +219,10 @@ class Invoices extends Page implements HasForms
         if (! is_array($paths) || $paths === []) {
             Notification::make()
                 ->title('No files selected')
+                ->body('Drop or browse files first, then click Process.')
                 ->warning()
                 ->send();
+            $this->dispatch('bulk-import-finished');
 
             return;
         }
@@ -210,6 +233,7 @@ class Invoices extends Page implements HasForms
                 ->body('Enable SharePoint under System → SharePoint. Invoice files are stored only on SharePoint.')
                 ->danger()
                 ->send();
+            $this->dispatch('bulk-import-finished');
 
             return;
         }
@@ -239,6 +263,7 @@ class Invoices extends Page implements HasForms
         }
 
         $this->bulkUploadForm->fill([]);
+        $this->bulkUpload = [];
 
         if ($queued === 0) {
             Notification::make()
@@ -246,23 +271,46 @@ class Invoices extends Page implements HasForms
                 ->body($missing > 0 ? 'Uploaded files were not found on the server — try again.' : null)
                 ->danger()
                 ->send();
+            $this->dispatch('bulk-import-finished');
 
             return;
         }
 
-        // OCR invoice_date is often an older month; default "Last month" would hide the new row.
-        $this->filters = array_merge($this->filters ?? [], [
-            'month' => 'any',
-            'draft_status' => null,
-        ]);
-        $this->sortColumn = 'upload_date';
-        $this->sortDirection = 'desc';
+        $this->bulkImportFlash = $queued === 1
+            ? 'Import started for 1 file — OCR/AI is running in the background. Use Review drafts below when rows appear (bell also notifies per file).'
+            : "Import started for {$queued} files — OCR/AI is running in the background. Use Review drafts below when rows appear (bell also notifies per file).";
 
         Notification::make()
-            ->title($queued === 1 ? 'Invoice import started' : $queued.' invoice imports started')
-            ->body('OCR runs in the background. Check the bell for each file. Showing newest uploads first (All months, capped list) — drafts need a quick review.')
-            ->info()
+            ->title($queued === 1 ? 'Import started' : "{$queued} imports started")
+            ->body('OCR/AI runs in the background. Check the bell for each file, or open Review drafts on this page.')
+            ->success()
+            ->seconds(8)
             ->send();
+
+        // Uploads always land as drafts — jump the list to the review queue.
+        $this->showReviewQueue(scroll: true);
+        $this->dispatch('bulk-import-finished');
+    }
+
+    /**
+     * Focus the post-OCR review queue: Needs review + All months, newest uploads first.
+     */
+    public function showReviewQueue(bool $scroll = true): void
+    {
+        $filters = array_merge($this->filters ?? [], [
+            'month' => 'any',
+            'draft_status' => 'draft',
+        ]);
+
+        $this->filters = $filters;
+        $this->filtersForm->fill($filters);
+        $this->sortColumn = 'upload_date';
+        $this->sortDirection = 'desc';
+        $this->includePaymentSuggestions = false;
+
+        if ($scroll) {
+            $this->dispatch('scroll-to-review-queue');
+        }
     }
 
     public static function canAccess(): bool
@@ -945,10 +993,10 @@ class Invoices extends Page implements HasForms
                             ->columnSpan(['default' => 6, 'md' => 3]),
 
                         Select::make('draft_status')
-                            ->label('Draft')
+                            ->label('Review')
                             ->options([
-                                'draft' => 'Drafts only',
-                                'published' => 'Published only',
+                                'draft' => 'Needs review',
+                                'published' => 'Confirmed only',
                             ])
                             ->placeholder('All')
                             ->native(false)
@@ -1452,7 +1500,11 @@ class Invoices extends Page implements HasForms
 
                 return 'Edit invoice'.(filled($invoice->invoice_number) ? ' — '.$invoice->invoice_number : ' #'.$invoice->getKey());
             })
-            ->modalSubmitActionLabel('Save')
+            ->modalSubmitActionLabel(function (array $arguments): string {
+                $invoice = $this->resolveInvoiceRecord($arguments['invoiceId'] ?? null);
+
+                return $invoice->isDraft() ? 'Confirm & publish' : 'Save';
+            })
             ->modalCancelActionLabel('Cancel')
             ->modalWidth('5xl')
             ->extraModalFooterActions(fn (): array => [
@@ -1837,6 +1889,7 @@ class Invoices extends Page implements HasForms
             })
             ->action(function (array $data, array $arguments): void {
                 $invoice = $this->resolveInvoiceRecord($arguments['invoiceId'] ?? null);
+                $wasDraft = $invoice->isDraft();
                 $lines = array_values(array_filter(
                     $data['lines'] ?? [],
                     fn (array $line): bool => filled($line['invoice_code_id'] ?? null),
@@ -1867,10 +1920,12 @@ class Invoices extends Page implements HasForms
                     }
                 }
 
+                $published = false;
+
                 try {
-                    DB::transaction(function () use ($invoice, $lines, $data, $category, $invoiceNumber): void {
+                    DB::transaction(function () use ($invoice, $lines, $data, $category, $invoiceNumber, $wasDraft, &$published): void {
                         $invoice->forceFill([
-                            'contact_id' => (int) ($data['contact_id'] ?? $invoice->contact_id),
+                            'contact_id' => filled($data['contact_id'] ?? null) ? (int) $data['contact_id'] : null,
                             'invoice_number' => $invoiceNumber,
                             'invoice_date' => $data['invoice_date'] ?? $invoice->invoice_date,
                             'sum_without_vat' => round((float) ($data['sum_without_vat'] ?? 0), 2),
@@ -1887,11 +1942,16 @@ class Invoices extends Page implements HasForms
                             'is_own_account' => $category['is_own_account'],
                         ]);
 
-                        if ($invoice->isDraft() && $invoice->isReadyToPublish()) {
+                        if ($wasDraft && $invoice->isReadyToPublish()) {
                             $invoice->is_draft = false;
+                            $published = true;
                         }
 
                         $invoice->save();
+
+                        if ($published && $invoice->contact_id !== null) {
+                            Contact::query()->find($invoice->contact_id)?->rememberDefaultCategoryFromInvoice($invoice);
+                        }
 
                         $invoice->financeLines()->delete();
 
@@ -1934,20 +1994,30 @@ class Invoices extends Page implements HasForms
                         ->send();
                 }
 
-                if (! $balanced) {
-            Notification::make()
-                        ->title('Invoice saved with warnings')
-                        ->body(trim('Debit and credit totals are not equal.'.($uploadedCount > 0
-                            ? ' '.$uploadedCount.' additional document(s) uploaded.'
-                            : '')))
-                ->warning()
-                ->send();
+                $extraDocs = $uploadedCount > 0 ? ' '.$uploadedCount.' additional document(s) uploaded.' : '';
 
-            return;
-        }
+                if (! $balanced) {
+                    Notification::make()
+                        ->title($published ? 'Invoice published with warnings' : 'Invoice saved with warnings')
+                        ->body(trim('Debit and credit totals are not equal.'.$extraDocs))
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                if ($wasDraft && ! $published) {
+                    Notification::make()
+                        ->title('Still a draft')
+                        ->body(trim('Saved, but contact, invoice date, and amount are required before Confirm & publish.'.$extraDocs))
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
 
                 Notification::make()
-                    ->title('Invoice saved')
+                    ->title($published ? 'Invoice confirmed' : 'Invoice saved')
                     ->body($uploadedCount > 0 ? $uploadedCount.' additional document(s) uploaded.' : null)
                     ->success()
                     ->send();
@@ -2016,6 +2086,53 @@ class Invoices extends Page implements HasForms
         }
 
         return true;
+    }
+
+    /**
+     * Inline payment-term edit: updates this invoice and the supplier contact default.
+     *
+     * @return array{payment_term: int, days_until_due: ?int, due_date: ?string, contact_updated: bool}|false
+     */
+    #[Renderless]
+    public function updateInvoicePaymentTerm(int $invoiceId, mixed $value): array|false
+    {
+        $invoice = $this->resolveInvoiceRecord($invoiceId);
+        $invoice->loadMissing('contact');
+
+        if ($value === null || $value === '') {
+            $term = Invoice::DEFAULT_PAYMENT_TERM_DAYS;
+        } elseif (! is_numeric($value)) {
+            Notification::make()
+                ->title('Payment term must be a number of days')
+                ->warning()
+                ->send();
+
+            return false;
+        } else {
+            $term = max(0, (int) $value);
+        }
+
+        $invoice->forceFill([
+            'payment_term' => $term,
+        ])->save();
+
+        $contactUpdated = false;
+        $contact = $invoice->contact;
+        if ($contact !== null && (int) ($contact->payment_term ?? -1) !== $term) {
+            $contact->forceFill([
+                'payment_term' => $term,
+            ])->save();
+            $contactUpdated = true;
+        }
+
+        $invoice->refresh();
+
+        return [
+            'payment_term' => $invoice->effectivePaymentTermDays(),
+            'days_until_due' => $invoice->daysUntilDue(),
+            'due_date' => optional($invoice->dueDate())?->format('Y-m-d'),
+            'contact_updated' => $contactUpdated,
+        ];
     }
 
     /**

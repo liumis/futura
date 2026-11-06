@@ -41,6 +41,7 @@ class ReportsInvoicesChart extends Page implements HasForms
     {
         $this->form->fill([
             ...ReportDateRange::lastMonthFill(),
+            'date_basis' => InvoicesChartReportBuilder::DATE_BASIS_DUE,
             'status' => InvoicesChartReportBuilder::STATUS_ALL,
             'late_days' => InvoicesChartReportBuilder::LATE_ANY,
             'contact_id' => null,
@@ -54,6 +55,14 @@ class ReportsInvoicesChart extends Page implements HasForms
             ->statePath('data')
             ->components([
                 ...$this->reportMonthRangeFilters(),
+
+                Select::make('date_basis')
+                    ->label('Group by')
+                    ->options(InvoicesChartReportBuilder::dateBasisOptions())
+                    ->default(InvoicesChartReportBuilder::DATE_BASIS_DUE)
+                    ->helperText('Payment due date = invoice date + payment term (cashflow).')
+                    ->native(false)
+                    ->live(),
 
                 Select::make('status')
                     ->label('Payment')
@@ -97,6 +106,8 @@ class ReportsInvoicesChart extends Page implements HasForms
      * @return array{
      *     title: string,
      *     period_label: string,
+     *     date_basis: string,
+     *     date_basis_label: string,
      *     status: string,
      *     status_label: string,
      *     late_days: ?int,
@@ -116,13 +127,29 @@ class ReportsInvoicesChart extends Page implements HasForms
      *     partly_paid_total: float,
      *     unpaid_total: float,
      *     outstanding_total: float,
+     *     due_to_pay_total: float,
      *     grand_total: float,
      *     days: list<array{
      *         day: string,
      *         label: string,
      *         paid: float,
      *         partly_paid: float,
-     *         unpaid: float
+     *         unpaid: float,
+     *         due_to_pay: float
+     *     }>,
+     *     rows: list<array{
+     *         id: int,
+     *         number: string,
+     *         invoice_date: ?string,
+     *         due_date: ?string,
+     *         company: string,
+     *         status: string,
+     *         status_label: string,
+     *         amount: float,
+     *         outstanding: float,
+     *         days_late: int,
+     *         late: bool,
+     *         sort_day: string
      *     }>
      * }
      */
@@ -135,7 +162,27 @@ class ReportsInvoicesChart extends Page implements HasForms
             $this->data['late_days'] ?? InvoicesChartReportBuilder::LATE_ANY,
             $this->data['contact_id'] ?? null,
             $this->data['country'] ?? null,
+            null,
+            $this->data['date_basis'] ?? InvoicesChartReportBuilder::DATE_BASIS_DUE,
         );
+    }
+
+    /**
+     * @param  array{id?: int, number?: string}  $row
+     */
+    public function rowUrl(array $row): ?string
+    {
+        $number = trim((string) ($row['number'] ?? ''));
+        if ($number === '') {
+            return Invoices::getUrl();
+        }
+
+        return Invoices::getUrl([
+            'filters' => [
+                'month' => 'any',
+                'invoice_number' => $number,
+            ],
+        ]);
     }
 
     public static function canAccess(): bool

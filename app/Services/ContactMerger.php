@@ -310,6 +310,7 @@ class ContactMerger
             'bank_account',
             'bank_bic',
             'default_finance_type',
+            'payment_term',
         ];
 
         foreach ($fields as $field) {

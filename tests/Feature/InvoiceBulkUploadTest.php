@@ -112,7 +112,7 @@ class InvoiceBulkUploadTest extends TestCase
         $this->assertSame(1, Invoice::query()->where('is_draft', true)->count());
     }
 
-    public function test_creator_publishes_complete_ocr_invoice(): void
+    public function test_creator_keeps_complete_ocr_invoice_as_draft_until_review(): void
     {
         Contact::query()->create([
             'company_name' => 'Acme UAB',
@@ -144,10 +144,11 @@ class InvoiceBulkUploadTest extends TestCase
             'good.pdf',
         );
 
-        $this->assertSame('created', $result['status']);
-        $this->assertFalse($result['invoice']?->isDraft());
+        $this->assertSame('draft', $result['status']);
+        $this->assertTrue($result['invoice']?->isDraft());
         $this->assertSame('INV-BULK-1', Invoice::query()->value('invoice_number'));
         $this->assertNotNull(Invoice::query()->value('sharepoint_web_url'));
+        $this->assertStringContainsString('Confirm & publish', (string) $result['message']);
     }
 
     public function test_job_notifies_user_on_draft(): void
