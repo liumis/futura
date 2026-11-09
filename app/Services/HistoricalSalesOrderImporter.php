@@ -133,7 +133,13 @@ class HistoricalSalesOrderImporter
                 $user = $customerCache[$code];
                 $historyName = $this->historyName($code, $group['sales_date']);
 
-                if (Order::query()->where('name', $historyName)->exists()) {
+                // Skip exact HIST|code|date and invoice-linked HIST|code|date|FTE#### variants.
+                if (Order::query()
+                    ->where(function ($query) use ($historyName): void {
+                        $query->where('name', $historyName)
+                            ->orWhere('name', 'like', $historyName.'|%');
+                    })
+                    ->exists()) {
                     $stats['orders_skipped']++;
 
                     continue;
