@@ -3,8 +3,11 @@
 namespace Tests\Unit;
 
 use App\Models\Contact;
+use App\Models\DirectoryContact;
+use App\Models\DirectoryContactComment;
 use App\Services\UtfMojibakeRepairer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
 
 class UtfMojibakeRepairerTest extends TestCase
@@ -80,5 +83,56 @@ class UtfMojibakeRepairerTest extends TestCase
 
         $this->assertSame(0, $result['updated']);
         $this->assertSame('5LQNOLDYRVPRN┬íWRMDV', $contact->fresh()->company_name);
+    }
+
+    public function test_repairs_directory_comment_cp437_mojibake(): void
+    {
+        $good = 'Susisiekta. Futuros produktai netinka dėl per didelių kainos.';
+        $bad = iconv('CP437', 'UTF-8', $good);
+        $this->assertIsString($bad);
+        $this->assertNotSame($good, $bad);
+
+        $contact = DirectoryContact::query()->create([
+            'company_name' => 'Heyman Test AB',
+            'country' => 'Sweden',
+        ]);
+
+        // Insert raw corrupted bytes (bypass mutator) to mimic already-bad DB rows.
+        $id = DB::table('directory_contact_comments')->insertGetId([
+            'directory_contact_id' => $contact->id,
+            'user_id' => null,
+            'commented_at' => now(),
+            'comment' => $bad,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $result = UtfMojibakeRepairer::repairDirectoryContacts(
+            DirectoryContactComment::query()->whereKey($id)->get(),
+            dryRun: false,
+        );
+
+        $this->assertSame(1, $result['updated']);
+        $this->assertSame($good, (string) DB::table('directory_contact_comments')->where('id', $id)->value('comment'));
+    }
+
+    public function test_comment_mutator_repairs_on_create(): void
+    {
+        $good = 'Nepatenkintas dėl Lauritzon situacijos.';
+        $bad = iconv('CP437', 'UTF-8', $good);
+        $this->assertIsString($bad);
+
+        $contact = DirectoryContact::query()->create([
+            'company_name' => 'UTF Save Test',
+            'country' => 'Lithuania',
+        ]);
+
+        $comment = DirectoryContactComment::query()->create([
+            'directory_contact_id' => $contact->id,
+            'commented_at' => now(),
+            'comment' => $bad,
+        ]);
+
+        $this->assertSame($good, $comment->fresh()->comment);
     }
 }

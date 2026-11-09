@@ -10,20 +10,23 @@ class RepairUtfMojibake extends Command
     protected $signature = 'contacts:repair-utf
         {--dry-run : Show repairs without saving}';
 
-    protected $description = 'Repair CP437/OEM mojibake in contact names and addresses (┼áiauli┼│ → Šiaulių)';
+    protected $description = 'Repair CP437/OEM mojibake in finance/CRM contacts and CRM comments (d─ùl → dėl)';
 
     public function handle(): int
     {
         $dryRun = (bool) $this->option('dry-run');
-        $result = UtfMojibakeRepairer::repairContacts(null, $dryRun);
+        $finance = UtfMojibakeRepairer::repairContacts(null, $dryRun);
+        $directory = UtfMojibakeRepairer::repairDirectoryContacts(null, $dryRun);
 
-        if ($result['changes'] === []) {
+        $changes = array_merge($finance['changes'], $directory['changes']);
+
+        if ($changes === []) {
             $this->info('No corrupted UTF contact fields found.');
 
             return self::SUCCESS;
         }
 
-        foreach ($result['changes'] as $change) {
+        foreach ($changes as $change) {
             $this->line(sprintf(
                 '#%d.%s: %s → %s',
                 $change['id'],
@@ -33,8 +36,9 @@ class RepairUtfMojibake extends Command
             ));
         }
 
-        $this->info(($dryRun ? 'Would update' : 'Updated').' '.$result['updated'].' contact(s), '
-            .count($result['changes']).' field(s).');
+        $this->info(($dryRun ? 'Would update' : 'Updated').' '
+            .($finance['updated'] + $directory['updated']).' record(s), '
+            .count($changes).' field(s).');
 
         return self::SUCCESS;
     }
