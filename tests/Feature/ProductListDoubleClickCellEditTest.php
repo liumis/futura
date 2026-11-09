@@ -36,6 +36,7 @@ class ProductListDoubleClickCellEditTest extends TestCase
         $html = Livewire::test(ListProducts::class)->html();
         $this->assertStringContainsString('data-ss-cell-field="color_name"', $html);
         $this->assertStringContainsString('data-ss-cell-field="color_code"', $html);
+        $this->assertStringContainsString('data-ss-cell-field="name"', $html);
         $this->assertStringContainsString('data-ss-cell-field="product_code"', $html);
         $this->assertStringContainsString('data-ss-cell-field="cost"', $html);
         $this->assertStringContainsString('data-ss-record-key="'.$product->id.'"', $html);
@@ -55,6 +56,14 @@ class ProductListDoubleClickCellEditTest extends TestCase
             ])
             ->assertHasNoActionErrors();
         $this->assertSame('103', $color->fresh()?->color_code);
+
+        Livewire::test(ListProducts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => 'Saramo katalogas'], arguments: [
+                'recordKey' => (string) $product->id,
+                'field' => 'name',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame('Saramo katalogas', $product->fresh()?->name);
 
         Livewire::test(ListProducts::class)
             ->callAction('doubleClickCellEdit', data: ['value' => 'AG103-30'], arguments: [

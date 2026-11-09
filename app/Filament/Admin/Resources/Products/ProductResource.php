@@ -137,10 +137,13 @@ class ProductResource extends Resource
                     fn (Product $record): bool => $record->color_id !== null,
                 ),
 
-                Tables\Columns\TextColumn::make('name')
-                    ->searchable()
-                    ->sortable()
-                    ->label('Size (m)'),
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('name')
+                        ->searchable()
+                        ->sortable()
+                        ->label('Name / Size (m)'),
+                    'name',
+                ),
 
                 DoubleClickCellEdit::enable(
                     Tables\Columns\TextColumn::make('product_code')

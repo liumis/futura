@@ -73,6 +73,18 @@ class ListProducts extends ListRecords
                     $color->update(['color_code' => $code]);
                 },
             ],
+            'name' => [
+                'label' => 'Name / Size (m)',
+                'form' => fn (): TextInput => TextInput::make('value')
+                    ->label('Name / Size (m)')
+                    ->required()
+                    ->maxLength(255),
+                'fill' => fn (Product $record): ?string => $record->name,
+                'save' => function (Product $record, mixed $value): void {
+                    $name = (string) $this->doubleClickValidate($value, ['required', 'string', 'max:255']);
+                    $record->update(['name' => $name]);
+                },
+            ],
             'product_code' => [
                 'label' => 'Product code',
                 'form' => fn (): TextInput => TextInput::make('value')
