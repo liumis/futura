@@ -31,13 +31,25 @@ class DirectoryContactComment extends Model
     }
 
     /**
-     * Repair CP437/OEM mojibake (d─ùl → dėl) on write so board/Excel saves stay UTF-8.
+     * Repair CP437/OEM mojibake (d─ùl → dėl) on read and write so board shows
+     * clean Lithuanian even before a DB repair migration lands.
      *
      * @return Attribute<string|null, string|null>
      */
     protected function comment(): Attribute
     {
         return Attribute::make(
+            get: function (?string $value): ?string {
+                if ($value === null || $value === '') {
+                    return $value;
+                }
+
+                if (! ExtractedTextNormalizer::looksCorrupted($value)) {
+                    return $value;
+                }
+
+                return UtfMojibakeRepairer::repairValue($value) ?? $value;
+            },
             set: function (?string $value): ?string {
                 if ($value === null) {
                     return null;
