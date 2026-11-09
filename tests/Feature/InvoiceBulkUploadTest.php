@@ -77,7 +77,7 @@ class InvoiceBulkUploadTest extends TestCase
         Livewire::test(Invoices::class)
             ->set('bulkUpload.paths', [$path])
             ->call('importBulkUploads')
-            ->assertNotified('Invoice import started')
+            ->assertNotified('Import started')
             ->assertSet('filters.month', 'any')
             ->assertSet('sortColumn', 'upload_date');
 
