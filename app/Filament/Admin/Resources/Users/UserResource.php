@@ -5,6 +5,7 @@ namespace App\Filament\Admin\Resources\Users;
 use App\Enums\AdminModule;
 use App\Enums\InvoiceLanguage;
 use App\Enums\NotificationType;
+use App\Models\CustomerLevel;
 use App\Models\Invoice;
 use App\Models\OriginCountry;
 use App\Models\User;
@@ -137,8 +138,8 @@ class UserResource extends Resource
                     ->relationship('customerLevel', 'name')
                     ->searchable()
                     ->preload()
-                    ->label('Customer level')
-                    ->placeholder('Select level')
+                    ->label('Price group')
+                    ->placeholder('Select price group')
                     ->visible(fn (callable $get): bool => User::formStateIncludesCustomerRole($get('roles')))
                     ->dehydrated(fn (callable $get): bool => User::formStateIncludesCustomerRole($get('roles'))),
 
@@ -259,6 +260,7 @@ class UserResource extends Resource
                             $inner
                                 ->where('name', 'like', $term)
                                 ->orWhere('surname', 'like', $term)
+                                ->orWhere('company_name', 'like', $term)
                                 ->orWhereRaw(
                                     "TRIM(CONCAT(COALESCE(name, ''), ' ', COALESCE(surname, ''))) like ?",
                                     [$term],
@@ -271,39 +273,86 @@ class UserResource extends Resource
                             ->orderBy('surname', $direction);
                     }),
 
+                Tables\Columns\TextColumn::make('company_name')
+                    ->label('Company')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
+
                 Tables\Columns\TextColumn::make('email')
                     ->searchable()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('roles.name')
+                    ->label('Role')
                     ->badge(),
 
-                Tables\Columns\TextColumn::make('customerLevel.name')
-                    ->label('Customer level')
+                Tables\Columns\SelectColumn::make('customer_level_id')
+                    ->label('Price group')
+                    ->options(fn (): array => CustomerLevel::query()->orderBy('name')->pluck('name', 'id')->all())
                     ->placeholder('—')
+                    ->selectablePlaceholder(true)
+                    ->disabled(fn (User $record): bool => ! $record->hasRole(User::ROLE_CUSTOMER))
+                    ->rules(['nullable', 'integer', 'exists:customer_levels,id'])
                     ->sortable(),
+
+                Tables\Columns\TextColumn::make('company_country')
+                    ->label('Country')
+                    ->searchable()
+                    ->sortable()
+                    ->placeholder('—')
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('vatRate.classificator')
                     ->label('PVM/VAT')
                     ->placeholder('—')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('invoice_language')
                     ->label('Invoice lang.')
                     ->formatStateUsing(fn (?string $state): string => InvoiceLanguage::normalize($state)->label())
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('payment_term')
                     ->label('Payment term')
                     ->formatStateUsing(fn (mixed $state): string => filled($state) ? ((int) $state).' days' : '—')
                     ->placeholder('—')
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
+                SelectFilter::make('party_type')
+                    ->label('Type')
+                    ->options([
+                        'customer' => 'Customer',
+                        'staff' => 'Staff',
+                    ])
+                    ->native(false)
+                    ->query(function (Builder $query, array $data): void {
+                        $value = $data['value'] ?? null;
+                        if ($value === 'customer') {
+                            $query->role(User::ROLE_CUSTOMER);
+
+                            return;
+                        }
+
+                        if ($value === 'staff') {
+                            $query->whereDoesntHave(
+                                'roles',
+                                fn (Builder $roles): Builder => $roles->where('name', User::ROLE_CUSTOMER),
+                            );
+                        }
+                    }),
+
                 SelectFilter::make('roles')
                     ->label('Role')
                     ->relationship(
@@ -318,12 +367,26 @@ class UserResource extends Resource
                     ->searchable()
                     ->native(false),
 
+                SelectFilter::make('customer_level_id')
+                    ->label('Price group')
+                    ->relationship('customerLevel', 'name')
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
+                SelectFilter::make('company_country')
+                    ->label('Country')
+                    ->options(fn (): array => OriginCountry::options())
+                    ->searchable()
+                    ->preload()
+                    ->native(false),
+
                 Filter::make('name_surname')
                     ->label('Name')
                     ->schema([
                         Forms\Components\TextInput::make('q')
                             ->label('Name')
-                            ->placeholder('Search name or surname…'),
+                            ->placeholder('Search name, surname or company…'),
                     ])
                     ->query(function (Builder $query, array $data): void {
                         $q = trim((string) ($data['q'] ?? ''));
@@ -337,6 +400,7 @@ class UserResource extends Resource
                             $inner
                                 ->where('name', 'like', $term)
                                 ->orWhere('surname', 'like', $term)
+                                ->orWhere('company_name', 'like', $term)
                                 ->orWhereRaw(
                                     "TRIM(CONCAT(COALESCE(name, ''), ' ', COALESCE(surname, ''))) like ?",
                                     [$term],
