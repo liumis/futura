@@ -322,7 +322,7 @@ class UserResource extends Resource
                     ->formatStateUsing(fn (mixed $state): string => filled($state) ? ((int) $state).' days' : '—')
                     ->placeholder('—')
                     ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('created_at')
                     ->dateTime()
