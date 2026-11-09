@@ -370,6 +370,29 @@ class Dashboard extends Page
     }
 
     /**
+     * Newest CRM cards that have never been contacted (last_contact empty).
+     *
+     * @return Collection<int, array{contact: DirectoryContact, url: string}>
+     */
+    public function getNewNeverContactedContacts(): Collection
+    {
+        if (! $this->canSeeModule(AdminModule::Contacts)) {
+            return collect();
+        }
+
+        return DirectoryContact::query()
+            ->whereNull('last_contact')
+            ->orderByDesc('created_at')
+            ->orderByDesc('id')
+            ->limit(10)
+            ->get()
+            ->map(fn (DirectoryContact $contact): array => [
+                'contact' => $contact,
+                'url' => DirectoryContactResource::getUrl('edit', ['record' => $contact]),
+            ]);
+    }
+
+    /**
      * Latest orders (any status).
      *
      * @return Collection<int, array{order: Order, status: string, pending: bool, url: string}>

@@ -248,7 +248,8 @@
             min-height: 140px;
         }
         .dash-stack-block--contacts,
-        .dash-stack-block--last-contacts {
+        .dash-stack-block--last-contacts,
+        .dash-stack-block--never-contacts {
             flex: 1 1 auto;
             min-height: 140px;
         }
@@ -374,6 +375,7 @@
         $cargos = $this->getIncomingCargos();
         $contacts = $this->getUpcomingContacts();
         $lastContacts = $this->getLastContacts();
+        $neverContacts = $this->getNewNeverContactedContacts();
         $orders = $this->getNewOrders();
         $notifications = $this->getNotifications();
         $myLatePayments = $this->getMyLatePayments();
@@ -671,6 +673,38 @@
                     @if ($canContacts)
                         <div class="dash-col__footer">
                             <a href="{{ $this->contactsUrl() }}">View more</a>
+                        </div>
+                    @endif
+                </div>
+
+                <div class="dash-stack-block dash-stack-block--never-contacts">
+                    <header class="dash-col__header">
+                        <span class="dash-col__title">New and never contacted</span>
+                        <span class="dash-col__count">{{ $canContacts ? $neverContacts->count() : '—' }}</span>
+                    </header>
+                    <div class="dash-col__body">
+                        @forelse ($neverContacts as $row)
+                            @php($contact = $row['contact'])
+                            <a href="{{ $row['url'] }}" class="dash-row">
+                                <div class="dash-row__main">
+                                    <div class="dash-row__title">{{ $contact->company_name }}</div>
+                                    @if ($contact->country || $contact->type)
+                                        <div class="dash-row__note">
+                                            {{ collect([$contact->country, $contact->type])->filter()->implode(' · ') }}
+                                        </div>
+                                    @endif
+                                </div>
+                                <div class="dash-row__side">
+                                    <span class="dash-row__meta">{{ $contact->created_at?->format('Y-m-d') ?? '—' }}</span>
+                                </div>
+                            </a>
+                        @empty
+                            <div class="dash-col__empty">{{ $canContacts ? 'No new contacts.' : 'No access' }}</div>
+                        @endforelse
+                    </div>
+                    @if ($canContacts)
+                        <div class="dash-col__footer">
+                            <a href="{{ \App\Filament\Admin\Resources\DirectoryContacts\DirectoryContactResource::getUrl('index') }}">Directory contacts</a>
                         </div>
                     @endif
                 </div>
