@@ -47,8 +47,10 @@ class CustomerLevelsC1AndKMigrationTest extends TestCase
         $result = app(FuturaCustomerLevelBootstrap::class)->run();
 
         $c1 = CustomerLevel::query()->findOrFail($result['c1_id']);
+        $v = CustomerLevel::query()->findOrFail($result['v_id']);
         $k = CustomerLevel::query()->findOrFail($result['k_id']);
         $this->assertSame('C1', $c1->name);
+        $this->assertSame('V', $v->name);
         $this->assertSame('K', $k->name);
 
         $this->assertSame(6.9, (float) CustomerLevelPrice::query()
@@ -59,15 +61,24 @@ class CustomerLevelsC1AndKMigrationTest extends TestCase
             ->where('customer_level_id', $c1->id)
             ->whereHas('collection', fn ($q) => $q->where('name', 'Argano'))
             ->value('price'));
+        $this->assertSame(6.4, (float) CustomerLevelPrice::query()
+            ->where('customer_level_id', $v->id)
+            ->whereHas('collection', fn ($q) => $q->where('name', 'Agnona'))
+            ->value('price'));
+        $this->assertSame(6.7, (float) CustomerLevelPrice::query()
+            ->where('customer_level_id', $v->id)
+            ->whereHas('collection', fn ($q) => $q->where('name', 'Argano'))
+            ->value('price'));
         $this->assertSame(8.5, (float) CustomerLevelPrice::query()
             ->where('customer_level_id', $k->id)
             ->whereHas('collection', fn ($q) => $q->where('name', 'Agnona'))
             ->value('price'));
 
         $this->assertSame($c1->id, $atStyle->fresh()->customer_level_id);
-        $this->assertSame($c1->id, $vinilas->fresh()->customer_level_id);
+        $this->assertSame($v->id, $vinilas->fresh()->customer_level_id);
         $this->assertSame($k->id, $maudis->fresh()->customer_level_id);
-        $this->assertSame(2, $result['c1_assigned']);
+        $this->assertSame(1, $result['c1_assigned']);
+        $this->assertSame(1, $result['v_assigned']);
         $this->assertSame(1, $result['k_assigned']);
     }
 }

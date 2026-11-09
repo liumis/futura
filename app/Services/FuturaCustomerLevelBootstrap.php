@@ -22,6 +22,19 @@ class FuturaCustomerLevelBootstrap
     ];
 
     /**
+     * Vinilas F kainoraštis (€/m) — lower than C1.
+     *
+     * @var array<string, float>
+     */
+    public const V_PRICES = [
+        'Agnona' => 6.40,
+        'Argano' => 6.70,
+        'Borga' => 5.10,
+        'Paloma' => 6.40,
+        'Saramo' => 6.40,
+    ];
+
+    /**
      * Representative Karmman domestic list (Altas row) for overlapping collections.
      *
      * @var array<string, float>
@@ -37,7 +50,7 @@ class FuturaCustomerLevelBootstrap
     ];
 
     /**
-     * F kainoraštis clients (Darbai screenshot).
+     * F kainoraštis clients on standard C1 (Vinilas uses group V).
      *
      * @var list<string>
      */
@@ -56,6 +69,12 @@ class FuturaCustomerLevelBootstrap
         'bikinis',
         'texikom',
         'texkom',
+    ];
+
+    /**
+     * @var list<string>
+     */
+    public const V_CUSTOMER_NEEDLES = [
         'vinilas',
     ];
 
@@ -99,8 +118,10 @@ class FuturaCustomerLevelBootstrap
     /**
      * @return array{
      *     c1_id: int,
+     *     v_id: int,
      *     k_id: int,
      *     c1_assigned: int,
+     *     v_assigned: int,
      *     k_assigned: int,
      *     collections_updated: int,
      *     catalog_products_updated: int
@@ -109,15 +130,19 @@ class FuturaCustomerLevelBootstrap
     public function run(): array
     {
         $c1 = CustomerLevel::query()->firstOrCreate(['name' => 'C1']);
+        $v = CustomerLevel::query()->firstOrCreate(['name' => 'V']);
         $k = CustomerLevel::query()->firstOrCreate(['name' => 'K']);
 
         $this->syncPrices($c1, self::C1_PRICES);
+        $this->syncPrices($v, self::V_PRICES);
         $this->syncPrices($k, self::K_PRICES);
 
         return [
             'c1_id' => (int) $c1->id,
+            'v_id' => (int) $v->id,
             'k_id' => (int) $k->id,
             'c1_assigned' => $this->assignLevel($c1, self::C1_CUSTOMER_NEEDLES),
+            'v_assigned' => $this->assignLevel($v, self::V_CUSTOMER_NEEDLES),
             'k_assigned' => $this->assignLevel($k, self::K_CUSTOMER_NEEDLES),
             'collections_updated' => $this->applyStandardCollectionPrices(),
             'catalog_products_updated' => $this->applyCatalogProductPrices(),
