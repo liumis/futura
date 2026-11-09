@@ -37,6 +37,7 @@ class ProductListDoubleClickCellEditTest extends TestCase
         $this->assertStringContainsString('data-ss-cell-field="color_name"', $html);
         $this->assertStringContainsString('data-ss-cell-field="color_code"', $html);
         $this->assertStringContainsString('data-ss-cell-field="product_code"', $html);
+        $this->assertStringContainsString('data-ss-cell-field="cost"', $html);
         $this->assertStringContainsString('data-ss-record-key="'.$product->id.'"', $html);
 
         Livewire::test(ListProducts::class)
@@ -62,6 +63,43 @@ class ProductListDoubleClickCellEditTest extends TestCase
             ])
             ->assertHasNoActionErrors();
         $this->assertSame('AG103-30', $product->fresh()?->product_code);
+
+        Livewire::test(ListProducts::class)
+            ->callAction('doubleClickCellEdit', data: ['value' => '2,70'], arguments: [
+                'recordKey' => (string) $product->id,
+                'field' => 'cost',
+            ])
+            ->assertHasNoActionErrors();
+        $this->assertSame(2.7, (float) $product->fresh()?->cost);
+    }
+
+    public function test_bootstrap_applies_standard_collection_and_catalog_prices(): void
+    {
+        $collection = Collection::factory()->create(['name' => 'Agnona', 'price' => 5]);
+        $color = Color::factory()->create([
+            'collection_id' => $collection->id,
+            'color_code' => 'KAT',
+            'color_name' => 'Catalog',
+        ]);
+        $typeId = \App\Models\ProductType::query()->where('key', 'catalog')->value('id')
+            ?? \App\Models\ProductType::query()->create([
+                'key' => 'catalog',
+                'name' => 'Catalog',
+            ])->id;
+
+        $catalog = Product::factory()->create([
+            'color_id' => $color->id,
+            'product_type_id' => $typeId,
+            'product_code' => '/AGNONA/KATALOGAI',
+            'cost' => 0,
+        ]);
+
+        $result = app(\App\Services\FuturaCustomerLevelBootstrap::class)->run();
+
+        $this->assertSame(6.9, (float) $collection->fresh()->price);
+        $this->assertSame(2.7, (float) $catalog->fresh()->cost);
+        $this->assertGreaterThanOrEqual(1, $result['collections_updated']);
+        $this->assertGreaterThanOrEqual(1, $result['catalog_products_updated']);
     }
 
     private function actingAsAdmin(): User

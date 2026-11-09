@@ -85,6 +85,33 @@ class ListProducts extends ListRecords
                     $record->update(['product_code' => $code]);
                 },
             ],
+            'cost' => [
+                'label' => 'Price',
+                'description' => 'Catalog / unit price stored on the product (Cost field). Double-click to edit.',
+                'form' => fn (): TextInput => TextInput::make('value')
+                    ->label('Price')
+                    ->required()
+                    ->rule(function () {
+                        return function (string $attribute, mixed $value, \Closure $fail): void {
+                            $normalized = is_string($value)
+                                ? str_replace([' ', ','], ['', '.'], trim($value))
+                                : $value;
+                            if (! is_numeric($normalized) || (float) $normalized < 0) {
+                                $fail('Enter a valid price (e.g. 2.70).');
+                            }
+                        };
+                    }),
+                'fill' => fn (Product $record): ?string => $record->cost !== null
+                    ? number_format((float) $record->cost, 2, '.', '')
+                    : null,
+                'save' => function (Product $record, mixed $value): void {
+                    if (is_string($value)) {
+                        $value = str_replace([' ', ','], ['', '.'], trim($value));
+                    }
+                    $price = (float) $this->doubleClickValidate($value, ['required', 'numeric', 'min:0']);
+                    $record->update(['cost' => round($price, 2)]);
+                },
+            ],
         ];
     }
 }

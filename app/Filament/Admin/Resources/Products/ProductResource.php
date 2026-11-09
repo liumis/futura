@@ -150,6 +150,15 @@ class ProductResource extends Resource
                     'product_code',
                 ),
 
+                DoubleClickCellEdit::enable(
+                    Tables\Columns\TextColumn::make('cost')
+                        ->label('Price')
+                        ->alignEnd()
+                        ->sortable()
+                        ->formatStateUsing(fn ($state): string => Money::format((float) ($state ?? 0), 2)),
+                    'cost',
+                ),
+
                 Tables\Columns\TextColumn::make('alternative_code')
                     ->searchable()
                     ->sortable()

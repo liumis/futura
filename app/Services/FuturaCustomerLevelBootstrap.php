@@ -5,6 +5,8 @@ namespace App\Services;
 use App\Models\Collection;
 use App\Models\CustomerLevel;
 use App\Models\CustomerLevelPrice;
+use App\Models\Product;
+use App\Models\ProductType;
 use App\Models\User;
 use Illuminate\Support\Str;
 
@@ -81,7 +83,28 @@ class FuturaCustomerLevelBootstrap
     ];
 
     /**
-     * @return array{c1_id: int, k_id: int, c1_assigned: int, k_assigned: int}
+     * Catalog (€/vnt) list prices from Darbai F → Katalogų kainos.
+     *
+     * @var array<string, float>
+     */
+    public const CATALOG_PRODUCT_PRICES = [
+        'Agnona' => 2.70,
+        'Argano' => 2.10,
+        'Borga' => 2.00,
+        'Paloma' => 2.10,
+        'Saramo' => 1.40,
+        'Segtuvas' => 3.00,
+    ];
+
+    /**
+     * @return array{
+     *     c1_id: int,
+     *     k_id: int,
+     *     c1_assigned: int,
+     *     k_assigned: int,
+     *     collections_updated: int,
+     *     catalog_products_updated: int
+     * }
      */
     public function run(): array
     {
@@ -96,7 +119,70 @@ class FuturaCustomerLevelBootstrap
             'k_id' => (int) $k->id,
             'c1_assigned' => $this->assignLevel($c1, self::C1_CUSTOMER_NEEDLES),
             'k_assigned' => $this->assignLevel($k, self::K_CUSTOMER_NEEDLES),
+            'collections_updated' => $this->applyStandardCollectionPrices(),
+            'catalog_products_updated' => $this->applyCatalogProductPrices(),
         ];
+    }
+
+    /**
+     * Set collection default sell prices from F kainoraštis (€/m).
+     */
+    public function applyStandardCollectionPrices(): int
+    {
+        $updated = 0;
+
+        foreach (self::C1_PRICES as $name => $price) {
+            $collection = Collection::query()
+                ->whereRaw('LOWER(name) = ?', [Str::lower($name)])
+                ->first();
+            if ($collection === null) {
+                continue;
+            }
+
+            if ((float) $collection->price === (float) $price) {
+                continue;
+            }
+
+            $collection->forceFill(['price' => $price])->save();
+            $updated++;
+        }
+
+        return $updated;
+    }
+
+    /**
+     * Set Catalog SKU unit prices (products.cost) from F katalogų kainos.
+     */
+    public function applyCatalogProductPrices(): int
+    {
+        $catalogTypeId = ProductType::query()->where('key', 'catalog')->value('id');
+        if ($catalogTypeId === null) {
+            return 0;
+        }
+
+        $updated = 0;
+
+        foreach (self::CATALOG_PRODUCT_PRICES as $collectionName => $price) {
+            $products = Product::query()
+                ->where('product_type_id', $catalogTypeId)
+                ->where(function ($query) use ($collectionName): void {
+                    $query->whereHas('color.collection', fn ($q) => $q->whereRaw('LOWER(name) = ?', [Str::lower($collectionName)]))
+                        ->orWhere('product_code', 'like', '%'.Str::upper($collectionName).'%')
+                        ->orWhere('alternative_code', 'like', '%'.Str::upper($collectionName).'%');
+                })
+                ->get();
+
+            foreach ($products as $product) {
+                if ((float) $product->cost === (float) $price) {
+                    continue;
+                }
+
+                $product->forceFill(['cost' => $price])->save();
+                $updated++;
+            }
+        }
+
+        return $updated;
     }
 
     /**
