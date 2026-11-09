@@ -4,99 +4,105 @@
     $currency = $currency ?? Money::currency();
 @endphp
 
-<div class="mb-4 space-y-4 text-sm">
-    <div class="grid gap-4 md:grid-cols-2">
-        <div class="space-y-1 text-gray-700 dark:text-gray-200">
-            <div class="text-base font-semibold text-gray-950 dark:text-white">
-                {{ $issuer['name'] ?: '—' }}
+<div class="invoice-edit-preview">
+    <div class="invoice-edit-preview__parties">
+        <div class="invoice-edit-preview__party">
+            <p class="invoice-edit-preview__eyebrow">Issuer</p>
+            <h3 class="invoice-edit-preview__name">{{ $issuer['name'] ?: '—' }}</h3>
+            <div class="invoice-edit-preview__meta">
+                @if (filled($issuer['companyId']))
+                    <span>Company {{ $issuer['companyId'] }}</span>
+                @endif
+                @if (filled($issuer['vat']))
+                    <span>VAT {{ $issuer['vat'] }}</span>
+                @endif
+                @if (filled($issuer['address']))
+                    <span>{{ $issuer['address'] }}</span>
+                @endif
+                @if (filled($issuer['email']))
+                    <span>{{ $issuer['email'] }}</span>
+                @endif
+                @if (filled($issuer['phone']))
+                    <span>{{ $issuer['phone'] }}</span>
+                @endif
             </div>
-            @if (filled($issuer['companyId']))
-                <div>Company code: {{ $issuer['companyId'] }}</div>
-            @endif
-            @if (filled($issuer['vat']))
-                <div>VAT code: {{ $issuer['vat'] }}</div>
-            @endif
-            @if (filled($issuer['address']))
-                <div>{{ $issuer['address'] }}</div>
-            @endif
-            @if (filled($issuer['email']))
-                <div>{{ $issuer['email'] }}</div>
-            @endif
-            @if (filled($issuer['phone']))
-                <div>{{ $issuer['phone'] }}</div>
-            @endif
         </div>
 
-        <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 space-y-1 text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200">
-            <div class="text-base font-semibold text-gray-950 dark:text-white">
-                {{ $customer['name'] ?: '—' }}
+        <div class="invoice-edit-preview__party invoice-edit-preview__party--accent">
+            <p class="invoice-edit-preview__eyebrow">Customer</p>
+            <h3 class="invoice-edit-preview__name">{{ $customer['name'] ?: '—' }}</h3>
+            <div class="invoice-edit-preview__meta">
+                @if (filled($customer['companyName']) && $customer['companyName'] !== $customer['name'])
+                    <span>{{ $customer['companyName'] }}</span>
+                @endif
+                @if (filled($customer['companyId']))
+                    <span>Company {{ $customer['companyId'] }}</span>
+                @endif
+                @if (filled($customer['vat']))
+                    <span>VAT {{ $customer['vat'] }}</span>
+                @endif
+                @if (filled($customer['address']))
+                    <span>{{ $customer['address'] }}</span>
+                @endif
+                @if (filled($customer['email']))
+                    <span>{{ $customer['email'] }}</span>
+                @endif
+                @if (filled($customer['phone']))
+                    <span>{{ $customer['phone'] }}</span>
+                @endif
             </div>
-            @if (filled($customer['companyName']) && $customer['companyName'] !== $customer['name'])
-                <div>{{ $customer['companyName'] }}</div>
-            @endif
-            @if (filled($customer['companyId']))
-                <div>Company code: {{ $customer['companyId'] }}</div>
-            @endif
-            @if (filled($customer['vat']))
-                <div>VAT code: {{ $customer['vat'] }}</div>
-            @endif
-            @if (filled($customer['address']))
-                <div>{{ $customer['address'] }}</div>
-            @endif
-            @if (filled($customer['email']))
-                <div>{{ $customer['email'] }}</div>
-            @endif
-            @if (filled($customer['phone']))
-                <div>{{ $customer['phone'] }}</div>
-            @endif
         </div>
     </div>
 
-    <div style="display:flex;flex-wrap:wrap;gap:0.75rem 2rem;margin:0.25rem 0 0.5rem;">
-        <div>
-            <span class="text-gray-500 dark:text-gray-400">Invoice no:</span>
-            <strong style="margin-left:0.35rem;">{{ $invoiceNumber }}</strong>
+    <div class="invoice-edit-preview__facts">
+        <div class="invoice-edit-preview__fact">
+            <span class="invoice-edit-preview__eyebrow">Invoice no</span>
+            <strong>{{ $invoiceNumber ?: '—' }}</strong>
         </div>
-        <div>
-            <span class="text-gray-500 dark:text-gray-400">Invoice date:</span>
-            <strong style="margin-left:0.35rem;">{{ $invoiceDate }}</strong>
+        <div class="invoice-edit-preview__fact">
+            <span class="invoice-edit-preview__eyebrow">Date</span>
+            <strong>{{ $invoiceDate ?: '—' }}</strong>
         </div>
-        <div>
-            <span class="text-gray-500 dark:text-gray-400">Currency:</span>
-            <strong style="margin-left:0.35rem;">{{ $currency }}</strong>
+        <div class="invoice-edit-preview__fact">
+            <span class="invoice-edit-preview__eyebrow">Currency</span>
+            <strong>{{ $currency }}</strong>
         </div>
         @if (filled($orderNumber))
-            <div>
-                <span class="text-gray-500 dark:text-gray-400">Order:</span>
-                <strong style="margin-left:0.35rem;">#{{ $orderNumber }}</strong>
+            <div class="invoice-edit-preview__fact">
+                <span class="invoice-edit-preview__eyebrow">Order</span>
+                <strong>#{{ $orderNumber }}</strong>
             </div>
         @endif
+        <div class="invoice-edit-preview__fact invoice-edit-preview__fact--total">
+            <span class="invoice-edit-preview__eyebrow">Total</span>
+            <strong>{{ Money::format($sumIncVat, 2, $currency) }}</strong>
+        </div>
     </div>
 
     @if (count($lines) > 0)
-        <div class="overflow-x-auto rounded-lg border border-gray-200 dark:border-gray-700">
-            <table class="min-w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-800">
-                    <tr class="text-left text-gray-600 dark:text-gray-300">
-                        <th class="px-3 py-2 font-medium">Collection</th>
-                        <th class="px-3 py-2 font-medium">Color</th>
-                        <th class="px-3 py-2 font-medium">Product code</th>
-                        <th class="px-3 py-2 font-medium">Size</th>
-                        <th class="px-3 py-2 font-medium text-right">Qty</th>
-                        <th class="px-3 py-2 font-medium text-right">Unit price</th>
-                        <th class="px-3 py-2 font-medium text-right">Total</th>
+        <div class="invoice-edit-preview__lines">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Collection</th>
+                        <th>Color</th>
+                        <th>Product code</th>
+                        <th>Size</th>
+                        <th class="is-num">Qty</th>
+                        <th class="is-num">Unit</th>
+                        <th class="is-num">Total</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($lines as $line)
-                        <tr class="border-t border-gray-100 dark:border-gray-700">
-                            <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $line['collection'] }}</td>
-                            <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $line['color'] }}</td>
-                            <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $line['product_code'] }}</td>
-                            <td class="px-3 py-2 text-gray-700 dark:text-gray-200">{{ $line['size'] }}</td>
-                            <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ $line['amount'] }}</td>
-                            <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ Money::format($line['unit_price'], 2, $currency) }}</td>
-                            <td class="px-3 py-2 text-right text-gray-700 dark:text-gray-200">{{ Money::format($line['line_total'], 2, $currency) }}</td>
+                        <tr>
+                            <td>{{ $line['collection'] }}</td>
+                            <td>{{ $line['color'] }}</td>
+                            <td>{{ $line['product_code'] }}</td>
+                            <td>{{ $line['size'] }}</td>
+                            <td class="is-num">{{ $line['amount'] }}</td>
+                            <td class="is-num">{{ Money::format($line['unit_price'], 2, $currency) }}</td>
+                            <td class="is-num">{{ Money::format($line['line_total'], 2, $currency) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -104,34 +110,32 @@
         </div>
     @endif
 
-    <div class="flex justify-end">
-        <div class="w-full max-w-xs overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
-            <table class="w-full text-sm">
-                <tbody>
-                    @if ($hasOrderTotals)
-                        <tr class="border-b border-gray-100 dark:border-gray-700">
-                            <td class="px-3 py-2 text-gray-600 dark:text-gray-300">Subtotal</td>
-                            <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($subtotal, 2, $currency) }}</td>
-                        </tr>
-                        <tr class="border-b border-gray-100 dark:border-gray-700">
-                            <td class="px-3 py-2 text-gray-600 dark:text-gray-300">Delivery</td>
-                            <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($shipping, 2, $currency) }}</td>
-                        </tr>
-                    @endif
-                    <tr class="border-b border-gray-100 dark:border-gray-700">
-                        <td class="px-3 py-2 text-gray-600 dark:text-gray-300">Sum without VAT</td>
-                        <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($sumWithoutVat, 2, $currency) }}</td>
+    <div class="invoice-edit-preview__totals">
+        <table>
+            <tbody>
+                @if ($hasOrderTotals)
+                    <tr>
+                        <td>Subtotal</td>
+                        <td class="is-num">{{ Money::format($subtotal, 2, $currency) }}</td>
                     </tr>
-                    <tr class="border-b border-gray-100 dark:border-gray-700">
-                        <td class="px-3 py-2 text-gray-600 dark:text-gray-300">VAT</td>
-                        <td class="px-3 py-2 text-right font-medium text-gray-900 dark:text-gray-100">{{ Money::format($vat, 2, $currency) }}</td>
+                    <tr>
+                        <td>Delivery</td>
+                        <td class="is-num">{{ Money::format($shipping, 2, $currency) }}</td>
                     </tr>
-                    <tr class="bg-gray-50 dark:bg-gray-800">
-                        <td class="px-3 py-2 font-semibold text-gray-900 dark:text-white">Total to pay</td>
-                        <td class="px-3 py-2 text-right font-semibold text-gray-900 dark:text-white">{{ Money::format($sumIncVat, 2, $currency) }}</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
+                @endif
+                <tr>
+                    <td>Sum without VAT</td>
+                    <td class="is-num">{{ Money::format($sumWithoutVat, 2, $currency) }}</td>
+                </tr>
+                <tr>
+                    <td>VAT</td>
+                    <td class="is-num">{{ Money::format($vat, 2, $currency) }}</td>
+                </tr>
+                <tr class="is-grand">
+                    <td>Total to pay</td>
+                    <td class="is-num">{{ Money::format($sumIncVat, 2, $currency) }}</td>
+                </tr>
+            </tbody>
+        </table>
     </div>
 </div>

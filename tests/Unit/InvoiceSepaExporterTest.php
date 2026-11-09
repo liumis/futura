@@ -60,6 +60,86 @@ class InvoiceSepaExporterTest extends TestCase
         $this->assertStringContainsString('<ReqdExctnDt>2026-08-28</ReqdExctnDt>', $xml);
     }
 
+    public function test_xml_accepts_partial_amount_override(): void
+    {
+        $iban = 'LT121000011101001000';
+        CompanySetting::query()->create([
+            'company_name' => 'UAB Test',
+            'company_iban' => $iban,
+            'company_bic' => 'AGBLLT2X',
+        ]);
+
+        $contact = Contact::query()->create([
+            'company_name' => 'Supplier UAB',
+            'company_id' => '123',
+            'company_address' => 'Vilnius',
+            'bank_account' => $iban,
+        ]);
+        $admin = User::factory()->create();
+        $invoice = Invoice::query()->create([
+            'contact_id' => $contact->getKey(),
+            'invoice_number' => 'SF-PARTIAL',
+            'invoice_date' => '2026-08-01',
+            'upload_date' => '2026-08-01',
+            'uploaded_by' => $admin->getKey(),
+            'pdf_path' => '',
+            'sum_without_vat' => 100,
+            'vat' => 21,
+            'sum_inc_vat' => 121,
+            'paid_amount' => 0,
+            'paid' => false,
+        ]);
+
+        $xml = app(InvoiceSepaExporter::class)->buildXml(
+            collect([$invoice]),
+            null,
+            Carbon::parse('2026-08-28'),
+            [(int) $invoice->getKey() => 40.50],
+        );
+
+        $this->assertStringContainsString('Ccy="EUR">40.50</InstdAmt>', $xml);
+        $this->assertStringContainsString('<Ustrd>SF-PARTIAL</Ustrd>', $xml);
+    }
+
+    public function test_xml_rejects_amount_above_outstanding(): void
+    {
+        $iban = 'LT121000011101001000';
+        CompanySetting::query()->create([
+            'company_name' => 'UAB Test',
+            'company_iban' => $iban,
+            'company_bic' => 'AGBLLT2X',
+        ]);
+
+        $contact = Contact::query()->create([
+            'company_name' => 'Supplier UAB',
+            'company_id' => '123',
+            'company_address' => 'Vilnius',
+            'bank_account' => $iban,
+        ]);
+        $admin = User::factory()->create();
+        $invoice = Invoice::query()->create([
+            'contact_id' => $contact->getKey(),
+            'invoice_number' => 'SF-OVER',
+            'invoice_date' => '2026-08-01',
+            'upload_date' => '2026-08-01',
+            'uploaded_by' => $admin->getKey(),
+            'pdf_path' => '',
+            'sum_without_vat' => 100,
+            'vat' => 21,
+            'sum_inc_vat' => 121,
+        ]);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('exceeds outstanding');
+
+        app(InvoiceSepaExporter::class)->buildXml(
+            collect([$invoice]),
+            null,
+            null,
+            [(int) $invoice->getKey() => 200],
+        );
+    }
+
     public function test_xml_requires_contact_iban(): void
     {
         CompanySetting::query()->create([

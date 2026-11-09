@@ -1,9 +1,16 @@
 <x-filament-panels::page>
     <div class="invoices-page">
-    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
+    <section class="invoices-panel invoices-panel--upload">
+        <header class="invoices-panel__header">
+            <div>
+                <p class="invoices-panel__eyebrow">Import</p>
+                <h2 class="invoices-panel__title">Upload invoices</h2>
+            </div>
+            <p class="invoices-panel__hint">Drop PDFs, then process — drafts stay private until you confirm.</p>
+        </header>
         <form
             wire:submit="importBulkUploads"
-            class="space-y-3"
+            class="invoices-panel__body space-y-3"
             x-data="invoiceBulkProcess"
             x-on:submit="importing = true"
             x-on:bulk-import-finished="importing = false; $nextTick(() => syncFromPond())"
@@ -16,7 +23,7 @@
 
             @if (filled($bulkImportFlash))
                 <div
-                    class="flex flex-col gap-3 rounded-lg border border-success-300 bg-success-50 px-3 py-3 text-sm text-success-800 dark:border-success-700 dark:bg-success-950/40 dark:text-success-200 sm:flex-row sm:items-center sm:justify-between"
+                    class="invoices-flash"
                     role="status"
                 >
                     <p class="min-w-0 flex-1">{{ $bulkImportFlash }}</p>
@@ -24,7 +31,7 @@
                         <x-filament::button
                             type="button"
                             size="sm"
-                            color="success"
+                            color="gray"
                             icon="heroicon-o-clipboard-document-check"
                             wire:click="showReviewQueue"
                         >
@@ -39,21 +46,21 @@
                             wire:loading.attr="disabled"
                             wire:target="refreshList"
                         >
-                            Refresh OCR progress
+                            Refresh OCR
                         </x-filament::button>
                     </div>
                 </div>
             @endif
 
-            <div class="flex flex-col items-stretch gap-3">
-                <p class="text-sm text-gray-500 dark:text-gray-400" x-text="statusText"></p>
+            <div class="flex flex-col items-stretch gap-2">
+                <p class="invoices-panel__status" x-text="statusText"></p>
                 <button
                     type="submit"
                     wire:loading.attr="disabled"
                     wire:target="importBulkUploads"
                     x-bind:disabled="! canProcess"
                     x-bind:class="canProcess ? 'is-ready' : 'is-blocked'"
-                    class="invoice-bulk-process-btn inline-flex w-full flex-row items-center justify-center gap-3 rounded-xl bg-primary-600 text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-primary-400/60"
+                    class="invoice-bulk-process-btn inline-flex w-full flex-row items-center justify-center gap-3 bg-primary-600 text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-[#EB8027]/
                 >
                     <span
                         x-show="importing"
@@ -81,7 +88,7 @@
                 </button>
             </div>
         </form>
-    </div>
+    </section>
 
     @script
     <script>
@@ -204,11 +211,13 @@
     </script>
     @endscript
 
-    <div class="mb-4 rounded-xl border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-900">
-        {{ $this->filtersForm }}
-
-        <div class="mt-3 flex flex-wrap items-center justify-between gap-2">
-            <div class="flex flex-wrap items-center gap-2">
+    <section class="invoices-panel invoices-panel--filters">
+        <header class="invoices-panel__header">
+            <div>
+                <p class="invoices-panel__eyebrow">Workspace</p>
+                <h2 class="invoices-panel__title">Filters &amp; payments</h2>
+            </div>
+            <div class="invoices-panel__actions">
                 <x-filament::button
                     type="button"
                     color="gray"
@@ -227,8 +236,6 @@
                 >
                     Reset
                 </x-filament::button>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
                 <x-filament::button
                     type="button"
                     color="primary"
@@ -236,7 +243,7 @@
                     wire:click="scanSuggestedPayments"
                     wire:loading.attr="disabled"
                 >
-                    Scan for payments
+                    Scan payments
                 </x-filament::button>
                 <x-filament::button
                     type="button"
@@ -246,15 +253,18 @@
                     wire:confirm="Link every invoice that currently has a suggested bank payment?"
                     wire:loading.attr="disabled"
                 >
-                    Confirm all suggested
+                    Confirm suggested
                 </x-filament::button>
             </div>
+        </header>
+        <div class="invoices-panel__body">
+            {{ $this->filtersForm }}
         </div>
-    </div>
+    </section>
 
     <div
         id="invoice-review-queue"
-        class="invoice-table-wrap invoices-table-wrap scroll-mt-4 rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900"
+        class="invoice-table-wrap invoices-table-wrap invoices-panel invoices-panel--table scroll-mt-4"
         x-on:scroll-to-review-queue.window="$el.scrollIntoView({ behavior: 'smooth', block: 'start' })"
     >
         @php
@@ -277,6 +287,7 @@
                 <col class="inv-col-sum" />
                 <col class="inv-col-sum" />
                 <col class="inv-col-paid" />
+                <col class="inv-col-pay" />
                 <col class="inv-col-bank" />
                 <col class="inv-col-category" />
                 <col class="inv-col-comment" />
@@ -401,6 +412,9 @@
                             @endif
                         </button>
                     </th>
+                    <th class="inv-th inv-th--num whitespace-nowrap" title="SEPA amount when selected. Defaults to remaining balance — edit for a partial payment.">
+                        Pay now
+                    </th>
                     <th class="inv-th">Bank</th>
                     <th class="inv-th">
                         <button
@@ -429,7 +443,7 @@
             <tbody class="bg-white dark:bg-gray-900">
                 @if ($invoices->isEmpty())
                     <tr>
-                        <td colspan="13" class="px-4 py-8 text-center text-gray-600 dark:text-gray-300">
+                        <td colspan="14" class="px-4 py-8 text-center text-gray-600 dark:text-gray-300">
                             @php
                                 $monthLabel = $this->selectedMonthLabel();
                             @endphp
@@ -582,8 +596,8 @@
                             </div>
                         </td>
                         <td class="inv-td inv-td--date">
-                            <div class="inv-date-stack">
-                                <span class="inv-date-stack__inv tabular-nums" title="Invoice date">
+                            <div class="inv-date-stack whitespace-nowrap">
+                                <span class="inv-date-stack__inv tabular-nums whitespace-nowrap" title="Invoice date">
                                     {{ optional($invoice->invoice_date)->format('Y-m-d') ?: '—' }}
                                 </span>
                             </div>
@@ -697,7 +711,7 @@
                                     title="{{ ($dueLabel ? 'Payment date '.$dueLabel.'. ' : '') }}{{ $termDays }}d term. Double-click to edit term (also updates supplier default)"
                                 >
                                     <span class="flex flex-col items-start gap-0.5 leading-tight">
-                                        <span class="tabular-nums font-semibold text-primary-700 dark:text-primary-300" x-text="dueDate || '—'">{{ $dueLabel ?: '—' }}</span>
+                                        <span class="tabular-nums whitespace-nowrap font-semibold text-primary-700 dark:text-primary-300" x-text="dueDate || '—'">{{ $dueLabel ?: '—' }}</span>
                                         <span class="text-[11px] tabular-nums text-gray-600 dark:text-gray-300">
                                             <span x-text="term + 'd'">{{ $termDays }}d</span>
                                             <span aria-hidden="true"> · </span>
@@ -798,6 +812,27 @@
                                 >
                                     Mark paid
                                 </button>
+                            @endif
+                        </td>
+                        <td class="inv-td inv-td--pay">
+                            @php
+                                $outstandingPay = $invoice->outstandingAmount();
+                                $rowSelected = in_array((string) $invoice->getKey(), array_map('strval', $this->selectedInvoiceIds), true);
+                            @endphp
+                            @if ($outstandingPay >= 0.01)
+                                <input
+                                    type="number"
+                                    min="0.01"
+                                    max="{{ $outstandingPay }}"
+                                    step="0.01"
+                                    wire:model.blur="paymentAmounts.{{ $invoice->getKey() }}"
+                                    {{ $rowSelected ? '' : 'disabled' }}
+                                    class="inv-pay-input"
+                                    title="SEPA amount (max {{ number_format($outstandingPay, 2, '.', '') }})"
+                                    placeholder="{{ number_format($outstandingPay, 2, '.', '') }}"
+                                />
+                            @else
+                                <span class="text-gray-400">—</span>
                             @endif
                         </td>
                         <td class="inv-td bs-invoice-cell">

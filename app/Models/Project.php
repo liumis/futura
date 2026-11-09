@@ -64,6 +64,11 @@ class Project extends Model
         return $this->hasMany(ProjectExpense::class);
     }
 
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
+    }
+
     public function label(): string
     {
         return "{$this->name} ({$this->code})";

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Filament\Admin\Pages\ReportsInvoicesChart;
+use App\Models\CompanySetting;
 use App\Models\Contact;
 use App\Models\Invoice;
 use App\Models\User;
@@ -31,7 +32,60 @@ class ReportsInvoicesChartTest extends TestCase
             ->assertSee('Counterpart')
             ->assertSee('Country')
             ->assertSee('Still to pay')
-            ->assertSee('Due date');
+            ->assertSee('Due date')
+            ->assertSee('Generate SEPA')
+            ->assertSee('Pay now');
+    }
+
+    public function test_chart_table_can_select_and_generate_partial_sepa(): void
+    {
+        $iban = 'LT121000011101001000';
+        CompanySetting::query()->create([
+            'company_name' => 'UAB Futura',
+            'company_iban' => $iban,
+            'company_bic' => 'AGBLLT2X',
+        ]);
+
+        $admin = $this->actingAsAdmin();
+        $contact = Contact::query()->create([
+            'company_name' => 'Supplier UAB',
+            'company_id' => '555',
+            'company_address' => 'Vilnius',
+            'company_country' => 'Lithuania',
+            'bank_account' => $iban,
+            'bank_bic' => 'AGBLLT2X',
+        ]);
+        $invoice = $this->makeInvoice($admin, $contact, [
+            'invoice_number' => 'INV-CHART-SEPA',
+            'invoice_date' => now()->subDays(10)->toDateString(),
+            'sum_inc_vat' => 121,
+            'paid_amount' => 21,
+            'paid' => false,
+            'payment_term' => 30,
+        ]);
+
+        $component = Livewire::test(ReportsInvoicesChart::class)
+            ->set('data.month', 'any')
+            ->set('data.from', null)
+            ->set('data.until', null)
+            ->set('data.date_basis', InvoicesChartReportBuilder::DATE_BASIS_DUE)
+            ->assertSee('INV-CHART-SEPA')
+            ->set('selectedInvoiceIds', [(string) $invoice->getKey()])
+            ->assertSet('paymentAmounts.'.((string) $invoice->getKey()), 100.0);
+
+        $this->assertSame(1, $component->instance()->selectedPayableCount());
+
+        $component
+            ->callAction('makeBankPayment', data: [
+                'payments' => [
+                    [
+                        'invoice_id' => $invoice->getKey(),
+                        'amount' => 55.25,
+                    ],
+                ],
+            ])
+            ->assertHasNoActionErrors()
+            ->assertFileDownloaded();
     }
 
     public function test_builder_groups_by_payment_due_date_for_cashflow(): void

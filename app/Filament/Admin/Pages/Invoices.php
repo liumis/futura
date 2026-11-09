@@ -13,6 +13,7 @@ use App\Models\Invoice;
 use App\Models\InvoiceCode;
 use App\Models\InvoiceFinanceLine;
 use App\Models\OriginCountry;
+use App\Models\Project;
 use App\Models\SharepointSetting;
 use App\Services\ActivityLogger;
 use App\Services\BankStatements\BankStatementInvoiceMatcher;
@@ -30,6 +31,7 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Checkbox;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Repeater\TableColumn;
@@ -42,6 +44,7 @@ use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Schemas\Components\Actions;
 use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Filament\Schemas\Components\View;
@@ -89,6 +92,13 @@ class Invoices extends Page implements HasForms
      * @var list<string>
      */
     public array $selectedInvoiceIds = [];
+
+    /**
+     * Partial SEPA amounts keyed by invoice id string.
+     *
+     * @var array<string, float|string|null>
+     */
+    public array $paymentAmounts = [];
 
     public bool $selectAllInvoices = false;
 
@@ -368,12 +378,69 @@ class Invoices extends Page implements HasForms
     {
         return Action::make('makeBankPayment')
             ->label(fn (): string => $this->selectedInvoiceCount() > 0
-                ? 'Make bank payment ('.$this->selectedInvoiceCount().')'
-                : 'Make bank payment')
+                ? 'Generate SEPA ('.$this->selectedInvoiceCount().')'
+                : 'Generate SEPA')
             ->icon('heroicon-o-banknotes')
             ->color('primary')
             ->disabled(fn (): bool => $this->selectedInvoiceCount() < 1)
-            ->action(fn (): mixed => $this->makeBankPayment());
+            ->modalHeading(fn (): string => 'Generate SEPA payment')
+            ->modalDescription('Amounts default to the remaining balance. Change an amount for a partial payment, then download the bank file.')
+            ->modalSubmitActionLabel('Download SEPA XML')
+            ->modalWidth('4xl')
+            ->fillForm(fn (): array => [
+                'payments' => $this->sepaPaymentFormRows(),
+            ])
+            ->schema([
+                Repeater::make('payments')
+                    ->label('Invoices to pay')
+                    ->helperText('Remove a row to skip that invoice. Amount cannot exceed the remaining balance.')
+                    ->table([
+                        TableColumn::make('Invoice'),
+                        TableColumn::make('Company'),
+                        TableColumn::make('Remaining')
+                            ->alignment(Alignment::End)
+                            ->width('8rem'),
+                        TableColumn::make('Pay now')
+                            ->alignment(Alignment::End)
+                            ->width('9rem'),
+                    ])
+                    ->schema([
+                        Hidden::make('invoice_id'),
+
+                        TextInput::make('invoice_number')
+                            ->label('Invoice')
+                            ->disabled()
+                            ->dehydrated(false),
+
+                        TextInput::make('company')
+                            ->label('Company')
+                            ->disabled()
+                            ->dehydrated(false),
+
+                        TextInput::make('outstanding')
+                            ->label('Remaining')
+                            ->disabled()
+                            ->dehydrated(false)
+                            ->prefix('€'),
+
+                        TextInput::make('amount')
+                            ->label('Pay now')
+                            ->numeric()
+                            ->minValue(0.01)
+                            ->step(0.01)
+                            ->required()
+                            ->prefix('€')
+                            ->extraInputAttributes(['class' => 'text-right']),
+                    ])
+                    ->defaultItems(0)
+                    ->addable(false)
+                    ->deletable()
+                    ->reorderable(false)
+                    ->columnSpanFull(),
+            ])
+            ->action(fn (array $data): mixed => $this->makeBankPayment(
+                is_array($data['payments'] ?? null) ? $data['payments'] : [],
+            ));
     }
 
     public function massMarkAsPaidAction(): Action
@@ -630,37 +697,93 @@ class Invoices extends Page implements HasForms
             ->count();
     }
 
-    public function makeBankPayment(): ?StreamedResponse
+    /**
+     * @return list<array{invoice_id: int, invoice_number: string, company: string, outstanding: float, amount: float}>
+     */
+    public function sepaPaymentFormRows(): array
     {
-        $ids = collect($this->selectedInvoiceIds)
-            ->map(fn ($id): int => (int) $id)
-            ->filter(fn (int $id): bool => $id > 0)
-            ->unique()
+        return $this->selectedInvoices(['contact'])
+            ->filter(fn (Invoice $invoice): bool => $invoice->outstandingAmount() > 0)
+            ->sortBy('id')
             ->values()
-            ->all();
+            ->map(function (Invoice $invoice): array {
+                $id = (int) $invoice->getKey();
+                $outstanding = $invoice->outstandingAmount();
+                $amount = round((float) ($this->paymentAmounts[(string) $id] ?? $outstanding), 2);
+                if ($amount <= 0) {
+                    $amount = $outstanding;
+                }
+                if ($amount > $outstanding) {
+                    $amount = $outstanding;
+                }
 
-        if ($ids === []) {
+                return [
+                    'invoice_id' => $id,
+                    'invoice_number' => app(InvoiceSepaExporter::class)->invoiceLabel($invoice),
+                    'company' => trim((string) ($invoice->contact?->company_name ?? '')) ?: '—',
+                    'outstanding' => $outstanding,
+                    'amount' => $amount,
+                ];
+            })
+            ->all();
+    }
+
+    /**
+     * @param  list<array{invoice_id?: mixed, amount?: mixed}>|null  $paymentRows
+     */
+    public function makeBankPayment(?array $paymentRows = null): ?StreamedResponse
+    {
+        $rows = collect($paymentRows ?? [])
+            ->map(function (array $row): ?array {
+                $invoiceId = (int) ($row['invoice_id'] ?? 0);
+                $amount = round((float) ($row['amount'] ?? 0), 2);
+
+                if ($invoiceId < 1 || $amount <= 0) {
+                    return null;
+                }
+
+                return [
+                    'invoice_id' => $invoiceId,
+                    'amount' => $amount,
+                ];
+            })
+            ->filter()
+            ->values();
+
+        if ($rows->isEmpty()) {
+            // Fallback: selected invoices at full outstanding (e.g. legacy callers).
+            $rows = collect($this->sepaPaymentFormRows())
+                ->map(fn (array $row): array => [
+                    'invoice_id' => (int) $row['invoice_id'],
+                    'amount' => (float) $row['amount'],
+                ])
+                ->values();
+        }
+
+        if ($rows->isEmpty()) {
             Notification::make()
-                ->title('No invoice selected')
-                ->body('Select at least one invoice, then try again.')
+                ->title('Nothing to pay')
+                ->body('Select unpaid invoices and set an amount greater than zero.')
                 ->warning()
                 ->send();
 
             return null;
         }
 
+        $ids = $rows->pluck('invoice_id')->unique()->values()->all();
+        $amountsByInvoiceId = $rows
+            ->mapWithKeys(fn (array $row): array => [(int) $row['invoice_id'] => (float) $row['amount']])
+            ->all();
+
         $invoices = Invoice::query()
             ->with('contact')
             ->whereIn('id', $ids)
             ->orderBy('id')
-            ->get()
-            ->filter(fn (Invoice $invoice): bool => $invoice->outstandingAmount() > 0)
-            ->values();
+            ->get();
 
         if ($invoices->isEmpty()) {
             Notification::make()
-                ->title('Nothing left to pay')
-                ->body('Selected invoices are already paid.')
+                ->title('No invoice selected')
                 ->warning()
                 ->send();
 
@@ -668,10 +791,15 @@ class Invoices extends Page implements HasForms
         }
 
         try {
-            $xml = app(InvoiceSepaExporter::class)->buildXml($invoices);
+            $xml = app(InvoiceSepaExporter::class)->buildXml(
+                $invoices,
+                null,
+                null,
+                $amountsByInvoiceId,
+            );
         } catch (Throwable $exception) {
             Notification::make()
-                ->title('Could not make bank payment')
+                ->title('Could not generate SEPA payment')
                 ->body($exception->getMessage())
                 ->danger()
                 ->send();
@@ -684,6 +812,7 @@ class Invoices extends Page implements HasForms
         ActivityLogger::logReportDownloaded('SEPA invoice payment', 'xml', properties: [
             'file_name' => $filename,
             'invoice_ids' => $invoices->modelKeys(),
+            'amounts' => $amountsByInvoiceId,
             'count' => $invoices->count(),
         ]);
 
@@ -1571,278 +1700,336 @@ class Invoices extends Page implements HasForms
                     })
                     ->columnSpanFull(),
 
-                Select::make('contact_id')
-                    ->label('Company / supplier')
-                    ->options(fn (): array => Contact::query()->orderBy('company_name')->pluck('company_name', 'id')->all())
-                    ->searchable()
-                    ->preload()
-                    ->required()
-                    ->native(false)
-                    ->live()
-                    ->afterStateUpdated(function (mixed $state, Set $set): void {
-                        $contact = Contact::query()->find($state);
-                        $set('private_provider', (bool) ($contact?->private_provider));
-                        $defaultCategory = $contact?->defaultFinanceTypeValue();
-                        if ($defaultCategory !== null) {
-                            $set('finance_type', $defaultCategory);
-                        }
-                    })
-                    ->columnSpanFull(),
-
-                TextInput::make('invoice_number')
-                    ->label('Invoice no')
-                    ->maxLength(255),
-
-                DatePicker::make('invoice_date')
-                    ->label('Invoice date')
-                    ->required()
-                    ->native(false),
-
-                TextInput::make('sum_without_vat')
-                    ->label('Sum without VAT')
-                    ->numeric()
-                    ->minValue(0)
-                    ->step(0.01)
-                    ->required(),
-
-                TextInput::make('vat')
-                    ->label('VAT')
-                    ->numeric()
-                    ->minValue(0)
-                    ->step(0.01)
-                    ->required(),
-
-                TextInput::make('sum_inc_vat')
-                    ->label('Sum inc. VAT')
-                    ->numeric()
-                    ->minValue(0)
-                    ->step(0.01)
-                    ->required()
-                    ->live(onBlur: true)
-                    ->afterStateUpdated(function (mixed $state, Get $get, Set $set): void {
-                        if (Invoice::amountsAreFullyPaid($get('paid_amount'), $state)) {
-                            $set('paid', true);
-                        }
-                        $this->syncInvoiceEuroConversionFields($get, $set);
-                    }),
-
-                $this->invoiceCurrencyFormField(),
-
-                ...$this->invoiceEuroConversionFormFields(),
-
-                Placeholder::make('existing_additional_documents')
-                    ->label('Additional documents')
-                    ->content(function (): HtmlString {
-                        $invoiceId = $this->mountedInvoiceId();
-                        if ($invoiceId === null) {
-                            return new HtmlString('<span class="text-sm text-gray-500">No files yet.</span>');
-                        }
-
-                        return $this->additionalDocumentsListHtml($this->resolveInvoiceRecord($invoiceId));
-                    })
-                    ->columnSpanFull(),
-
-                FileUpload::make('additional_documents')
-                    ->label('Add additional documents')
-                    ->multiple()
-                    ->acceptedFileTypes(self::additionalDocumentMimeTypes())
-                    ->maxSize(UploadLimits::MAX_KILOBYTES)
-                    ->disk('public')
-                    ->directory('invoices/additional')
-                    ->storeFileNamesIn('additional_document_names')
-                    ->helperText(UploadLimits::withExistingNote('CMR for export sales (abroad). Not required for LT. Existing files are kept on SharePoint.'))
-                    ->columnSpanFull(),
-
-                ...$this->invoicePaymentFormFields(
-                    fn (Get $get): float => round((float) ($get('sum_inc_vat') ?? $this->mountedInvoiceTotalToPay()), 2),
-                ),
-
-                Select::make('finance_type')
-                    ->label('Category')
-                    ->options(fn (): array => Invoice::financeCategorySelectOptions())
-                    ->searchable()
-                    ->preload()
-                    ->native(false)
-                    ->helperText('Sales invoices default to Income · Prekės. Own-account transfers use Savo sąskaita (neither income nor expense).'),
-
-                Checkbox::make('private_provider')
-                    ->label('Private provider')
-                    ->helperText('Include this invoice in GPM312.')
-                    ->inline(false),
-
-                Textarea::make('comment')
-                    ->label('Comment')
-                    ->rows(2)
-                    ->maxLength(1000)
-                    ->columnSpanFull(),
-
-                Actions::make([
-                    Action::make('addDefaultLines')
-                        ->label('Add default lines')
-                        ->icon('heroicon-o-queue-list')
-                        ->color('gray')
-                        ->button()
-                        ->action(function (Get $get, Set $set): void {
-                            $invoice = $this->resolveInvoiceRecord($this->mountedInvoiceId());
-                            $set('lines', InvoiceDefaultFinanceLines::buildForForm($invoice));
-
-            Notification::make()
-                                ->title('Default lines added')
-                                ->success()
-                ->send();
-                        }),
-
-                    Action::make('addExtraLine')
-                        ->label('Add line')
-                        ->icon('heroicon-o-plus')
-                        ->color('gray')
-                        ->button()
-                        ->action(function (Get $get, Set $set): void {
-                            $lines = $get('lines') ?? [];
-
-                            if (! is_array($lines)) {
-                                $lines = [];
-                            }
-
-                            $lines[(string) Str::uuid()] = [
-                                'name' => '',
-                                'invoice_code_id' => null,
-                                'name_select' => null,
-                                'debit' => 0,
-                                'credit' => 0,
-                            ];
-
-                            $set('lines', $lines);
-                        }),
-                ])->columnSpanFull(),
-
-                Repeater::make('lines')
-                    ->label('Lines')
-                    ->table([
-                        TableColumn::make('Code')
-                            ->width('9rem'),
-                        TableColumn::make('Name'),
-                        TableColumn::make('Debit')
-                            ->alignment(Alignment::End)
-                            ->width('9rem'),
-                        TableColumn::make('Credit')
-                            ->alignment(Alignment::End)
-                            ->width('9rem'),
-                    ])
+                Section::make('Assignment')
+                    ->description('Who the invoice belongs to, and optional project.')
                     ->schema([
-                        Select::make('invoice_code_id')
-                            ->label('Code')
-                            ->options(fn (): array => $this->invoiceCodeOptionsByCode())
-                            ->getSearchResultsUsing(fn (string $search): array => $this->invoiceCodeOptionsByCode($search))
+                        Select::make('contact_id')
+                            ->label('Company / supplier')
+                            ->options(fn (): array => Contact::query()->orderBy('company_name')->pluck('company_name', 'id')->all())
+                            ->searchable()
+                            ->preload()
+                            ->required()
+                            ->native(false)
+                            ->live()
+                            ->afterStateUpdated(function (mixed $state, Set $set): void {
+                                $contact = Contact::query()->find($state);
+                                $set('private_provider', (bool) ($contact?->private_provider));
+                                $defaultCategory = $contact?->defaultFinanceTypeValue();
+                                if ($defaultCategory !== null) {
+                                    $set('finance_type', $defaultCategory);
+                                }
+                            }),
+
+                        Select::make('project_id')
+                            ->label('Project')
+                            ->options(function (Get $get): array {
+                                $selectedId = filled($get('project_id')) ? (int) $get('project_id') : null;
+
+                                return Project::query()
+                                    ->orderBy('name')
+                                    ->where(function ($query) use ($selectedId): void {
+                                        $query->where('archived', false);
+                                        if ($selectedId !== null && $selectedId > 0) {
+                                            $query->orWhere('id', $selectedId);
+                                        }
+                                    })
+                                    ->get()
+                                    ->mapWithKeys(fn (Project $project): array => [
+                                        $project->getKey() => $project->label(),
+                                    ])
+                                    ->all();
+                            })
                             ->getOptionLabelUsing(fn ($value): ?string => filled($value)
-                                ? (string) InvoiceCode::query()->whereKey($value)->value('code')
+                                ? Project::query()->find($value)?->label()
                                 : null)
                             ->searchable()
                             ->preload()
-                            ->native(false)
-                            ->live()
-                            ->extraAttributes(function (Get $get): array {
-                                $id = $get('invoice_code_id');
-                                $name = filled($id)
-                                    ? InvoiceCode::query()->whereKey($id)->value('name')
-                                    : null;
-
-                                return filled($name)
-                                    ? ['class' => 'invoice-code-select', 'title' => (string) $name]
-                                    : ['class' => 'invoice-code-select'];
-                            })
-                            ->afterStateUpdated(function (?int $state, Set $set): void {
-                                $this->syncInvoiceCodeSelections($state, $set);
-                            }),
-
-                        Select::make('name_select')
-                            ->label('Name')
-                            ->options(fn (): array => $this->invoiceCodeOptionsByName())
-                            ->getSearchResultsUsing(fn (string $search): array => $this->invoiceCodeOptionsByName($search))
-                            ->getOptionLabelUsing(fn ($value): ?string => filled($value)
-                                ? (string) InvoiceCode::query()->whereKey($value)->value('name')
-                                : null)
-                            ->searchable()
-                            ->preload()
-                            ->native(false)
-                            ->live()
-                            ->dehydrated(false)
-                            ->extraAttributes(function (Get $get): array {
-                                $id = $get('name_select') ?: $get('invoice_code_id');
-                                $code = filled($id)
-                                    ? InvoiceCode::query()->whereKey($id)->value('code')
-                                    : null;
-
-                                return filled($code)
-                                    ? ['class' => 'invoice-name-select', 'title' => (string) $code]
-                                    : ['class' => 'invoice-name-select'];
-                            })
-                            ->afterStateUpdated(function (?int $state, Set $set): void {
-                                $this->syncInvoiceCodeSelections($state, $set);
-                            }),
-
-                        TextInput::make('debit')
-                            ->label('Debit')
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.01)
-                            ->default(0)
-                            ->live(onBlur: true)
-                            ->extraInputAttributes(['class' => 'text-right']),
-
-                        TextInput::make('credit')
-                            ->label('Credit')
-                            ->numeric()
-                            ->minValue(0)
-                            ->step(0.01)
-                            ->default(0)
-                            ->live(onBlur: true)
-                            ->extraInputAttributes(['class' => 'text-right']),
+                            ->nullable()
+                            ->placeholder('None')
+                            ->native(false),
                     ])
-                    ->defaultItems(1)
-                    ->reorderable()
-                    ->addable()
-                    ->deletable()
-                    ->addActionLabel('Add line')
+                    ->columns(2)
                     ->columnSpanFull(),
 
-                Placeholder::make('totals')
-                    ->hiddenLabel()
-                    ->content(function (Get $get): HtmlString {
-                        [$creditTotal, $debitTotal, $balanced] = $this->financeLineTotals($get('lines') ?? []);
-                        $valid = $balanced;
+                Section::make('Invoice')
+                    ->description('Number, date, and amounts.')
+                    ->schema([
+                        TextInput::make('invoice_number')
+                            ->label('Invoice no')
+                            ->maxLength(255),
 
-                        $debitLabel = number_format($debitTotal, 2, ',', ' ');
-                        $creditLabel = number_format($creditTotal, 2, ',', ' ');
-                        $rowClass = $valid
-                            ? 'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                            : 'bg-danger-50 text-danger-700 dark:bg-danger-950 dark:text-danger-300';
+                        DatePicker::make('invoice_date')
+                            ->label('Invoice date')
+                            ->required()
+                            ->native(false),
 
-                        $messages = [];
-                        if (! $balanced) {
-                            $messages[] = 'Debit and credit totals must be equal.';
-                        }
+                        TextInput::make('sum_without_vat')
+                            ->label('Sum without VAT')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->required(),
 
-                        return new HtmlString(
-                            '<div class="overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">'
-                            .'<table class="w-full text-sm">'
-                            .'<tr class="'.$rowClass.'">'
-                            .'<td class="w-9 px-3 py-2"></td>'
-                            .'<td class="w-36 px-3 py-2 font-semibold"></td>'
-                            .'<td class="px-3 py-2 font-semibold">TOTAL</td>'
-                            .'<td class="w-36 px-3 py-2 text-right font-semibold tabular-nums">'.$debitLabel.'</td>'
-                            .'<td class="w-36 px-3 py-2 text-right font-semibold tabular-nums">'.$creditLabel.'</td>'
-                            .'<td class="w-10 px-2 py-2"></td>'
-                            .'</tr>'
-                            .'</table>'
-                            .($messages === []
-                                ? ''
-                                : '<div class="border-t border-danger-200 px-3 py-2 text-xs font-medium text-danger-600 dark:border-danger-800 dark:text-danger-400">'
-                                    .implode(' ', $messages)
-                                    .'</div>')
-                            .'</div>'
-                        );
-                    })
+                        TextInput::make('vat')
+                            ->label('VAT')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->required(),
+
+                        TextInput::make('sum_inc_vat')
+                            ->label('Sum inc. VAT')
+                            ->numeric()
+                            ->minValue(0)
+                            ->step(0.01)
+                            ->required()
+                            ->live(onBlur: true)
+                            ->afterStateUpdated(function (mixed $state, Get $get, Set $set): void {
+                                if (Invoice::amountsAreFullyPaid($get('paid_amount'), $state)) {
+                                    $set('paid', true);
+                                }
+                                $this->syncInvoiceEuroConversionFields($get, $set);
+                            }),
+
+                        $this->invoiceCurrencyFormField(),
+
+                        ...array_map(
+                            static fn ($field) => $field->visible(fn (Get $get): bool => Currency::normalize(
+                                is_string($get('currency') ?? null) ? (string) $get('currency') : null,
+                            ) !== 'EUR'),
+                            $this->invoiceEuroConversionFormFields(),
+                        ),
+                    ])
+                    ->columns(3)
+                    ->columnSpanFull(),
+
+                Section::make('Payment')
+                    ->description('Due term and settlement.')
+                    ->schema([
+                        ...$this->invoicePaymentFormFields(
+                            fn (Get $get): float => round((float) ($get('sum_inc_vat') ?? $this->mountedInvoiceTotalToPay()), 2),
+                        ),
+                    ])
+                    ->columns(3)
+                    ->columnSpanFull(),
+
+                Section::make('Classification')
+                    ->description('Finance category and notes.')
+                    ->schema([
+                        Select::make('finance_type')
+                            ->label('Category')
+                            ->options(fn (): array => Invoice::financeCategorySelectOptions())
+                            ->searchable()
+                            ->preload()
+                            ->native(false),
+
+                        Checkbox::make('private_provider')
+                            ->label('Private provider (GPM312)')
+                            ->inline(false),
+
+                        Textarea::make('comment')
+                            ->label('Comment')
+                            ->rows(2)
+                            ->maxLength(1000)
+                            ->columnSpanFull(),
+                    ])
+                    ->columns(2)
+                    ->columnSpanFull(),
+
+                Section::make('Documents')
+                    ->description('CMR and other attachments. Existing SharePoint files are kept.')
+                    ->schema([
+                        Placeholder::make('existing_additional_documents')
+                            ->label('On file')
+                            ->content(function (): HtmlString {
+                                $invoiceId = $this->mountedInvoiceId();
+                                if ($invoiceId === null) {
+                                    return new HtmlString('<span class="text-sm text-gray-500">No files yet.</span>');
+                                }
+
+                                return $this->additionalDocumentsListHtml($this->resolveInvoiceRecord($invoiceId));
+                            })
+                            ->columnSpanFull(),
+
+                        FileUpload::make('additional_documents')
+                            ->label('Add files')
+                            ->multiple()
+                            ->acceptedFileTypes(self::additionalDocumentMimeTypes())
+                            ->maxSize(UploadLimits::MAX_KILOBYTES)
+                            ->disk('public')
+                            ->directory('invoices/additional')
+                            ->storeFileNamesIn('additional_document_names')
+                            ->columnSpanFull(),
+                    ])
+                    ->collapsed()
+                    ->columnSpanFull(),
+
+                Section::make('Ledger')
+                    ->description('Debit and credit lines must balance.')
+                    ->schema([
+                        Actions::make([
+                            Action::make('addDefaultLines')
+                                ->label('Add default lines')
+                                ->icon('heroicon-o-queue-list')
+                                ->color('gray')
+                                ->button()
+                                ->action(function (Get $get, Set $set): void {
+                                    $invoice = $this->resolveInvoiceRecord($this->mountedInvoiceId());
+                                    $set('lines', InvoiceDefaultFinanceLines::buildForForm($invoice));
+
+                                    Notification::make()
+                                        ->title('Default lines added')
+                                        ->success()
+                                        ->send();
+                                }),
+
+                            Action::make('addExtraLine')
+                                ->label('Add line')
+                                ->icon('heroicon-o-plus')
+                                ->color('gray')
+                                ->button()
+                                ->action(function (Get $get, Set $set): void {
+                                    $lines = $get('lines') ?? [];
+
+                                    if (! is_array($lines)) {
+                                        $lines = [];
+                                    }
+
+                                    $lines[(string) Str::uuid()] = [
+                                        'name' => '',
+                                        'invoice_code_id' => null,
+                                        'name_select' => null,
+                                        'debit' => 0,
+                                        'credit' => 0,
+                                    ];
+
+                                    $set('lines', $lines);
+                                }),
+                        ])->columnSpanFull(),
+
+                        Repeater::make('lines')
+                            ->label('Lines')
+                            ->table([
+                                TableColumn::make('Code')
+                                    ->width('9rem'),
+                                TableColumn::make('Name'),
+                                TableColumn::make('Debit')
+                                    ->alignment(Alignment::End)
+                                    ->width('9rem'),
+                                TableColumn::make('Credit')
+                                    ->alignment(Alignment::End)
+                                    ->width('9rem'),
+                            ])
+                            ->schema([
+                                Select::make('invoice_code_id')
+                                    ->label('Code')
+                                    ->options(fn (): array => $this->invoiceCodeOptionsByCode())
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->invoiceCodeOptionsByCode($search))
+                                    ->getOptionLabelUsing(fn ($value): ?string => filled($value)
+                                        ? (string) InvoiceCode::query()->whereKey($value)->value('code')
+                                        : null)
+                                    ->searchable()
+                                    ->preload()
+                                    ->native(false)
+                                    ->live()
+                                    ->extraAttributes(function (Get $get): array {
+                                        $id = $get('invoice_code_id');
+                                        $name = filled($id)
+                                            ? InvoiceCode::query()->whereKey($id)->value('name')
+                                            : null;
+
+                                        return filled($name)
+                                            ? ['class' => 'invoice-code-select', 'title' => (string) $name]
+                                            : ['class' => 'invoice-code-select'];
+                                    })
+                                    ->afterStateUpdated(function (?int $state, Set $set): void {
+                                        $this->syncInvoiceCodeSelections($state, $set);
+                                    }),
+
+                                Select::make('name_select')
+                                    ->label('Name')
+                                    ->options(fn (): array => $this->invoiceCodeOptionsByName())
+                                    ->getSearchResultsUsing(fn (string $search): array => $this->invoiceCodeOptionsByName($search))
+                                    ->getOptionLabelUsing(fn ($value): ?string => filled($value)
+                                        ? (string) InvoiceCode::query()->whereKey($value)->value('name')
+                                        : null)
+                                    ->searchable()
+                                    ->preload()
+                                    ->native(false)
+                                    ->live()
+                                    ->dehydrated(false)
+                                    ->extraAttributes(function (Get $get): array {
+                                        $id = $get('name_select') ?: $get('invoice_code_id');
+                                        $code = filled($id)
+                                            ? InvoiceCode::query()->whereKey($id)->value('code')
+                                            : null;
+
+                                        return filled($code)
+                                            ? ['class' => 'invoice-name-select', 'title' => (string) $code]
+                                            : ['class' => 'invoice-name-select'];
+                                    })
+                                    ->afterStateUpdated(function (?int $state, Set $set): void {
+                                        $this->syncInvoiceCodeSelections($state, $set);
+                                    }),
+
+                                TextInput::make('debit')
+                                    ->label('Debit')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->default(0)
+                                    ->live(onBlur: true)
+                                    ->extraInputAttributes(['class' => 'text-right']),
+
+                                TextInput::make('credit')
+                                    ->label('Credit')
+                                    ->numeric()
+                                    ->minValue(0)
+                                    ->step(0.01)
+                                    ->default(0)
+                                    ->live(onBlur: true)
+                                    ->extraInputAttributes(['class' => 'text-right']),
+                            ])
+                            ->defaultItems(1)
+                            ->reorderable()
+                            ->addable()
+                            ->deletable()
+                            ->addActionLabel('Add line')
+                            ->columnSpanFull(),
+
+                        Placeholder::make('totals')
+                            ->hiddenLabel()
+                            ->content(function (Get $get): HtmlString {
+                                [$creditTotal, $debitTotal, $balanced] = $this->financeLineTotals($get('lines') ?? []);
+
+                                $debitLabel = number_format($debitTotal, 2, ',', ' ');
+                                $creditLabel = number_format($creditTotal, 2, ',', ' ');
+                                $rowClass = $balanced
+                                    ? 'invoice-ledger-total invoice-ledger-total--ok'
+                                    : 'invoice-ledger-total invoice-ledger-total--bad';
+
+                                $messages = [];
+                                if (! $balanced) {
+                                    $messages[] = 'Debit and credit totals must be equal.';
+                                }
+
+                                return new HtmlString(
+                                    '<div class="invoice-ledger-totals">'
+                                    .'<table class="w-full text-sm">'
+                                    .'<tr class="'.$rowClass.'">'
+                                    .'<td class="px-3 py-2 font-semibold tracking-wide">TOTAL</td>'
+                                    .'<td class="w-36 px-3 py-2 text-right font-semibold tabular-nums">'.$debitLabel.'</td>'
+                                    .'<td class="w-36 px-3 py-2 text-right font-semibold tabular-nums">'.$creditLabel.'</td>'
+                                    .'</tr>'
+                                    .'</table>'
+                                    .($messages === []
+                                        ? ''
+                                        : '<div class="invoice-ledger-totals__msg">'.implode(' ', $messages).'</div>')
+                                    .'</div>'
+                                );
+                            })
+                            ->columnSpanFull(),
+                    ])
                     ->columnSpanFull(),
             ])
             ->fillForm(function (array $arguments): array {
@@ -1862,6 +2049,7 @@ class Invoices extends Page implements HasForms
 
                 return [
                     'contact_id' => $invoice->contact_id,
+                    'project_id' => $invoice->project_id,
                     'invoice_number' => $invoice->invoice_number,
                     'invoice_date' => optional($invoice->invoice_date)?->toDateString(),
                     'sum_without_vat' => (float) $invoice->sum_without_vat,
@@ -1926,6 +2114,7 @@ class Invoices extends Page implements HasForms
                     DB::transaction(function () use ($invoice, $lines, $data, $category, $invoiceNumber, $wasDraft, &$published): void {
                         $invoice->forceFill([
                             'contact_id' => filled($data['contact_id'] ?? null) ? (int) $data['contact_id'] : null,
+                            'project_id' => filled($data['project_id'] ?? null) ? (int) $data['project_id'] : null,
                             'invoice_number' => $invoiceNumber,
                             'invoice_date' => $data['invoice_date'] ?? $invoice->invoice_date,
                             'sum_without_vat' => round((float) ($data['sum_without_vat'] ?? 0), 2),
@@ -2821,6 +3010,7 @@ class Invoices extends Page implements HasForms
         if ($listedIds === []) {
             $this->selectAllInvoices = false;
             $this->selectedInvoiceIds = [];
+            $this->paymentAmounts = [];
 
             return;
         }
@@ -2836,6 +3026,7 @@ class Invoices extends Page implements HasForms
         if ($selected === collect($listedIds)->sort()->values()->all()) {
             $this->selectAllInvoices = false;
             $this->selectedInvoiceIds = [];
+            $this->paymentAmounts = [];
 
             return;
         }
@@ -2845,6 +3036,7 @@ class Invoices extends Page implements HasForms
             $listedIds,
         );
         $this->selectAllInvoices = true;
+        $this->syncPaymentAmountsForSelection();
     }
 
     public function updatedSelectAllInvoices(mixed $value): void
@@ -2854,11 +3046,13 @@ class Invoices extends Page implements HasForms
                 static fn (int $id): string => (string) $id,
                 $this->listedInvoiceIds(),
             );
+            $this->syncPaymentAmountsForSelection();
 
             return;
         }
 
         $this->selectedInvoiceIds = [];
+        $this->paymentAmounts = [];
     }
 
     public function updatedSelectedInvoiceIds(): void
@@ -2876,6 +3070,49 @@ class Invoices extends Page implements HasForms
 
         $this->selectAllInvoices = $listedIds !== []
             && count($this->selectedInvoiceIds) === count($listedIds);
+
+        $this->syncPaymentAmountsForSelection();
+    }
+
+    private function syncPaymentAmountsForSelection(): void
+    {
+        $selectedIds = collect($this->selectedInvoiceIds)
+            ->map(fn ($id): int => (int) $id)
+            ->filter(fn (int $id): bool => $id > 0)
+            ->unique()
+            ->values()
+            ->all();
+
+        $this->paymentAmounts = collect($this->paymentAmounts)
+            ->filter(fn ($amount, $key): bool => in_array((int) $key, $selectedIds, true))
+            ->all();
+
+        if ($selectedIds === []) {
+            return;
+        }
+
+        $outstandingById = Invoice::query()
+            ->whereIn('id', $selectedIds)
+            ->get(['id', 'sum_inc_vat', 'paid_amount', 'paid'])
+            ->mapWithKeys(fn (Invoice $invoice): array => [
+                (string) $invoice->getKey() => $invoice->outstandingAmount(),
+            ]);
+
+        foreach ($selectedIds as $id) {
+            $key = (string) $id;
+            $outstanding = round((float) ($outstandingById[$key] ?? 0), 2);
+            if ($outstanding <= 0) {
+                unset($this->paymentAmounts[$key]);
+
+                continue;
+            }
+
+            if (! array_key_exists($key, $this->paymentAmounts)
+                || $this->paymentAmounts[$key] === null
+                || $this->paymentAmounts[$key] === '') {
+                $this->paymentAmounts[$key] = $outstanding;
+            }
+        }
     }
 
     public function updatedFilters(): void
@@ -2895,6 +3132,7 @@ class Invoices extends Page implements HasForms
         $this->filters = $filters;
         $this->filtersForm->fill($filters);
         $this->selectedInvoiceIds = [];
+        $this->paymentAmounts = [];
         $this->selectAllInvoices = false;
         $this->includePaymentSuggestions = false;
         $this->sortColumn = 'upload_date';

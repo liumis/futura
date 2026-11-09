@@ -1,5 +1,7 @@
 <x-filament-panels::page>
-    @php($report = $this->report())
+    @php
+        $report = $this->report();
+    @endphp
 
     <section class="fi-report-filters">
         <div class="fi-report-filters__header">
@@ -76,10 +78,36 @@
         @endif
     </div>
 
-    <div class="invoice-table-wrap mt-6 overflow-x-auto rounded-xl border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+    <div class="invoice-table-wrap mt-6 overflow-x-auto border border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-900">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/40">
+            <div>
+                <p class="text-[10px] font-medium uppercase tracking-[0.14em] text-gray-500">Payments</p>
+                <p class="text-sm text-gray-700 dark:text-gray-200">
+                    @if ($this->selectedPayableCount() >= 1)
+                        {{ $this->selectedPayableCount() }} selected · edit Pay now for partial SEPA
+                    @else
+                        Tick unpaid invoices, then Generate SEPA
+                    @endif
+                </p>
+            </div>
+            <div>
+                {{ $this->makeBankPaymentAction }}
+            </div>
+        </div>
+
         <table class="invoice-table invoices-chart-table min-w-full table-auto text-sm">
             <thead class="bg-gray-50 dark:bg-gray-800">
                 <tr>
+                    <th class="w-10 px-3 py-3 text-left">
+                        <input
+                            type="checkbox"
+                            class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                            wire:click="toggleSelectAllPayable"
+                            {{ $this->selectAllPayable && count($this->payableRows()) >= 1 ? 'checked' : '' }}
+                            {{ count($this->payableRows()) === 0 ? 'disabled' : '' }}
+                            title="Select all unpaid"
+                        />
+                    </th>
                     <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Number</th>
                     <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Invoice date</th>
                     <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Company</th>
@@ -87,16 +115,36 @@
                     <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200">Status</th>
                     <th class="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-200">Sum</th>
                     <th class="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-200">Still to pay</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-700 dark:text-gray-200 whitespace-nowrap">Pay now</th>
                     <th class="px-4 py-3 text-left font-medium text-gray-700 dark:text-gray-200"></th>
                 </tr>
             </thead>
             <tbody class="bg-white dark:bg-gray-900">
                 @forelse (($report['rows'] ?? []) as $row)
+                    @php
+                        $rowId = (int) ($row['id'] ?? 0);
+                        $outstanding = round((float) ($row['outstanding'] ?? 0), 2);
+                        $payable = $outstanding >= 0.01;
+                        $selected = in_array($rowId, array_map('intval', $this->selectedInvoiceIds), true);
+                        $url = $this->rowUrl($row);
+                    @endphp
                     <tr @class([
                         'even:bg-gray-50 dark:even:bg-gray-800/40',
+                        'bg-warning-50/40 dark:bg-warning-950/20' => $selected,
                     ])>
+                        <td class="px-3 py-3">
+                            @if ($payable)
+                                <input
+                                    type="checkbox"
+                                    value="{{ $rowId }}"
+                                    wire:model.live="selectedInvoiceIds"
+                                    class="rounded border-gray-300 text-primary-600 shadow-sm focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800"
+                                />
+                            @else
+                                <span class="inline-block w-4"></span>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 text-gray-700 dark:text-gray-200">
-                            @php($url = $this->rowUrl($row))
                             @if (filled($url))
                                 <a href="{{ $url }}" class="font-medium text-primary-600 hover:underline dark:text-primary-400">
                                     {{ $row['number'] }}
@@ -119,17 +167,33 @@
                             {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) ($row['amount'] ?? 0)) }}
                         </td>
                         <td class="px-4 py-3 text-right tabular-nums font-medium text-gray-900 dark:text-gray-100">
-                            {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) ($row['outstanding'] ?? 0)) }}
+                            {{ \App\Services\InvoicesChartReportBuilder::formatEuro($outstanding) }}
+                        </td>
+                        <td class="px-4 py-3 text-right">
+                            @if ($payable)
+                                <input
+                                    type="number"
+                                    min="0.01"
+                                    max="{{ $outstanding }}"
+                                    step="0.01"
+                                    wire:model.blur="paymentAmounts.{{ $rowId }}"
+                                    {{ $selected ? '' : 'disabled' }}
+                                    class="w-28 border border-gray-300 bg-white px-2 py-1 text-right tabular-nums text-sm text-gray-900 shadow-sm focus:border-primary-500 focus:ring-primary-500 disabled:bg-gray-50 disabled:text-gray-400 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
+                                    title="Payment amount for SEPA (max {{ number_format($outstanding, 2, '.', '') }})"
+                                />
+                            @else
+                                <span class="text-gray-400">—</span>
+                            @endif
                         </td>
                         <td class="px-4 py-3">
-                            @if ($row['late'] ?? false)
+                            @if (! empty($row['late']))
                                 <span class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide bg-red-600 text-white">Late</span>
                             @endif
                         </td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
+                        <td colspan="10" class="px-4 py-6 text-center text-gray-500 dark:text-gray-400">
                             No invoices for these filters.
                         </td>
                     </tr>
@@ -138,13 +202,14 @@
             @if (($report['rows'] ?? []) !== [])
                 <tfoot class="bg-gray-50 dark:bg-gray-800">
                     <tr>
-                        <th class="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white" colspan="5">Total</th>
+                        <th class="px-4 py-3 text-left font-semibold text-gray-900 dark:text-white" colspan="6">Total</th>
                         <th class="px-4 py-3 text-right tabular-nums font-semibold text-gray-900 dark:text-white">
                             {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) $report['grand_total']) }}
                         </th>
                         <th class="px-4 py-3 text-right tabular-nums font-semibold text-gray-900 dark:text-white">
                             {{ \App\Services\InvoicesChartReportBuilder::formatEuro((float) ($report['due_to_pay_total'] ?? $report['outstanding_total'])) }}
                         </th>
+                        <th></th>
                         <th></th>
                     </tr>
                 </tfoot>

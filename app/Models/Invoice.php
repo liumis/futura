@@ -19,6 +19,7 @@ class Invoice extends Model
      */
     protected $fillable = [
         'contact_id',
+        'project_id',
         'order_id',
         'invoice_series_id',
         'series_number',
@@ -210,6 +211,11 @@ class Invoice extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(Contact::class);
+    }
+
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
     }
 
     /**

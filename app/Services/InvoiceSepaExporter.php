@@ -16,11 +16,13 @@ class InvoiceSepaExporter
 
     /**
      * @param  Collection<int, Invoice>  $invoices
+     * @param  array<int, float>  $amountsByInvoiceId  Optional per-invoice payment amounts (partial/full). Defaults to outstanding.
      */
     public function buildXml(
         Collection $invoices,
         ?CompanySetting $company = null,
         ?Carbon $executionDate = null,
+        array $amountsByInvoiceId = [],
     ): string {
         if ($invoices->isEmpty()) {
             throw new RuntimeException('Select at least one invoice.');
@@ -31,15 +33,16 @@ class InvoiceSepaExporter
         foreach ($invoices as $invoice) {
             $invoice->loadMissing('contact');
             $contact = $invoice->contact;
+            $invoiceId = (int) $invoice->getKey();
 
             if ($contact === null) {
-                throw new RuntimeException('Invoice #'.$invoice->getKey().' has no company.');
+                throw new RuntimeException('Invoice #'.$invoiceId.' has no company.');
             }
 
             $name = trim((string) $contact->company_name);
 
             if ($name === '') {
-                throw new RuntimeException('Company name is missing for invoice #'.$invoice->getKey().'.');
+                throw new RuntimeException('Company name is missing for invoice #'.$invoiceId.'.');
             }
 
             $iban = $this->sepa->normalizeIban((string) ($contact->bank_account ?? ''));
@@ -54,16 +57,31 @@ class InvoiceSepaExporter
                 throw new RuntimeException('Bank account is invalid for '.$name.'.');
             }
 
-            $amount = $invoice->outstandingAmount();
+            $outstanding = $invoice->outstandingAmount();
+            $amount = array_key_exists($invoiceId, $amountsByInvoiceId)
+                ? round((float) $amountsByInvoiceId[$invoiceId], 2)
+                : $outstanding;
 
             if ($amount <= 0) {
+                throw new RuntimeException(
+                    'Payment amount must be greater than zero for invoice '.$this->invoiceLabel($invoice).'.',
+                );
+            }
+
+            if ($outstanding <= 0) {
                 throw new RuntimeException(
                     'Nothing left to pay on invoice '.$this->invoiceLabel($invoice).'.',
                 );
             }
 
+            if ($amount > $outstanding + 0.001) {
+                throw new RuntimeException(
+                    'Amount '.$amount.' exceeds outstanding '.$outstanding.' on invoice '.$this->invoiceLabel($invoice).'.',
+                );
+            }
+
             $transactions[] = [
-                'id' => (int) $invoice->getKey(),
+                'id' => $invoiceId,
                 'name' => $name,
                 'iban' => $iban,
                 'bic' => $this->sepa->normalizeBic((string) ($contact->bank_bic ?? '')),

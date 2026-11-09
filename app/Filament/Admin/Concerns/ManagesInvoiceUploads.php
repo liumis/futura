@@ -55,8 +55,7 @@ trait ManagesInvoiceUploads
                 ->numeric()
                 ->step(0.000001)
                 ->readOnly()
-                ->dehydrated()
-                ->helperText('Foreign units per 1 EUR (from Currencies list at save).'),
+                ->dehydrated(),
 
             TextInput::make('sum_inc_vat_eur')
                 ->label('Total (EUR)')
@@ -107,8 +106,7 @@ trait ManagesInvoiceUploads
                 ->integer()
                 ->minValue(0)
                 ->default(Invoice::DEFAULT_PAYMENT_TERM_DAYS)
-                ->suffix('days')
-                ->helperText('Days until payment is due. Default is '.Invoice::DEFAULT_PAYMENT_TERM_DAYS.' days.'),
+                ->suffix('days'),
 
             TextInput::make('paid_amount')
                 ->label('Paid amount')
@@ -124,7 +122,7 @@ trait ManagesInvoiceUploads
                 }),
 
             Checkbox::make('paid')
-                ->label('Paid')
+                ->label('Paid in full')
                 ->inline(false)
                 ->live()
                 ->afterStateUpdated(function (mixed $state, Get $get, Set $set) use ($resolveTotal): void {
