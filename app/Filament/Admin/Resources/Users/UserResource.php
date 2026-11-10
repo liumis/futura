@@ -20,6 +20,7 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
 use Filament\Schemas\Schema;
 use Filament\Tables;
+use Filament\Tables\Enums\FiltersLayout;
 use Filament\Tables\Filters\Filter;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
@@ -415,6 +416,9 @@ class UserResource extends Resource
                         return ['Name: '.$data['q']];
                     }),
             ])
+            ->filtersLayout(FiltersLayout::AboveContent)
+            ->filtersFormColumns(5)
+            ->deferFilters(false)
             ->persistFiltersInSession()
             ->persistSearchInSession()
             ->recordActions([
