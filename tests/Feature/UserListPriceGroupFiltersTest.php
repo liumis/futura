@@ -50,25 +50,26 @@ class UserListPriceGroupFiltersTest extends TestCase
         $staff->assignRole(User::ROLE_MANAGER);
 
         $list = Livewire::test(ListUsers::class);
-        $this->assertStringContainsString('Price group', $list->html());
+        $html = $list->html();
+        $this->assertStringContainsString('Price group', $html);
+        $this->assertStringContainsString('Type: All', $html);
+        $this->assertStringContainsString('Country: All', $html);
 
+        // Default type filter is Customer.
         $list
-            ->filterTable('party_type', 'customer')
             ->assertCanSeeTableRecords([$customerLt, $customerIt])
             ->assertCanNotSeeTableRecords([$staff])
-            ->resetTableFilters()
             ->filterTable('party_type', 'staff')
             ->assertCanSeeTableRecords([$staff])
             ->assertCanNotSeeTableRecords([$customerLt, $customerIt])
-            ->resetTableFilters()
+            ->filterTable('party_type', null)
             ->filterTable('customer_level_id', (string) $v->id)
             ->assertCanSeeTableRecords([$customerIt])
-            ->assertCanNotSeeTableRecords([$customerLt, $staff])
-            ->resetTableFilters()
+            ->assertCanNotSeeTableRecords([$customerLt])
+            ->filterTable('customer_level_id', null)
             ->filterTable('company_country', 'Lithuania')
             ->assertCanSeeTableRecords([$customerLt])
-            ->assertCanNotSeeTableRecords([$customerIt, $staff])
-            ->resetTableFilters()
+            ->assertCanNotSeeTableRecords([$customerIt])
             ->call('updateTableColumnState', 'customer_level_id', (string) $customerLt->id, (string) $v->id);
 
         $this->assertSame($v->id, $customerLt->fresh()?->customer_level_id);

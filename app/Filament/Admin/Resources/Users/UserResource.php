@@ -332,11 +332,13 @@ class UserResource extends Resource
             ])
             ->filters([
                 SelectFilter::make('party_type')
-                    ->label('Type')
+                    ->label('')
+                    ->placeholder('Type: All')
                     ->options([
-                        'customer' => 'Customer',
-                        'staff' => 'Staff',
+                        'customer' => 'Type: Customer',
+                        'staff' => 'Type: Staff',
                     ])
+                    ->default('customer')
                     ->native(false)
                     ->query(function (Builder $query, array $data): void {
                         $value = $data['value'] ?? null;
@@ -355,7 +357,8 @@ class UserResource extends Resource
                     }),
 
                 SelectFilter::make('roles')
-                    ->label('Role')
+                    ->label('')
+                    ->placeholder('Role: All')
                     ->relationship(
                         'roles',
                         'name',
@@ -369,25 +372,27 @@ class UserResource extends Resource
                     ->native(false),
 
                 SelectFilter::make('customer_level_id')
-                    ->label('Price group')
+                    ->label('')
+                    ->placeholder('Price group: All')
                     ->relationship('customerLevel', 'name')
                     ->searchable()
                     ->preload()
                     ->native(false),
 
                 SelectFilter::make('company_country')
-                    ->label('Country')
+                    ->label('')
+                    ->placeholder('Country: All')
                     ->options(fn (): array => OriginCountry::options())
                     ->searchable()
                     ->preload()
                     ->native(false),
 
                 Filter::make('name_surname')
-                    ->label('Name')
+                    ->label('')
                     ->schema([
                         Forms\Components\TextInput::make('q')
-                            ->label('Name')
-                            ->placeholder('Search name, surname or company…'),
+                            ->label('')
+                            ->placeholder('Name / company…'),
                     ])
                     ->query(function (Builder $query, array $data): void {
                         $q = trim((string) ($data['q'] ?? ''));
