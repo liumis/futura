@@ -363,16 +363,18 @@ class Stock extends Page implements HasTable
                 ->icon('heroicon-o-arrow-up-tray')
                 ->color('primary')
                 ->requiresConfirmation()
-                ->modalHeading('Update stock from Excel')
+                ->modalHeading('Update stock from Excel / PDF')
                 ->modalDescription('Sets current stock from an external warehouse balances file (Prekė / Kiekis). Leather titles (Dirbtinė oda) create or update products; other rows are catalogs. Leather quantities in meters are converted to rolls using the size from the title. Product codes and costs are updated. Rows below “PAVYZDŽIŲ - Pavyzdžių sandėlis” update Reservations instead of warehouse stock.')
                 ->modalSubmitActionLabel('Update stock')
                 ->form([
                     UploadLimits::apply(
                         FileUpload::make('file')
-                            ->label('Excel file')
+                            ->label('Excel or PDF file')
                             ->acceptedFileTypes([
                                 '.xls',
                                 '.xlsx',
+                                '.pdf',
+                                'application/pdf',
                                 'application/vnd.ms-excel',
                                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                 'application/octet-stream',
@@ -384,7 +386,7 @@ class Stock extends Page implements HasTable
                             ->directory('stock-excel-imports')
                             ->visibility('private')
                             ->required(),
-                        'Classic .xls or .xlsx from the external system. Leather is matched or created from the title (collection, color, size). Other rows become catalogs.',
+                        'Classic .xls / .xlsx or Likučiai PDF from the external system. Leather is matched or created from the title (collection, color, size). Other rows become catalogs.',
                     ),
                 ])
                 ->action(function (array $data): void {

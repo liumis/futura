@@ -21,6 +21,7 @@ class ExternalStockImporter
     public function __construct(
         protected ExternalStockExcelParser $parser = new ExternalStockExcelParser,
         protected ExternalStockTitleParser $titles = new ExternalStockTitleParser,
+        protected ExternalStockPdfParser $pdfParser = new ExternalStockPdfParser,
     ) {}
 
     /**
@@ -38,8 +39,12 @@ class ExternalStockImporter
     public function import(string $path, ?string $fileName = null, ?int $userId = null): array
     {
         $fileName = $fileName ?: basename($path);
+        $extension = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+        $rows = $extension === 'pdf'
+            ? $this->pdfParser->parse($path)
+            : $this->parser->parse($path);
 
-        return $this->importFromRows($this->parser->parse($path), $fileName, $userId);
+        return $this->importFromRows($rows, $fileName, $userId);
     }
 
     /**

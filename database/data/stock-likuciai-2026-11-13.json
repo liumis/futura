@@ -1,0 +1,2663 @@
+{
+    "source": "Likučiai futura 2026.11.13.pdf",
+    "as_of": "2026-11-13",
+    "generated_at": "2026-11-14T11:39:11+00:00",
+    "row_count": 295,
+    "rows": [
+        {
+            "code": "//SEGTUVAS.",
+            "name": "Segtuvas",
+            "quantity": 282,
+            "unit": "VNT",
+            "price": 4.25,
+            "row": 1,
+            "section": "stock"
+        },
+        {
+            "code": "/AGNONA/KATALOGAI",
+            "name": "Katalogas Agnona",
+            "quantity": 945,
+            "unit": "VNT",
+            "price": 4.47,
+            "row": 2,
+            "section": "stock"
+        },
+        {
+            "code": "/ARGANO/KATALOGAI",
+            "name": "Katalogas Argano",
+            "quantity": 800,
+            "unit": "VNT",
+            "price": 3.81,
+            "row": 3,
+            "section": "stock"
+        },
+        {
+            "code": "/BORGA/KATALOGAI",
+            "name": "Katalogas Borga",
+            "quantity": 855,
+            "unit": "VNT",
+            "price": 3.58,
+            "row": 4,
+            "section": "stock"
+        },
+        {
+            "code": "/PALOMA/KATALOGAI",
+            "name": "Katalogas Paloma",
+            "quantity": 1120,
+            "unit": "VNT",
+            "price": 4.13,
+            "row": 5,
+            "section": "stock"
+        },
+        {
+            "code": "/SARAMO/KATALOGAI",
+            "name": "Katalogas Saramo",
+            "quantity": 1125,
+            "unit": "VNT",
+            "price": 3.05,
+            "row": 6,
+            "section": "stock"
+        },
+        {
+            "code": "25229E106STARFISH30",
+            "name": "Dirbtinė oda  25229E 106-STARFISH 30m PALOMA",
+            "quantity": 30,
+            "unit": "M",
+            "price": 4.74,
+            "row": 7,
+            "section": "stock"
+        },
+        {
+            "code": "25229E107KHAKI30",
+            "name": "Dirbtinė oda  25229E 107-KHAKI 30m PALOMA",
+            "quantity": 120,
+            "unit": "M",
+            "price": 4.74,
+            "row": 8,
+            "section": "stock"
+        },
+        {
+            "code": "25229E121BLACK30",
+            "name": "Dirbtinė oda  25229E 121-BLACK 30m PALOMA",
+            "quantity": 30,
+            "unit": "M",
+            "price": 4.74,
+            "row": 9,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA101WHITE30",
+            "name": "Dirbtinė oda  AGNONA 101-WHITE 30m",
+            "quantity": 1200,
+            "unit": "M",
+            "price": 5.06,
+            "row": 10,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA102ARCTIC30",
+            "name": "Dirbtinė oda  AGNONA 102-ARCTIC 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 5.71,
+            "row": 11,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA104OATMEALC30",
+            "name": "Dirbtinė oda  AGNONA 104-OATMEAL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 11.46,
+            "row": 12,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA105PARCHMENT30",
+            "name": "Dirbtinė oda  AGNONA 105-PARCHMENT 30m",
+            "quantity": 660,
+            "unit": "M",
+            "price": 5.4,
+            "row": 13,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA106BONE30",
+            "name": "Dirbtinė oda  AGNONA 106-BONE 30m",
+            "quantity": 300,
+            "unit": "M",
+            "price": 4.9,
+            "row": 14,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA107STARFISH30",
+            "name": "Dirbtinė oda  AGNONA 107-STARFISH 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 4.9,
+            "row": 15,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA108SAFARI30",
+            "name": "Dirbtinė oda  AGNONA 108-SAFARI 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 4.79,
+            "row": 16,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA109COFFEE30",
+            "name": "Dirbtinė oda  AGNONA 109-COFFEE 30m",
+            "quantity": 720,
+            "unit": "M",
+            "price": 5.46,
+            "row": 17,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA111COBBLE30",
+            "name": "Dirbtinė oda  AGNONA 111-COBBLESTONE 30m",
+            "quantity": 570,
+            "unit": "M",
+            "price": 4.9,
+            "row": 18,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA112TAUPE30",
+            "name": "Dirbtinė oda  AGNONA 112-TAUPE 30m",
+            "quantity": 120,
+            "unit": "M",
+            "price": 4.79,
+            "row": 19,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA113DESERT30",
+            "name": "Dirbtinė oda  AGNONA 113-DESERT 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.95,
+            "row": 20,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA114COCOA30",
+            "name": "Dirbtinė oda  AGNONA 114-COCOA 30m",
+            "quantity": 60,
+            "unit": "M",
+            "price": 4.95,
+            "row": 21,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA115FOXTROT30",
+            "name": "Dirbtinė oda  AGNONA 115-FOXTROT 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 4.77,
+            "row": 22,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA116ADOBE30",
+            "name": "Dirbtinė oda  AGNONA 116-ADOBE 30m",
+            "quantity": 60,
+            "unit": "M",
+            "price": 4.77,
+            "row": 23,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA117CHESTNUT30",
+            "name": "Dirbtinė oda  AGNONA 117-CHESTNUT 30m",
+            "quantity": 60,
+            "unit": "M",
+            "price": 4.77,
+            "row": 24,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA118MUSTANG30",
+            "name": "Dirbtinė oda  AGNONA 118-MUSTANG 30m",
+            "quantity": 630,
+            "unit": "M",
+            "price": 4.9,
+            "row": 25,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA119MOCCA30",
+            "name": "Dirbtinė oda  AGNONA 119-MOCCA 30m",
+            "quantity": 30,
+            "unit": "M",
+            "price": 4.79,
+            "row": 26,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA120MULCH30",
+            "name": "Dirbtinė oda  AGNONA 120-MULCH 30m",
+            "quantity": 450,
+            "unit": "M",
+            "price": 4.89,
+            "row": 27,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA121BLACK30",
+            "name": "Dirbtinė oda  AGNONA 121-BLACK 30m",
+            "quantity": 2730,
+            "unit": "M",
+            "price": 4.92,
+            "row": 28,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA122SHADOW30",
+            "name": "Dirbtinė oda  AGNONA 122-SHADOW 30m",
+            "quantity": 630,
+            "unit": "M",
+            "price": 4.92,
+            "row": 29,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA123OWL30",
+            "name": "Dirbtinė oda  AGNONA 123-OWL 30m",
+            "quantity": 180,
+            "unit": "M",
+            "price": 4.79,
+            "row": 30,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA125MONUMENT30",
+            "name": "Dirbtinė oda  AGNONA 125-MONUMENT 30m",
+            "quantity": 30,
+            "unit": "M",
+            "price": 4.76,
+            "row": 31,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA126SHARK30",
+            "name": "Dirbtinė oda  AGNONA 126-SHARK 30m",
+            "quantity": 30,
+            "unit": "M",
+            "price": 4.79,
+            "row": 32,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA127MOON30",
+            "name": "Dirbtinė oda  AGNONA 127-MOON 30m",
+            "quantity": 630,
+            "unit": "M",
+            "price": 4.94,
+            "row": 33,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA131SKY30",
+            "name": "Dirbtinė oda  AGNONA 131-SKY 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.95,
+            "row": 34,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA132BLUE26",
+            "name": "Dirbtinė oda  AGNONA 132-BLUE 26m",
+            "quantity": 26,
+            "unit": "M",
+            "price": 4.77,
+            "row": 35,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA132BLUE30",
+            "name": "Dirbtinė oda  AGNONA 132-BLUE 30m",
+            "quantity": 570,
+            "unit": "M",
+            "price": 5.01,
+            "row": 36,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA133NAUTIC30",
+            "name": "Dirbtinė oda  AGNONA 133-NAUTIC 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 4.77,
+            "row": 37,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA134SPACE30",
+            "name": "Dirbtinė oda  AGNONA 134-SPACE 30m",
+            "quantity": 120,
+            "unit": "M",
+            "price": 4.77,
+            "row": 38,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA135NAVY30",
+            "name": "Dirbtinė oda  AGNONA 135-NAVY 30m",
+            "quantity": 450,
+            "unit": "M",
+            "price": 4.92,
+            "row": 39,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA141FLOW30",
+            "name": "Dirbtinė oda  AGNONA 141-FLOW 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.89,
+            "row": 40,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA142TURQUOISE30",
+            "name": "Dirbtinė oda  AGNONA 142-TURQUOISE 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.95,
+            "row": 41,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA143VIRIDIAN30",
+            "name": "Dirbtinė oda  AGNONA 143-VIRIDIAN 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.79,
+            "row": 42,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA144SPRUCE30",
+            "name": "Dirbtinė oda  AGNONA 144-SPRUCE 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.95,
+            "row": 43,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA145GREEN30",
+            "name": "Dirbtinė oda  AGNONA 145-GREEN 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 4.95,
+            "row": 44,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA146CALLISTE30",
+            "name": "Dirbtinė oda  AGNONA 146-CALLISTE 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.95,
+            "row": 45,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA147LENTIL30",
+            "name": "Dirbtinė oda  AGNONA 147-LENTIL 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 4.95,
+            "row": 46,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA151GOLDFINCH30",
+            "name": "Dirbtinė oda  AGNONA 151-GOLDFINCH 30m",
+            "quantity": 300,
+            "unit": "M",
+            "price": 4.95,
+            "row": 47,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA152MIMOSA30",
+            "name": "Dirbtinė oda  AGNONA 152-MIMOSA 30m",
+            "quantity": 300,
+            "unit": "M",
+            "price": 4.95,
+            "row": 48,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA161ORANGE30",
+            "name": "Dirbtinė oda  AGNONA 161-ORANGE 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 4.95,
+            "row": 49,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA162RUST30",
+            "name": "Dirbtinė oda  AGNONA 162-RUST 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 4.95,
+            "row": 50,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA171RUBY30",
+            "name": "Dirbtinė oda  AGNONA 171-RUBY 30m",
+            "quantity": 540,
+            "unit": "M",
+            "price": 4.85,
+            "row": 51,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA172AURORA30",
+            "name": "Dirbtinė oda  AGNONA 172-AURORA 30m",
+            "quantity": 180,
+            "unit": "M",
+            "price": 4.79,
+            "row": 52,
+            "section": "stock"
+        },
+        {
+            "code": "AGNONA173ROSE30",
+            "name": "Dirbtinė oda  AGNONA 173-ROSE 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 4.77,
+            "row": 53,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO101ARCTIC30",
+            "name": "Dirbtinė oda  ARGANO 101-ARCTIC 30m",
+            "quantity": 720,
+            "unit": "M",
+            "price": 5.19,
+            "row": 54,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO102CREAM30",
+            "name": "Dirbtinė oda  ARGANO 102-CREAM 30m",
+            "quantity": 480,
+            "unit": "M",
+            "price": 6.7,
+            "row": 55,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO103OATMEAL30",
+            "name": "Dirbtinė oda  ARGANO 103-OATMEAL 30m",
+            "quantity": 840,
+            "unit": "M",
+            "price": 5.12,
+            "row": 56,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO104GRAVEL30",
+            "name": "Dirbtinė oda  ARGANO 104-GRAVEL 30m",
+            "quantity": 120,
+            "unit": "M",
+            "price": 5.05,
+            "row": 57,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO105TAN30",
+            "name": "Dirbtinė oda  ARGANO 105-TAN 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 5.18,
+            "row": 58,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO106STARFISH30",
+            "name": "Dirbtinė oda  ARGANO 106-STARFISH 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 5.22,
+            "row": 59,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO107MINK30",
+            "name": "Dirbtinė oda  ARGANO 107-MINK 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 5.03,
+            "row": 60,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO111TAUPE30",
+            "name": "Dirbtinė oda  ARGANO 111-TAUPE 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 5.18,
+            "row": 61,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO112MULCH30",
+            "name": "Dirbtinė oda  ARGANO 112-MULCH 30m",
+            "quantity": 420,
+            "unit": "M",
+            "price": 5.05,
+            "row": 62,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO113MOCCA30",
+            "name": "Dirbtinė oda  ARGANO 113-MOCCA 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 5.1,
+            "row": 63,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO121BLACK30",
+            "name": "Dirbtinė oda  ARGANO 121-BLACK 30m",
+            "quantity": 480,
+            "unit": "M",
+            "price": 5.18,
+            "row": 64,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO122CARBON30",
+            "name": "Dirbtinė oda  ARGANO 122-CARBON 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 5.06,
+            "row": 65,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO123SHADOW30",
+            "name": "Dirbtinė oda  ARGANO 123-SHADOW 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 5.05,
+            "row": 66,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO124STEEL25",
+            "name": "Dirbtinė oda  ARGANO 124-STEEL 25m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.05,
+            "row": 67,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO124STEEL30",
+            "name": "Dirbtinė oda  ARGANO 124-STEEL 30m",
+            "quantity": 720,
+            "unit": "M",
+            "price": 5.17,
+            "row": 68,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO125ELEPHANT30",
+            "name": "Dirbtinė oda  ARGANO 125-ELEPHANT 30m",
+            "quantity": 570,
+            "unit": "M",
+            "price": 6.52,
+            "row": 69,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO126HARBOR30",
+            "name": "Dirbtinė oda  ARGANO 126-HARBOR 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 5.07,
+            "row": 70,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO131SEA30",
+            "name": "Dirbtinė oda  ARGANO 131-SEA 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 5.59,
+            "row": 71,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO132SKYDIVER30",
+            "name": "Dirbtinė oda  ARGANO 132-SKYDIVER 30m",
+            "quantity": 360,
+            "unit": "M",
+            "price": 5.04,
+            "row": 72,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO133POSEIDON30",
+            "name": "Dirbtinė oda  ARGANO 133-POSEIDON 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 5.22,
+            "row": 73,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO134ORION30",
+            "name": "Dirbtinė oda  ARGANO 134-ORION 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 5.01,
+            "row": 74,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO135DRAGONFLY30",
+            "name": "Dirbtinė oda  ARGANO 135-DRAGONFLY 30m",
+            "quantity": 60,
+            "unit": "M",
+            "price": 5.01,
+            "row": 75,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO141LIME30",
+            "name": "Dirbtinė oda  ARGANO 141-LIME 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 5.14,
+            "row": 76,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO142OLIVE30",
+            "name": "Dirbtinė oda  ARGANO 142-OLIVE 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 5.16,
+            "row": 77,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO161PECAN30",
+            "name": "Dirbtinė oda  ARGANO 161-PECAN 30m",
+            "quantity": 540,
+            "unit": "M",
+            "price": 6.82,
+            "row": 78,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO162AUTUMN24",
+            "name": "Dirbtinė oda  ARGANO 162-AUTUMN 24m",
+            "quantity": 24,
+            "unit": "M",
+            "price": 5.05,
+            "row": 79,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO162AUTUMN30",
+            "name": "Dirbtinė oda  ARGANO 162-AUTUMN 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 5.18,
+            "row": 80,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO171GOJI30",
+            "name": "Dirbtinė oda  ARGANO 171-GOJI 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 5.3,
+            "row": 81,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO172MERLOT27",
+            "name": "Dirbtinė oda  ARGANO 172-MERLOT 27 m",
+            "quantity": 27,
+            "unit": "M",
+            "price": 5.22,
+            "row": 82,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO172MERLOT30",
+            "name": "Dirbtinė oda  ARGANO 172-MERLOT 30m",
+            "quantity": 450,
+            "unit": "M",
+            "price": 5.15,
+            "row": 83,
+            "section": "stock"
+        },
+        {
+            "code": "ARGANO181ACAI30",
+            "name": "Dirbtinė oda  ARGANO 181-ACAI 30m",
+            "quantity": 60,
+            "unit": "M",
+            "price": 5.01,
+            "row": 84,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA101WHITE30",
+            "name": "Dirbtinė oda  BORGA 101-WHITE 30 m",
+            "quantity": 750,
+            "unit": "M",
+            "price": 3.66,
+            "row": 85,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA102VANILLA30",
+            "name": "Dirbtinė oda  BORGA 102-VANILLA 30m",
+            "quantity": 870,
+            "unit": "M",
+            "price": 3.62,
+            "row": 86,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA103BEIGE30",
+            "name": "Dirbtinė oda  BORGA 103-BEIGE 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 3.58,
+            "row": 87,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA104SAFARI30",
+            "name": "Dirbtinė oda  BORGA 104-SAFARI 30m",
+            "quantity": 420,
+            "unit": "M",
+            "price": 3.46,
+            "row": 88,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA105OAK28",
+            "name": "Dirbtinė oda  BORGA 105-OAK 28m",
+            "quantity": 28,
+            "unit": "M",
+            "price": 3.49,
+            "row": 89,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA105OAK30",
+            "name": "Dirbtinė oda  BORGA 105-OAK 30m",
+            "quantity": 300,
+            "unit": "M",
+            "price": 3.47,
+            "row": 90,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA106PEBBLE30",
+            "name": "Dirbtinė oda  BORGA 106-PEBBLE 30m",
+            "quantity": 90,
+            "unit": "M",
+            "price": 3.41,
+            "row": 91,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA107TEAK30",
+            "name": "Dirbtinė oda  BORGA 107-TEAK 30m",
+            "quantity": 210,
+            "unit": "M",
+            "price": 3.41,
+            "row": 92,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA111CAMEL25",
+            "name": "Dirbtinė oda  BORGA 111-CAMEL 25 m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.58,
+            "row": 93,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA111CAMEL30",
+            "name": "Dirbtinė oda  BORGA 111-CAMEL 30m",
+            "quantity": 180,
+            "unit": "M",
+            "price": 3.58,
+            "row": 94,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA112TOBACCO30",
+            "name": "Dirbtinė oda  BORGA 112-TOBACCO 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 3.4,
+            "row": 95,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA113COGNAC30",
+            "name": "Dirbtinė oda  BORGA 113-COGNAC 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.05,
+            "row": 96,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA114NUTMEG30",
+            "name": "Dirbtinė oda  BORGA 114-NUTMEG 30m",
+            "quantity": 75,
+            "unit": "M",
+            "price": 8.15,
+            "row": 97,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA115MOCCA30",
+            "name": "Dirbtinė oda  BORGA 115-MOCCA 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 3.47,
+            "row": 98,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA121BLACK30",
+            "name": "Dirbtinė oda  BORGA 121-BLACK 30m",
+            "quantity": 4140,
+            "unit": "M",
+            "price": 3.59,
+            "row": 99,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA122COAL27",
+            "name": "Dirbtinė oda  BORGA 122-COAL 27m",
+            "quantity": 27,
+            "unit": "M",
+            "price": 3.58,
+            "row": 100,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA122COAL30",
+            "name": "Dirbtinė oda  BORGA 122-COAL 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 3.58,
+            "row": 101,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA123ELEPHANT30",
+            "name": "Dirbtinė oda  BORGA 123-ELEPHANT 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 3.5,
+            "row": 102,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA124DRIZZLE30",
+            "name": "Dirbtinė oda  BORGA 124-DRIZZLE 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 3.49,
+            "row": 103,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA131SURF30",
+            "name": "Dirbtinė oda  BORGA 131-SURF 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 3.4,
+            "row": 104,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA132TIDE25",
+            "name": "Dirbtinė oda  BORGA 132-TIDE 25 m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.58,
+            "row": 105,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA132TIDE30",
+            "name": "Dirbtinė oda  BORGA 132-TIDE 30m",
+            "quantity": 510,
+            "unit": "M",
+            "price": 4.51,
+            "row": 106,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA133DEEP30",
+            "name": "Dirbtinė oda  BORGA 133-DEEP 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 3.56,
+            "row": 107,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA141LAUREL30",
+            "name": "Dirbtinė oda  BORGA 141-LAUREL 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 3.56,
+            "row": 108,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA142KOMBU30",
+            "name": "Dirbtinė oda  BORGA 142-KOMBU 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 3.4,
+            "row": 109,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA151MUSTARD30",
+            "name": "Dirbtinė oda  BORGA 151-MUSTARD 30m",
+            "quantity": 300,
+            "unit": "M",
+            "price": 3.58,
+            "row": 110,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA161PICANTE30",
+            "name": "Dirbtinė oda  BORGA 161-PICANTE 30m",
+            "quantity": 450,
+            "unit": "M",
+            "price": 3.46,
+            "row": 111,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA171MERLOT30",
+            "name": "Dirbtinė oda  BORGA 171-MERLOT 30m",
+            "quantity": 360,
+            "unit": "M",
+            "price": 3.58,
+            "row": 112,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA172GOJI30",
+            "name": "Dirbtinė oda  BORGA 172-GOJI 30m",
+            "quantity": 720,
+            "unit": "M",
+            "price": 3.48,
+            "row": 113,
+            "section": "stock"
+        },
+        {
+            "code": "BORGA173ROSE30",
+            "name": "Dirbtinė oda  BORGA 173-ROSE 30m",
+            "quantity": 90,
+            "unit": "M",
+            "price": 3.37,
+            "row": 114,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA101WHITE30",
+            "name": "Dirbtinė oda  PALOMA 101-WHITE 30m",
+            "quantity": 360,
+            "unit": "M",
+            "price": 4.9,
+            "row": 115,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA102VANILLA30",
+            "name": "Dirbtinė oda  PALOMA 102-VANILLA 30m",
+            "quantity": 450,
+            "unit": "M",
+            "price": 4.87,
+            "row": 116,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA103PEARL30",
+            "name": "Dirbtinė oda  PALOMA 103-PEARL30m",
+            "quantity": 60,
+            "unit": "M",
+            "price": 11.46,
+            "row": 117,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA104BISCUIT30",
+            "name": "Dirbtinė oda  PALOMA 104-BISCUIT 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.95,
+            "row": 118,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA105CREAM27",
+            "name": "Dirbtinė oda  PALOMA 105-CREAM 27 m",
+            "quantity": 27,
+            "unit": "M",
+            "price": 4.95,
+            "row": 119,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA105CREAM30",
+            "name": "Dirbtinė oda  PALOMA 105-CREAM 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.95,
+            "row": 120,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA106STARFISH30",
+            "name": "Dirbtinė oda PALOMA 106-STARFISH 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.95,
+            "row": 121,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA107KHAKI30",
+            "name": "Dirbtinė oda  PALOMA 107-KHAKI 30m",
+            "quantity": 300,
+            "unit": "M",
+            "price": 4.9,
+            "row": 122,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA108TWIG30",
+            "name": "Dirbtinė oda  PALOMA 108-TWIG 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.95,
+            "row": 123,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA109TEAK30",
+            "name": "Dirbtinė oda  PALOMA 109-TEAK 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.77,
+            "row": 124,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA111DUNE30",
+            "name": "Dirbtinė oda  PALOMA 111-DUNE 30m",
+            "quantity": 300,
+            "unit": "M",
+            "price": 4.95,
+            "row": 125,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA112BRICK30",
+            "name": "Dirbtinė oda  PALOMA 112-BRICK 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 4.92,
+            "row": 126,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA113CHESTNUT30",
+            "name": "Dirbtinė oda  PALOMA 113-CHESTNUT 30m",
+            "quantity": 420,
+            "unit": "M",
+            "price": 4.92,
+            "row": 127,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA114MOCCA30",
+            "name": "Dirbtinė oda  PALOMA 114-MOCCA 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 4.93,
+            "row": 128,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA115CHOCOLATE30",
+            "name": "Dirbtinė oda  PALOMA 115-CHOCOLATE 30m",
+            "quantity": 360,
+            "unit": "M",
+            "price": 4.77,
+            "row": 129,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA121BLACK28",
+            "name": "Dirbtinė oda  PALOMA 121-BLACK 28m",
+            "quantity": 28,
+            "unit": "M",
+            "price": 4.76,
+            "row": 130,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA121BLACK30",
+            "name": "Dirbtinė oda  PALOMA 121-BLACK 30m",
+            "quantity": 2970,
+            "unit": "M",
+            "price": 4.92,
+            "row": 131,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA122COAL30",
+            "name": "Dirbtinė oda  PALOMA 122-COAL 30m",
+            "quantity": 660,
+            "unit": "M",
+            "price": 4.86,
+            "row": 132,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA123GRANITE30",
+            "name": "Dirbtinė oda  PALOMA 123-GRANITE 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.76,
+            "row": 133,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA124GHOST30",
+            "name": "Dirbtinė oda  PALOMA 124-GHOST 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.95,
+            "row": 134,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA125PALOMA30",
+            "name": "Dirbtinė oda  PALOMA 125-PALOMA 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 4.79,
+            "row": 135,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA126STONE30",
+            "name": "Dirbtinė oda  PALOMA 126-STONE 30m",
+            "quantity": 840,
+            "unit": "M",
+            "price": 4.9,
+            "row": 136,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA131CORAL30",
+            "name": "Dirbtinė oda  PALOMA 131-CORAL 30m",
+            "quantity": 180,
+            "unit": "M",
+            "price": 4.95,
+            "row": 137,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA132ADRIA30",
+            "name": "Dirbtinė oda  PALOMA 132-ADRIA 30m",
+            "quantity": 360,
+            "unit": "M",
+            "price": 4.77,
+            "row": 138,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA133ARONA30",
+            "name": "Dirbtinė oda  PALOMA 133-ARONA 30m",
+            "quantity": 450,
+            "unit": "M",
+            "price": 4.86,
+            "row": 139,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA134BERING30",
+            "name": "Dirbtinė oda  PALOMA 134-BERING 30m",
+            "quantity": 630,
+            "unit": "M",
+            "price": 6.16,
+            "row": 140,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA135MARITIME30",
+            "name": "Dirbtinė oda  PALOMA 135-MARITIME 30m",
+            "quantity": 450,
+            "unit": "M",
+            "price": 4.89,
+            "row": 141,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA141PALM26",
+            "name": "Dirbtinė oda  PALOMA 141-PALM 26m",
+            "quantity": 26,
+            "unit": "M",
+            "price": 4.77,
+            "row": 142,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA141PALM30",
+            "name": "Dirbtinė oda  PALOMA 141-PALM 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.77,
+            "row": 143,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA142EDEN30",
+            "name": "Dirbtinė oda  PALOMA 142-EDEN 30m",
+            "quantity": 390,
+            "unit": "M",
+            "price": 4.93,
+            "row": 144,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA161ORANGE30",
+            "name": "Dirbtinė oda  PALOMA 161-ORANGE 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 4.74,
+            "row": 145,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA171PINK30",
+            "name": "Dirbtinė oda  PALOMA 171-PINK 30m",
+            "quantity": 180,
+            "unit": "M",
+            "price": 4.74,
+            "row": 146,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA172FIRE30",
+            "name": "Dirbtinė oda  PALOMA 172-FIRE 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 4.77,
+            "row": 147,
+            "section": "stock"
+        },
+        {
+            "code": "PALOMA173GARNET30",
+            "name": "Dirbtinė oda  PALOMA 173-GARNET 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.76,
+            "row": 148,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO104STARFISH30",
+            "name": "Dirbtinė oda  SARAMO 104-STARFISH 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 5.37,
+            "row": 149,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO105CAMEL30",
+            "name": "Dirbtinė oda  SARAMO 105-CAMEL 30m",
+            "quantity": 420,
+            "unit": "M",
+            "price": 4.91,
+            "row": 150,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO111GREIGE30",
+            "name": "Dirbtinė oda  SARAMO 111-GREIGE 30m",
+            "quantity": 50,
+            "unit": "M",
+            "price": 11.46,
+            "row": 151,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO112RUSTIC30",
+            "name": "Dirbtinė oda  SARAMO 112-RUSTIC 30m",
+            "quantity": 240,
+            "unit": "M",
+            "price": 4.9,
+            "row": 152,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO113BISON30",
+            "name": "Dirbtinė oda  SARAMO 113-BISON 30m",
+            "quantity": 690,
+            "unit": "M",
+            "price": 4.9,
+            "row": 153,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO114COFFEE30",
+            "name": "Dirbtinė oda  SARAMO 114-COFFEE 30m",
+            "quantity": 60,
+            "unit": "M",
+            "price": 4.95,
+            "row": 154,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO121BLACK30",
+            "name": "Dirbtinė oda  SARAMO 121-BLACK 30M",
+            "quantity": 900,
+            "unit": "M",
+            "price": 4.84,
+            "row": 155,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO122COAL30",
+            "name": "Dirbtinė oda  SARAMO 122-COAL 30m",
+            "quantity": 270,
+            "unit": "M",
+            "price": 4.79,
+            "row": 156,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO131MIRAGE30",
+            "name": "Dirbtinė oda  SARAMO 131-MIRAGE 30m",
+            "quantity": 330,
+            "unit": "M",
+            "price": 4.9,
+            "row": 157,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO141FOREST30",
+            "name": "Dirbtinė oda  SARAMO 141-FOREST 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 4.9,
+            "row": 158,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO171MERLOT30",
+            "name": "Dirbtinė oda  SARAMO 171-MERLOT 30m",
+            "quantity": 180,
+            "unit": "M",
+            "price": 4.95,
+            "row": 159,
+            "section": "stock"
+        },
+        {
+            "code": "SARAMO172PINK30",
+            "name": "Dirbtinė oda  SARAMO 172-PINK 30m",
+            "quantity": 150,
+            "unit": "M",
+            "price": 4.74,
+            "row": 160,
+            "section": "stock"
+        },
+        {
+            "code": "25229E101WHITE30",
+            "name": "Dirbtinė oda  25229E 101-WHITE 30m PALOMA",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 161,
+            "section": "reservation"
+        },
+        {
+            "code": "25229E102VANILLA30",
+            "name": "Dirbtinė oda  25229E 102-VANILLA 30m PALOMA",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 162,
+            "section": "reservation"
+        },
+        {
+            "code": "25229E103PEARL30",
+            "name": "Dirbtinė oda  25229E 103-PEARL 30m PALOMA",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 163,
+            "section": "reservation"
+        },
+        {
+            "code": "25229E106STARFISH30",
+            "name": "Dirbtinė oda  25229E 106-STARFISH 30m PALOMA",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 164,
+            "section": "reservation"
+        },
+        {
+            "code": "25229E107KHAKI30",
+            "name": "Dirbtinė oda  25229E 107-KHAKI 30m PALOMA",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 165,
+            "section": "reservation"
+        },
+        {
+            "code": "25229E121BLACK30",
+            "name": "Dirbtinė oda  25229E 121-BLACK 30m PALOMA",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 166,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA101WHITE30",
+            "name": "Dirbtinė oda  AGNONA 101-WHITE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 167,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA102ARCTIC30",
+            "name": "Dirbtinė oda  AGNONA 102-ARCTIC 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 168,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA103BLANC30",
+            "name": "Dirbtinė oda  AGNONA 103-BLANC 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 169,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA104OATMEALC30",
+            "name": "Dirbtinė oda  AGNONA 104-OATMEAL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5,
+            "row": 170,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA105PARCHMENT30",
+            "name": "Dirbtinė oda  AGNONA 105-PARCHMENT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 171,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA106BONE30",
+            "name": "Dirbtinė oda  AGNONA 106-BONE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 172,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA107STARFISH30",
+            "name": "Dirbtinė oda  AGNONA 107-STARFISH 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 173,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA108SAFARI30",
+            "name": "Dirbtinė oda  AGNONA 108-SAFARI 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 174,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA109COFFEE30",
+            "name": "Dirbtinė oda  AGNONA 109-COFFEE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 175,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA110BUFF30",
+            "name": "Dirbtinė oda  AGNONA 110-BUFF 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 176,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA111COBBLE30",
+            "name": "Dirbtinė oda  AGNONA 111-COBBLESTONE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 177,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA112TAUPE30",
+            "name": "Dirbtinė oda  AGNONA 112-TAUPE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 178,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA113DESERT30",
+            "name": "Dirbtinė oda  AGNONA 113-DESERT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 179,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA114COCOA30",
+            "name": "Dirbtinė oda  AGNONA 114-COCOA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 180,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA115FOXTROT30",
+            "name": "Dirbtinė oda  AGNONA 115-FOXTROT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 181,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA116ADOBE30",
+            "name": "Dirbtinė oda  AGNONA 116-ADOBE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 182,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA117CHESTNUT30",
+            "name": "Dirbtinė oda  AGNONA 117-CHESTNUT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 183,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA118MUSTANG30",
+            "name": "Dirbtinė oda  AGNONA 118-MUSTANG 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 184,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA119MOCCA30",
+            "name": "Dirbtinė oda  AGNONA 119-MOCCA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 185,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA120MULCH30",
+            "name": "Dirbtinė oda  AGNONA 120-MULCH 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 186,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA121BLACK30",
+            "name": "Dirbtinė oda  AGNONA 121-BLACK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 187,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA122SHADOW30",
+            "name": "Dirbtinė oda  AGNONA 122-SHADOW 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 188,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA123OWL30",
+            "name": "Dirbtinė oda  AGNONA 123-OWL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 189,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA124SAGE30",
+            "name": "Dirbtinė oda  AGNONA 124-SAGE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 190,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA125MONUMENT30",
+            "name": "Dirbtinė oda  AGNONA 125-MONUMENT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 191,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA126SHARK30",
+            "name": "Dirbtinė oda  AGNONA 126-SHARK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 192,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA127MOON30",
+            "name": "Dirbtinė oda  AGNONA 127-MOON 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 193,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA131SKY30",
+            "name": "Dirbtinė oda  AGNONA 131-SKY 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 194,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA132BLUE30",
+            "name": "Dirbtinė oda  AGNONA 132-BLUE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 195,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA133NAUTIC30",
+            "name": "Dirbtinė oda  AGNONA 133-NAUTIC 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 196,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA134SPACE30",
+            "name": "Dirbtinė oda  AGNONA 134-SPACE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 197,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA135NAVY30",
+            "name": "Dirbtinė oda  AGNONA 135-NAVY 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 198,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA141FLOW30",
+            "name": "Dirbtinė oda  AGNONA 141-FLOW 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 199,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA142TURQUOISE30",
+            "name": "Dirbtinė oda  AGNONA 142-TURQUOISE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 200,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA143VIRIDIAN30",
+            "name": "Dirbtinė oda  AGNONA 143-VIRIDIAN 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 201,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA144SPRUCE30",
+            "name": "Dirbtinė oda  AGNONA 144-SPRUCE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 202,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA145GREEN30",
+            "name": "Dirbtinė oda  AGNONA 145-GREEN 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 203,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA146CALLISTE30",
+            "name": "Dirbtinė oda  AGNONA 146-CALLISTE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 204,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA147LENTIL30",
+            "name": "Dirbtinė oda  AGNONA 147-LENTIL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 205,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA151GOLDFINCH30",
+            "name": "Dirbtinė oda  AGNONA 151-GOLDFINCH 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 206,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA152MIMOSA30",
+            "name": "Dirbtinė oda  AGNONA 152-MIMOSA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 207,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA161ORANGE30",
+            "name": "Dirbtinė oda  AGNONA 161-ORANGE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 208,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA162RUST30",
+            "name": "Dirbtinė oda  AGNONA 162-RUST 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 209,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA171RUBY30",
+            "name": "Dirbtinė oda  AGNONA 171-RUBY 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 210,
+            "section": "reservation"
+        },
+        {
+            "code": "AGNONA172AURORA30",
+            "name": "Dirbtinė oda  AGNONA 172-AURORA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.73,
+            "row": 211,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO102CREAM30",
+            "name": "Dirbtinė oda  ARGANO 102-CREAM 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 212,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO104GRAVEL30",
+            "name": "Dirbtinė oda  ARGANO 104-GRAVEL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 213,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO105TAN30",
+            "name": "Dirbtinė oda  ARGANO 105-TAN 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 214,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO106STARFISH30",
+            "name": "Dirbtinė oda  ARGANO 106-STARFISH 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 215,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO107MINK30",
+            "name": "Dirbtinė oda  ARGANO 107-MINK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 216,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO111TAUPE30",
+            "name": "Dirbtinė oda  ARGANO 111-TAUPE 30m",
+            "quantity": 23.5,
+            "unit": "M",
+            "price": 5.01,
+            "row": 217,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO112MULCH30",
+            "name": "Dirbtinė oda  ARGANO 112-MULCH 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 218,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO113MOCCA30",
+            "name": "Dirbtinė oda  ARGANO 113-MOCCA 30m",
+            "quantity": 24.5,
+            "unit": "M",
+            "price": 5.01,
+            "row": 219,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO121BLACK30",
+            "name": "Dirbtinė oda  ARGANO 121-BLACK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 220,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO122CARBON30",
+            "name": "Dirbtinė oda  ARGANO 122-CARBON 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 221,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO123SHADOW30",
+            "name": "Dirbtinė oda  ARGANO 123-SHADOW 30m",
+            "quantity": 24.5,
+            "unit": "M",
+            "price": 5.01,
+            "row": 222,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO125ELEPHANT30",
+            "name": "Dirbtinė oda  ARGANO 125-ELEPHANT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 223,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO126HARBOR30",
+            "name": "Dirbtinė oda  ARGANO 126-HARBOR 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 224,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO131SEA30",
+            "name": "Dirbtinė oda  ARGANO 131-SEA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 225,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO132SKYDIVER30",
+            "name": "Dirbtinė oda  ARGANO 132-SKYDIVER 30m",
+            "quantity": 24.5,
+            "unit": "M",
+            "price": 5.01,
+            "row": 226,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO133POSEIDON30",
+            "name": "Dirbtinė oda  ARGANO 133-POSEIDON 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 227,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO134ORION30",
+            "name": "Dirbtinė oda  ARGANO 134-ORION 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 228,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO135DRAGONFLY30",
+            "name": "Dirbtinė oda  ARGANO 135-DRAGONFLY 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 229,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO141LIME30",
+            "name": "Dirbtinė oda  ARGANO 141-LIME 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 230,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO142OLIVE30",
+            "name": "Dirbtinė oda  ARGANO 142-OLIVE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 231,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO161PECAN30",
+            "name": "Dirbtinė oda  ARGANO 161-PECAN 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 232,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO171GOJI30",
+            "name": "Dirbtinė oda  ARGANO 171-GOJI 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.3,
+            "row": 233,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO172MERLOT30",
+            "name": "Dirbtinė oda  ARGANO 172-MERLOT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 234,
+            "section": "reservation"
+        },
+        {
+            "code": "ARGANO181ACAI30",
+            "name": "Dirbtinė oda  ARGANO 181-ACAI 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5.01,
+            "row": 235,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA101WHITE30",
+            "name": "Dirbtinė oda  BORGA 101-WHITE 30 m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 236,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA102VANILLA30",
+            "name": "Dirbtinė oda  BORGA 102-VANILLA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 237,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA103BEIGE30",
+            "name": "Dirbtinė oda  BORGA 103-BEIGE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 238,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA104SAFARI30",
+            "name": "Dirbtinė oda  BORGA 104-SAFARI 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 239,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA105OAK30",
+            "name": "Dirbtinė oda  BORGA 105-OAK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 240,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA106PEBBLE30",
+            "name": "Dirbtinė oda  BORGA 106-PEBBLE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 241,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA107TEAK30",
+            "name": "Dirbtinė oda  BORGA 107-TEAK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 242,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA111CAMEL30",
+            "name": "Dirbtinė oda  BORGA 111-CAMEL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 243,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA112TOBACCO30",
+            "name": "Dirbtinė oda  BORGA 112-TOBACCO 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 244,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA113COGNAC30",
+            "name": "Dirbtinė oda  BORGA 113-COGNAC 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 245,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA114NUTMEG30",
+            "name": "Dirbtinė oda  BORGA 114-NUTMEG 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 246,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA115MOCCA30",
+            "name": "Dirbtinė oda  BORGA 115-MOCCA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 247,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA121BLACK30",
+            "name": "Dirbtinė oda  BORGA 121-BLACK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 248,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA122COAL30",
+            "name": "Dirbtinė oda  BORGA 122-COAL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 249,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA123ELEPHANT30",
+            "name": "Dirbtinė oda  BORGA 123-ELEPHANT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 250,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA124DRIZZLE30",
+            "name": "Dirbtinė oda  BORGA 124-DRIZZLE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 251,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA132TIDE30",
+            "name": "Dirbtinė oda  BORGA 132-TIDE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 252,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA133DEEP30",
+            "name": "Dirbtinė oda  BORGA 133-DEEP 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 253,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA141LAUREL30",
+            "name": "Dirbtinė oda  BORGA 141-LAUREL 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 254,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA142KOMBU30",
+            "name": "Dirbtinė oda  BORGA 142-KOMBU 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 255,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA151MUSTARD30",
+            "name": "Dirbtinė oda  BORGA 151-MUSTARD 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 256,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA161PICANTE30",
+            "name": "Dirbtinė oda  BORGA 161-PICANTE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 257,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA171MERLOT30",
+            "name": "Dirbtinė oda  BORGA 171-MERLOT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 258,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA172GOJI30",
+            "name": "Dirbtinė oda  BORGA 172-GOJI 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 259,
+            "section": "reservation"
+        },
+        {
+            "code": "BORGA173ROSE30",
+            "name": "Dirbtinė oda  BORGA 173-ROSE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 3.37,
+            "row": 260,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA104BISCUIT30",
+            "name": "Dirbtinė oda  PALOMA 104-BISCUIT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 261,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA105CREAM30",
+            "name": "Dirbtinė oda  PALOMA 105-CREAM 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 262,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA108TWIG30",
+            "name": "Dirbtinė oda  PALOMA 108-TWIG 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 5,
+            "row": 263,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA109TEAK30",
+            "name": "Dirbtinė oda  PALOMA 109-TEAK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 264,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA111DUNE30",
+            "name": "Dirbtinė oda  PALOMA 111-DUNE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 265,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA112BRICK30",
+            "name": "Dirbtinė oda  PALOMA 112-BRICK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 266,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA113CHESTNUT30",
+            "name": "Dirbtinė oda  PALOMA 113-CHESTNUT 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 267,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA114MOCCA30",
+            "name": "Dirbtinė oda  PALOMA 114-MOCCA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 268,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA115CHOCOLATE30",
+            "name": "Dirbtinė oda  PALOMA 115-CHOCOLATE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 269,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA123GRANITE30",
+            "name": "Dirbtinė oda  PALOMA 123-GRANITE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 270,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA124GHOST30",
+            "name": "Dirbtinė oda  PALOMA 124-GHOST 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 271,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA125PALOMA30",
+            "name": "Dirbtinė oda  PALOMA 125-PALOMA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 272,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA126STONE30",
+            "name": "Dirbtinė oda  PALOMA 126-STONE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 273,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA133ARONA30",
+            "name": "Dirbtinė oda  PALOMA 133-ARONA 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 274,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA134BERING30",
+            "name": "Dirbtinė oda  PALOMA 134-BERING 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 275,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA135MARITIME30",
+            "name": "Dirbtinė oda  PALOMA 135-MARITIME 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 276,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA141PALM30",
+            "name": "Dirbtinė oda  PALOMA 141-PALM 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 277,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA142EDEN30",
+            "name": "Dirbtinė oda  PALOMA 142-EDEN 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 278,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA161ORANGE30",
+            "name": "Dirbtinė oda  PALOMA 161-ORANGE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 279,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA171PINK30",
+            "name": "Dirbtinė oda  PALOMA 171-PINK 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 280,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA172FIRE30",
+            "name": "Dirbtinė oda  PALOMA 172-FIRE 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 281,
+            "section": "reservation"
+        },
+        {
+            "code": "PALOMA173GARNET30",
+            "name": "Dirbtinė oda  PALOMA 173-GARNET 30m",
+            "quantity": 25,
+            "unit": "M",
+            "price": 4.74,
+            "row": 282,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO102CREAM30",
+            "name": "Dirbtinė oda  SARAMO 102-CREAM 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 283,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO103BONE30",
+            "name": "Dirbtinė oda  SARAMO 103-BONE 30M",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 284,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO104STARFISH30",
+            "name": "Dirbtinė oda  SARAMO 104-STARFISH 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 285,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO105CAMEL30",
+            "name": "Dirbtinė oda  SARAMO 105-CAMEL 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 286,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO111GREIGE30",
+            "name": "Dirbtinė oda  SARAMO 111-GREIGE 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 287,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO112RUSTIC30",
+            "name": "Dirbtinė oda  SARAMO 112-RUSTIC 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 288,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO114COFFEE30",
+            "name": "Dirbtinė oda  SARAMO 114-COFFEE 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 289,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO121BLACK30",
+            "name": "Dirbtinė oda  SARAMO 121-BLACK 30M",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 290,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO122COAL30",
+            "name": "Dirbtinė oda  SARAMO 122-COAL 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 291,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO131MIRAGE30",
+            "name": "Dirbtinė oda  SARAMO 131-MIRAGE 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 292,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO141FOREST30",
+            "name": "Dirbtinė oda  SARAMO 141-FOREST 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 293,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO171MERLOT30",
+            "name": "Dirbtinė oda  SARAMO 171-MERLOT 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 294,
+            "section": "reservation"
+        },
+        {
+            "code": "SARAMO172PINK30",
+            "name": "Dirbtinė oda  SARAMO 172-PINK 30m",
+            "quantity": 22.5,
+            "unit": "M",
+            "price": 4.74,
+            "row": 295,
+            "section": "reservation"
+        }
+    ]
+}
