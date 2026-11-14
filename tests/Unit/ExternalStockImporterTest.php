@@ -163,6 +163,51 @@ class ExternalStockImporterTest extends TestCase
         $this->assertSame(1, (int) $product->fresh()->current_amount);
     }
 
+    public function test_import_does_not_apply_shared_suffix_to_other_collection(): void
+    {
+        $argano = Collection::factory()->create(['name' => 'Argano']);
+        $arganoColor = Color::factory()->create([
+            'collection_id' => $argano->getKey(),
+            'color_code' => '106',
+            'color_name' => 'STARFISH',
+        ]);
+        $arganoProduct = Product::factory()->create([
+            'color_id' => $arganoColor->getKey(),
+            'name' => '30',
+            'product_code' => 'AR106-30',
+            'alternative_code' => 'ARGANO106STARFISH30',
+            'current_amount' => 7,
+        ]);
+
+        $paloma = Collection::factory()->create(['name' => 'Paloma']);
+        $palomaColor = Color::factory()->create([
+            'collection_id' => $paloma->getKey(),
+            'color_code' => '106',
+            'color_name' => 'STARFISH',
+        ]);
+        $palomaProduct = Product::factory()->create([
+            'color_id' => $palomaColor->getKey(),
+            'name' => '30',
+            'product_code' => 'PA106-30',
+            'alternative_code' => 'PALOMA106STARFISH30',
+            'current_amount' => 20,
+        ]);
+
+        $path = $this->writeSpreadsheet([
+            ['A1' => 'Prekė', 'G1' => 'Kiekis'],
+            ['A2' => '25229E106STARFISH30', 'C2' => 'Dirbtinė oda  25229E 106-STARFISH 30m PALOMA', 'G2' => 30, 'L2' => 'm'],
+            ['A3' => 'ARGANO106STARFISH30', 'C3' => 'Dirbtinė oda  ARGANO 106-STARFISH 30m', 'G3' => 210, 'L3' => 'm'],
+            ['A4' => 'PALOMA106STARFISH30', 'C4' => 'Dirbtinė oda PALOMA 106-STARFISH 30m', 'G4' => 330, 'L4' => 'm'],
+        ]);
+
+        (new ExternalStockImporter)->import($path, 'suffix-guard.xls');
+
+        $this->assertSame(7, (int) $arganoProduct->fresh()->current_amount);
+        $this->assertSame('ARGANO106STARFISH30', $arganoProduct->fresh()->alternative_code);
+        $this->assertSame(12, (int) $palomaProduct->fresh()->current_amount);
+        $this->assertSame('PALOMA106STARFISH30', $palomaProduct->fresh()->alternative_code);
+    }
+
     public function test_import_creates_leather_from_title_and_updates_code_and_cost(): void
     {
         $path = $this->writeSpreadsheet([

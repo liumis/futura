@@ -8,6 +8,25 @@ namespace App\Services;
  */
 class ExternalStockTitleParser
 {
+    /**
+     * Canonical collection names used when Excel truncates labels (PA / PALOM → PALOMA).
+     *
+     * @var list<string>
+     */
+    private const KNOWN_COLLECTIONS = [
+        'AGNONA',
+        'ARGANO',
+        'BORGA',
+        'CATANIA',
+        'DAKOTA',
+        'ERASER',
+        'FERRARA',
+        'LUGANO',
+        'MERINO',
+        'PALOMA',
+        'SARAMO',
+    ];
+
     public function isLeather(?string $title): bool
     {
         return preg_match('/^dirbtin[eė]\s+oda\b/iu', trim((string) $title)) === 1;
@@ -49,6 +68,8 @@ class ExternalStockTitleParser
             ? $trailingCollection
             : $head;
 
+        $collection = $this->expandCollectionName($collection);
+
         if ($collection === '' || $colorCode === '' || $colorName === '' || $size === '') {
             return null;
         }
@@ -59,6 +80,34 @@ class ExternalStockTitleParser
             'color_name' => $colorName,
             'size' => $size,
         ];
+    }
+
+    private function expandCollectionName(string $value): string
+    {
+        $upper = strtoupper(trim($value));
+        if ($upper === '') {
+            return $upper;
+        }
+
+        foreach (self::KNOWN_COLLECTIONS as $known) {
+            if ($upper === $known) {
+                return $known;
+            }
+        }
+
+        // Excel often truncates the trailing collection hint: "… 30m PA" / "… 30m PALOM".
+        $matches = [];
+        foreach (self::KNOWN_COLLECTIONS as $known) {
+            if (str_starts_with($known, $upper) && strlen($upper) >= 2) {
+                $matches[] = $known;
+            }
+        }
+
+        if (count($matches) === 1) {
+            return $matches[0];
+        }
+
+        return $upper;
     }
 
     /**

@@ -38,7 +38,26 @@ class ExternalStockImporter
     public function import(string $path, ?string $fileName = null, ?int $userId = null): array
     {
         $fileName = $fileName ?: basename($path);
-        $rows = $this->parser->parse($path);
+
+        return $this->importFromRows($this->parser->parse($path), $fileName, $userId);
+    }
+
+    /**
+     * @param  list<array{code: string, name: ?string, quantity: float, unit: ?string, price: ?float, row: int, section?: string}>  $rows
+     * @return array{
+     *     created: int,
+     *     updated: int,
+     *     unchanged: int,
+     *     unmatched: int,
+     *     unmatched_codes: list<string>,
+     *     reservations_updated: int,
+     *     reservations_unchanged: int,
+     *     file_name: string
+     * }
+     */
+    public function importFromRows(array $rows, ?string $fileName = null, ?int $userId = null): array
+    {
+        $fileName = $fileName ?: 'stock-snapshot.json';
         $stockRows = [];
         $reservationRows = [];
 
@@ -352,22 +371,27 @@ class ExternalStockImporter
     private function syncLeatherProduct(array $group, array &$index, EloquentCollection $products, ProductType $leatherType, int &$created): Product
     {
         $parsed = $group['parsed'];
-        $product = null;
-
-        foreach ($group['codes'] as $code) {
-            $product = $this->matchProduct($code, null, $index, $products);
-            if ($product !== null) {
-                break;
-            }
-        }
-
         $collection = $this->findOrCreateCollection($parsed['collection']);
         $color = $this->findOrCreateColor($collection, $parsed['color_code'], $parsed['color_name']);
         $size = $parsed['size'];
         $generatedCode = Product::generateProductCode($color, $size);
+        $expectedCollection = $this->parser->normalizeCode($parsed['collection']);
+
+        $product = null;
+
+        foreach ($group['codes'] as $code) {
+            $candidate = $this->matchProduct($code, null, $index, $products);
+            if ($candidate !== null && $this->productMatchesLeatherCollection($candidate, $expectedCollection)) {
+                $product = $candidate;
+                break;
+            }
+        }
 
         if ($product === null) {
-            $product = $index['codes'][$this->parser->normalizeCode($generatedCode)] ?? null;
+            $candidate = $index['codes'][$this->parser->normalizeCode($generatedCode)] ?? null;
+            if ($candidate !== null && $this->productMatchesLeatherCollection($candidate, $expectedCollection)) {
+                $product = $candidate;
+            }
         }
 
         if ($product === null) {
@@ -409,7 +433,16 @@ class ExternalStockImporter
             $attributes['product_code'] = $generatedCode;
         }
         if ($preferredCode !== null && (string) $product->alternative_code !== $preferredCode) {
-            $attributes['alternative_code'] = $preferredCode;
+            $collectionNorm = $this->parser->normalizeCode($parsed['collection']);
+            $currentNorm = $this->parser->normalizeCode((string) $product->alternative_code);
+            $preferredNorm = $this->parser->normalizeCode($preferredCode);
+            $currentCanonical = $collectionNorm !== '' && str_starts_with($currentNorm, $collectionNorm);
+            $preferredCanonical = $collectionNorm !== '' && str_starts_with($preferredNorm, $collectionNorm);
+
+            // Keep PALOMA… alts when a later samples-warehouse row only carries a 25229E lot code.
+            if (! $currentCanonical || $preferredCanonical) {
+                $attributes['alternative_code'] = $preferredCode;
+            }
         }
 
         if ($attributes !== []) {
@@ -496,6 +529,27 @@ class ExternalStockImporter
         }
 
         return $codes[0] ?? null;
+    }
+
+    /**
+     * Reject suffix/code hits that belong to another collection (e.g. 25229E… matching Argano
+     * when the Excel title says PALOMA).
+     */
+    private function productMatchesLeatherCollection(Product $product, string $expectedCollection): bool
+    {
+        if ($expectedCollection === '') {
+            return true;
+        }
+
+        $product->loadMissing('color.collection');
+        $actual = $this->parser->normalizeCode((string) ($product->color?->collection?->name ?? ''));
+
+        // Brand-new / uncolored rows may still be claimed by the parsed leather group.
+        if ($actual === '') {
+            return true;
+        }
+
+        return $actual === $expectedCollection;
     }
 
     private function applyProductSync(

@@ -38,6 +38,20 @@ class ExternalStockTitleParserTest extends TestCase
 
         $this->assertSame([
             'collection' => 'PALOMA',
+            'color_code' => '106',
+            'color_name' => 'STARFISH',
+            'size' => '30',
+        ], $parser->parseLeather('Dirbtinė oda  25229E 106-STARFISH 30m PA'));
+
+        $this->assertSame([
+            'collection' => 'PALOMA',
+            'color_code' => '121',
+            'color_name' => 'BLACK',
+            'size' => '30',
+        ], $parser->parseLeather('Dirbtinė oda  25229E 121-BLACK 30m PALOM'));
+
+        $this->assertSame([
+            'collection' => 'PALOMA',
             'color_code' => '103',
             'color_name' => 'PEARL',
             'size' => '30',
