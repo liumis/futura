@@ -144,6 +144,12 @@ class UserResource extends Resource
                     ->visible(fn (callable $get): bool => User::formStateIncludesCustomerRole($get('roles')))
                     ->dehydrated(fn (callable $get): bool => User::formStateIncludesCustomerRole($get('roles'))),
 
+                Forms\Components\Toggle::make('is_stable_forecast')
+                    ->label('Stable forecast customer')
+                    ->helperText('Demand floor never drops below their typical order rhythm (e.g. BIKINIS BROS).')
+                    ->visible(fn (callable $get): bool => User::formStateIncludesCustomerRole($get('roles')))
+                    ->dehydrated(fn (callable $get): bool => User::formStateIncludesCustomerRole($get('roles'))),
+
                 Forms\Components\Select::make('vat_rate_id')
                     ->label('PVM/VAT classificator')
                     ->options(fn (): array => VatRate::query()

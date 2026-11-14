@@ -14,6 +14,7 @@ use Illuminate\Auth\Passwords\CanResetPassword;
 use Illuminate\Contracts\Auth\CanResetPassword as CanResetPasswordContract;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -339,6 +340,7 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         'phone',
         'password',
         'customer_level_id',
+        'is_stable_forecast',
         'vat_rate_id',
         'invoice_language',
         'payment_term',
@@ -375,6 +377,7 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'export' => 'boolean',
+            'is_stable_forecast' => 'boolean',
             'payment_term' => 'integer',
             'notification_types' => 'array',
             'modules' => 'array',
@@ -390,6 +393,14 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Documents assigned to this customer for the self-service Documents section.
+     */
+    public function assignedDocuments(): BelongsToMany
+    {
+        return $this->belongsToMany(Document::class, 'document_customers');
     }
 
     public function customerLevel(): BelongsTo
