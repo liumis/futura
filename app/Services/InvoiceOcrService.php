@@ -913,11 +913,15 @@ class InvoiceOcrService
         $invoiceNumber = null;
         if (preg_match('/SERIJA\s+(FTE)\s+NR\.?\s*:?\s*(\d+)/iu', $text, $m)) {
             $invoiceNumber = $this->normalizeInvoiceNumber($m[1].'-'.$m[2]);
+        } elseif (preg_match('/VAT\s+INVOICE\s+NO\.?\s*:?\s*(FTE)\s*(\d+)/iu', $text, $m)) {
+            $invoiceNumber = $this->normalizeInvoiceNumber($m[1].'-'.$m[2]);
+        } elseif (preg_match('/\b(FTE)\s*0*(\d{3,4})\b/iu', $text, $m)) {
+            $invoiceNumber = $this->normalizeInvoiceNumber($m[1].'-'.$m[2]);
         }
 
         $invoiceDate = $this->normalizeDate($this->extractByRegex(
             $text,
-            '/(?:PARDAV[EĖ]JAS|PIRK[EĖ]JAS)[^\d]{0,40}(\d{4}[\/\.-][01]?\d[\/\.-][0-3]?\d)/iu',
+            '/(?:PARDAV[EĖ]JAS|PIRK[EĖ]JAS|Seller|Buyer)[^\d]{0,40}(\d{4}[\/\.-][01]?\d[\/\.-][0-3]?\d)/iu',
             1,
         ));
         if ($invoiceDate === null) {
@@ -928,8 +932,10 @@ class InvoiceOcrService
             ));
         }
 
-        $gross = $this->extractLastAmount($text, '/SUMA\s+APMOK[EĖ]JIMUI\s*:\s*([0-9][0-9., ]*)/iu');
-        $net = $this->extractLastAmount($text, '/VISO\s+BE\s+PVM\s*:\s*([0-9][0-9., ]*)/iu');
+        $gross = $this->extractLastAmount($text, '/SUMA\s+APMOK[EĖ]JIMUI\s*:\s*([0-9][0-9., ]*)/iu')
+            ?? $this->extractMaxAmount($text, '/Amount\s+payable\s*:?\s*([0-9][0-9., ]*)/iu');
+        $net = $this->extractLastAmount($text, '/VISO\s+BE\s+PVM\s*:\s*([0-9][0-9., ]*)/iu')
+            ?? $this->extractMaxAmount($text, '/TOTAL\s+W\/?O\s+VAT\s*:?\s*([0-9][0-9., ]*)/iu');
 
         if ($gross === null || $gross <= 0.0) {
             // Footer often repeats the payable total after “PVM SUMA:” / “Apmokėti iki”.
@@ -947,7 +953,8 @@ class InvoiceOcrService
             $vat = $this->extractAmount($text, '/PVM\s+SUMA\s*:?\s*([\d\s.,]+)/iu');
         }
 
-        if ($vat === 0.0 && $gross !== null) {
+        if (($vat === 0.0 || preg_match('/VAT\s+0\s*%/iu', $text) === 1) && $gross !== null) {
+            $vat = 0.0;
             $net = $net ?? $gross;
         }
         if ($net === null && $gross !== null && $vat !== null) {
@@ -980,8 +987,13 @@ class InvoiceOcrService
 
     private function looksLikeFteOwnSalesInvoice(string $normalized): bool
     {
-        return Str::contains($normalized, 'futura textiles')
-            && preg_match('/serija\s+fte\b/u', $normalized) === 1;
+        if (! Str::contains($normalized, 'futura textiles')) {
+            return false;
+        }
+
+        return preg_match('/serija\s+fte\b/u', $normalized) === 1
+            || preg_match('/vat\s+invoice\s+no\.?\s*:?\s*fte\d*/u', $normalized) === 1
+            || preg_match('/\bfte0?\d{3,4}\b/u', $normalized) === 1;
     }
 
     private function extractFteBuyerCompanyName(string $text): ?string
@@ -1021,12 +1033,13 @@ class InvoiceOcrService
 
         return Str::contains($lower, [
             'pardavėjas', 'pardavejas', 'pirkėjas', 'pirkejas',
-            'bankas', 'a / s', 'a/s', 'įm. kodas', 'im. kodas',
-            'pvm mok', 'ringuvos', 'lietuva', 'lithuania',
-            'seria', 'serija', 'sąskaita', 'saskaita',
-            'viso be', 'suma apmok', 'apmokėti', 'apmoketi',
+            'seller', 'buyer',
+            'bankas', 'bank.acc', 'bank :', 'a / s', 'a/s', 'įm. kodas', 'im. kodas', 'co.code',
+            'pvm mok', 'vat payer', 'ringuvos', 'lietuva', 'lithuania',
+            'seria', 'serija', 'sąskaita', 'saskaita', 'vat invoice',
+            'viso be', 'suma apmok', 'apmokėti', 'apmoketi', 'amount payable', 'total w/o',
         ]) || preg_match('/^\d{4}[\/\.-]\d{2}[\/\.-]\d{2}$/', $line) === 1
-            || preg_match('/^(lt|ie|lv|ee)\d/i', $line) === 1;
+            || preg_match('/^(lt|ie|lv|ee|el|pt|it|es|de|hr|sk)\d/i', $line) === 1;
     }
 
     private function extractFteBuyerVat(string $text): ?string
@@ -1090,9 +1103,27 @@ class InvoiceOcrService
         return $lastNonZero ?? $last;
     }
 
+    private function extractMaxAmount(string $text, string $pattern): ?float
+    {
+        if (! preg_match_all($pattern, $text, $matches)) {
+            return null;
+        }
+
+        $max = null;
+        foreach ($matches[1] as $raw) {
+            $amount = $this->parseAmountValue(trim((string) $raw));
+            if ($amount === null || $amount < 0.01) {
+                continue;
+            }
+            $max = $max === null ? $amount : max($max, $amount);
+        }
+
+        return $max;
+    }
+
     private function extractLargestEuroLiteral(string $text): ?float
     {
-        if (! preg_match_all('/\b(\d{1,3}(?:[ \u00A0]?\d{3})*[.,]\d{2}|\d+[.,]\d{2})\b/u', $text, $matches)) {
+        if (! preg_match_all('/\b(\d{1,3}(?:[ \x{00A0}]?\d{3})*[.,]\d{2}|\d+[.,]\d{2})\b/u', $text, $matches)) {
             return null;
         }
 

@@ -11,6 +11,7 @@ class ImportFuturaSalesInvoicePdfs extends Command
     protected $signature = 'app:import-futura-sales-invoice-pdfs
                             {--dir= : Folder with FTE*.pdf files (default: Downloads)}
                             {--september : Only FTE0148–FTE0163 (2026-09)}
+                            {--oct-nov : Only FTE0164–FTE0193 (2026-10/11)}
                             {--skip-bank : Do not auto-link bank statement payments}
                             {--skip-sharepoint : Do not upload PDFs to SharePoint}
                             {--dry-run : Parse and report without writing}';
@@ -21,9 +22,11 @@ class ImportFuturaSalesInvoicePdfs extends Command
     {
         $dir = $this->option('dir') ?: 'C:\\Users\\liumi\\Downloads';
 
-        $paths = $this->option('september')
-            ? FuturaSalesInvoicePdfImporter::discoverSeptember2026Paths($dir)
-            : FuturaSalesInvoicePdfImporter::discoverPdfPaths($dir);
+        $paths = match (true) {
+            (bool) $this->option('september') => FuturaSalesInvoicePdfImporter::discoverSeptember2026Paths($dir),
+            (bool) $this->option('oct-nov') => FuturaSalesInvoicePdfImporter::discoverOctNov2026Paths($dir),
+            default => FuturaSalesInvoicePdfImporter::discoverPdfPaths($dir),
+        };
 
         if ($paths === []) {
             $this->error('No FTE*.pdf files found in '.$dir);

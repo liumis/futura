@@ -38,6 +38,7 @@ class HistoricalSalesOrderImporter
         'TEXIKOM' => ['TEXIKOM', 'TEXKOM'],
         'TYLIGADESBROS' => ['TYLIGADESBROS', 'TYLIGADASBROS', 'TYLIGADES', 'TYLIGADAS', 'VIOTAP'],
         'VINILAS' => ['VINILAS'],
+        'HANSREINKE' => ['HANSREINKE', 'REINKE', 'HANDELSGESELLSCHAFT'],
     ];
 
     /**
@@ -341,11 +342,29 @@ class HistoricalSalesOrderImporter
         $map = [];
 
         Product::query()
-            ->get(['id', 'product_code', 'alternative_code', 'dsv_code'])
+            ->with(['color.collection'])
+            ->get(['id', 'product_code', 'alternative_code', 'dsv_code', 'name', 'color_id'])
             ->each(function (Product $product) use (&$map): void {
                 foreach ([$product->product_code, $product->alternative_code, $product->dsv_code] as $code) {
                     if (filled($code)) {
                         $map[strtoupper(trim((string) $code))] = $product;
+                    }
+                }
+
+                // Invoice PDFs often print COLLECTION + color code + color name + meters
+                // (e.g. PALOMA103PEARL30) even when alternative_code stores a supplier SKU.
+                $collection = $product->color?->collection?->name;
+                $colorCode = $product->color?->color_code;
+                $colorName = $product->color?->color_name;
+                $meters = preg_replace('/\D+/', '', (string) $product->name) ?: null;
+                if (filled($collection) && filled($colorCode) && filled($colorName) && filled($meters)) {
+                    $alias = preg_replace(
+                        '/[^A-Z0-9]/',
+                        '',
+                        Str::upper(Str::ascii($collection.$colorCode.$colorName.$meters)),
+                    ) ?? '';
+                    if ($alias !== '' && ! isset($map[$alias])) {
+                        $map[$alias] = $product;
                     }
                 }
             });

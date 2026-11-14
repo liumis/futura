@@ -98,17 +98,7 @@ class FuturaSalesInvoicePdfImporter
                         .$parsed['invoice_number'];
 
                     $order = Order::query()->where('name', $historyName)->first();
-                    if ($order === null) {
-                        // Legacy same-day key without invoice number (only reuse if still free).
-                        $legacyName = HistoricalSalesOrderImporter::HISTORY_NAME_PREFIX
-                            .$parsed['customer_code'].'|'
-                            .$parsed['invoice_date'];
-                        $legacy = Order::query()->where('name', $legacyName)->first();
-                        if ($legacy !== null && ! Invoice::query()->where('order_id', $legacy->id)->exists()) {
-                            $order = $legacy;
-                            $stats['orders_reused']++;
-                        }
-                    } else {
+                    if ($order !== null) {
                         $stats['orders_reused']++;
                     }
 
@@ -124,7 +114,10 @@ class FuturaSalesInvoicePdfImporter
                             'order_date' => Carbon::parse($parsed['invoice_date'])->setTime(12, 0),
                             'user_id' => $customer->id,
                         ]);
+                        $stats['orders_created']++;
+                    }
 
+                    if (! OrderItem::query()->where('order_id', $order->id)->exists()) {
                         foreach ($parsed['lines'] as $line) {
                             /** @var Product $product */
                             $product = $line['product'];
@@ -139,7 +132,11 @@ class FuturaSalesInvoicePdfImporter
                             $stats['items_created']++;
                         }
 
-                        $stats['orders_created']++;
+                        $order->forceFill([
+                            'amount' => $parsed['sum_without_vat'] > 0
+                                ? $parsed['sum_without_vat']
+                                : $parsed['sum_inc_vat'],
+                        ])->save();
                     }
 
                     $buyerContactId = Contact::syncFromCustomer($customer)->id;
@@ -312,6 +309,217 @@ class FuturaSalesInvoicePdfImporter
     }
 
     /**
+     * FTE0164–FTE0193 sales PDFs (2026-10 / 2026-11).
+     *
+     * @return list<string>
+     */
+    public static function discoverOctNov2026Paths(string $directory): array
+    {
+        return array_values(array_filter(
+            self::discoverPdfPaths($directory),
+            static function (string $path): bool {
+                $name = basename($path);
+
+                return preg_match('/^FTE0(16[4-9]|17\d|18\d|19[0-3])\b/i', $name) === 1;
+            },
+        ));
+    }
+
+    /**
+     * Import from a JSON snapshot (no PDF files required). Idempotent by FTE number.
+     *
+     * @param  list<array<string, mixed>>  $rows
+     * @return array{
+     *     files: int,
+     *     created: int,
+     *     skipped_existing: int,
+     *     orders_created: int,
+     *     orders_reused: int,
+     *     items_created: int,
+     *     bank_linked: int,
+     *     sharepoint: int,
+     *     errors: list<string>
+     * }
+     */
+    public function importSnapshotRows(array $rows, bool $linkBank = false): array
+    {
+        $stats = [
+            'files' => count($rows),
+            'created' => 0,
+            'skipped_existing' => 0,
+            'orders_created' => 0,
+            'orders_reused' => 0,
+            'items_created' => 0,
+            'bank_linked' => 0,
+            'sharepoint' => 0,
+            'errors' => [],
+        ];
+
+        $uploadedBy = User::query()->orderBy('id')->value('id');
+        if ($uploadedBy === null) {
+            throw new InvalidArgumentException('Cannot import invoices: no users exist to set as uploaded_by.');
+        }
+
+        $role = Role::findOrCreate(User::ROLE_CUSTOMER, 'web');
+        $productsByCode = $this->productLookup();
+
+        foreach ($rows as $row) {
+            $invoiceNumber = strtoupper(trim((string) ($row['invoice_number'] ?? '')));
+            if ($invoiceNumber === '' || ! preg_match('/^FTE\d+$/', $invoiceNumber)) {
+                $stats['errors'][] = 'Invalid invoice_number in snapshot row.';
+
+                continue;
+            }
+
+            $invoiceDate = trim((string) ($row['invoice_date'] ?? ''));
+            $customerCode = strtoupper(trim((string) ($row['customer_code'] ?? '')));
+            $customerName = trim((string) ($row['customer_name'] ?? ''));
+            if ($invoiceDate === '' || $customerCode === '' || $customerName === '') {
+                $stats['errors'][] = $invoiceNumber.': incomplete customer/date.';
+
+                continue;
+            }
+
+            $lines = [];
+            foreach (($row['lines'] ?? []) as $line) {
+                $code = strtoupper(trim((string) ($line['code'] ?? '')));
+                $product = $productsByCode[$code] ?? null;
+                if ($product === null) {
+                    $stats['errors'][] = $invoiceNumber.': missing product '.$code;
+
+                    continue;
+                }
+                $lines[] = [
+                    'product' => $product,
+                    'meters' => max(1, (int) ($line['meters'] ?? 30)),
+                    'code' => $code,
+                ];
+            }
+
+            $parsed = [
+                'path' => '',
+                'invoice_number' => $invoiceNumber,
+                'invoice_date' => $invoiceDate,
+                'customer_code' => $customerCode,
+                'customer_name' => $customerName,
+                'provider_company_vat' => filled($row['provider_company_vat'] ?? null) ? (string) $row['provider_company_vat'] : null,
+                'provider_company_id' => filled($row['provider_company_id'] ?? null) ? (string) $row['provider_company_id'] : null,
+                'sum_without_vat' => round((float) ($row['sum_without_vat'] ?? 0), 2),
+                'vat' => round((float) ($row['vat'] ?? 0), 2),
+                'sum_inc_vat' => round((float) ($row['sum_inc_vat'] ?? 0), 2),
+                'lines' => $lines,
+            ];
+
+            if (Invoice::query()->where('invoice_number', $invoiceNumber)->exists()) {
+                // Still backfill empty HIST|…|FTE order lines when invoice already exists.
+                $historyName = HistoricalSalesOrderImporter::HISTORY_NAME_PREFIX
+                    .$customerCode.'|'.$invoiceDate.'|'.$invoiceNumber;
+                $order = Order::query()->where('name', $historyName)->first();
+                if ($order !== null && ! OrderItem::query()->where('order_id', $order->id)->exists() && $lines !== []) {
+                    foreach ($lines as $line) {
+                        $product = $line['product'];
+                        OrderItem::query()->create([
+                            'order_id' => $order->id,
+                            'product_id' => $product->id,
+                            'amount' => max(1, $product->rollAmountFromMeters((int) $line['meters'])),
+                        ]);
+                        $stats['items_created']++;
+                    }
+                    $order->forceFill([
+                        'amount' => $parsed['sum_without_vat'] > 0
+                            ? $parsed['sum_without_vat']
+                            : $parsed['sum_inc_vat'],
+                    ])->save();
+                }
+                $stats['skipped_existing']++;
+
+                continue;
+            }
+
+            try {
+                DB::transaction(function () use ($parsed, $uploadedBy, $role, &$stats): void {
+                    [$customer] = $this->resolveCustomer($parsed, $role);
+
+                    $historyName = HistoricalSalesOrderImporter::HISTORY_NAME_PREFIX
+                        .$parsed['customer_code'].'|'
+                        .$parsed['invoice_date'].'|'
+                        .$parsed['invoice_number'];
+
+                    $order = Order::query()->where('name', $historyName)->first();
+                    if ($order !== null) {
+                        $stats['orders_reused']++;
+                    } else {
+                        $order = Order::query()->create([
+                            'name' => $historyName,
+                            'status' => OrderStatus::Completed,
+                            'stock_reserved' => false,
+                            'amount' => $parsed['sum_without_vat'] > 0
+                                ? $parsed['sum_without_vat']
+                                : $parsed['sum_inc_vat'],
+                            'shipping_cost' => 0,
+                            'order_date' => Carbon::parse($parsed['invoice_date'])->setTime(12, 0),
+                            'user_id' => $customer->id,
+                        ]);
+                        $stats['orders_created']++;
+                    }
+
+                    if (! OrderItem::query()->where('order_id', $order->id)->exists()) {
+                        foreach ($parsed['lines'] as $line) {
+                            $product = $line['product'];
+                            OrderItem::query()->create([
+                                'order_id' => $order->id,
+                                'product_id' => $product->id,
+                                'amount' => max(1, $product->rollAmountFromMeters((int) $line['meters'])),
+                            ]);
+                            $stats['items_created']++;
+                        }
+                        $order->forceFill([
+                            'amount' => $parsed['sum_without_vat'] > 0
+                                ? $parsed['sum_without_vat']
+                                : $parsed['sum_inc_vat'],
+                        ])->save();
+                    }
+
+                    $invoice = Invoice::query()->create([
+                        'order_id' => $order->id,
+                        'contact_id' => Contact::syncFromCustomer($customer)->id,
+                        'invoice_series_id' => null,
+                        'series_number' => null,
+                        'invoice_number' => $parsed['invoice_number'],
+                        'invoice_date' => $parsed['invoice_date'],
+                        'sum_without_vat' => $parsed['sum_without_vat'],
+                        'vat' => $parsed['vat'],
+                        'sum_inc_vat' => $parsed['sum_inc_vat'],
+                        'vat_rate_id' => VatRateResolver::forUser($customer)?->id,
+                        'payment_term' => Invoice::paymentTermFromCustomer($customer),
+                        'paid_amount' => 0,
+                        'paid' => false,
+                        'income_type_id' => Invoice::goodsIncomeTypeId(),
+                        'expense_type_id' => null,
+                        'upload_date' => $parsed['invoice_date'],
+                        'uploaded_by' => $uploadedBy,
+                        'pdf_path' => '',
+                        'file_name' => null,
+                        'file_mime' => null,
+                        'file_content' => null,
+                    ]);
+
+                    InvoiceDefaultFinanceLines::apply($invoice);
+                    $stats['created']++;
+                });
+            } catch (Throwable $exception) {
+                $stats['errors'][] = $invoiceNumber.': '.$exception->getMessage();
+            }
+        }
+
+        if ($linkBank) {
+            $stats['bank_linked'] = BankStatementInvoiceMatcher::autoLinkUnlinked();
+        }
+
+        return $stats;
+    }
+
+    /**
      * @param  array{
      *     customer_code: string,
      *     customer_name: string,
@@ -419,6 +627,64 @@ class FuturaSalesInvoicePdfImporter
                 ];
                 $consumed[$spanKey] = true;
                 $offset = $pos + strlen($code);
+            }
+        }
+
+        // Truncated invoice codes (e.g. LUGANO3302MUGR30 → LUGANO3302MUSSELGREY30).
+        $tokenMatches = [];
+        preg_match_all('/(?:AGNONA|ARGANO|BORGA|PALOMA|SARAMO|LUGANO|MERINO|CATANIA|DAKOTA|FERRARA|ERASER)[A-Z0-9]{5,}/', $upper, $tokenMatches);
+        if (! empty($tokenMatches[0])) {
+            foreach (array_unique($tokenMatches[0]) as $token) {
+                if (isset($productsByCode[$token])) {
+                    continue;
+                }
+
+                $best = null;
+                $bestLen = 0;
+                foreach ($codes as $code) {
+                    if (strlen($code) < 10 || strlen($token) < 10) {
+                        continue;
+                    }
+                    $prefixLen = min(strlen($code), strlen($token), 12);
+                    if (substr($code, 0, $prefixLen) === substr($token, 0, $prefixLen) && strlen($code) > $bestLen) {
+                        $best = $code;
+                        $bestLen = strlen($code);
+                    }
+                }
+
+                if ($best === null) {
+                    continue;
+                }
+
+                $pos = strpos($upper, $token);
+                if ($pos === false) {
+                    continue;
+                }
+                $spanKey = $pos.':'.($pos + strlen($token));
+                $overlaps = false;
+                foreach ($consumed as $span => $_) {
+                    [$s, $e] = array_map('intval', explode(':', $span));
+                    if ($pos < $e && ($pos + strlen($token)) > $s) {
+                        $overlaps = true;
+                        break;
+                    }
+                }
+                if ($overlaps) {
+                    continue;
+                }
+
+                $product = $productsByCode[$best];
+                $meters = 30;
+                if (preg_match('/(\d{2})$/', $token, $m) === 1) {
+                    $meters = max(1, (int) $m[1]);
+                }
+
+                $lines[] = [
+                    'product' => $product,
+                    'meters' => $meters,
+                    'code' => $best,
+                ];
+                $consumed[$spanKey] = true;
             }
         }
 

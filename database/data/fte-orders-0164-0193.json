@@ -1,0 +1,1242 @@
+{
+    "source": "FTE0164-FTE0193 sales invoice PDFs (parsed locally; PDFs not stored)",
+    "generated_at": "2026-11-14T11:00:36+00:00",
+    "invoice_count": 30,
+    "errors": [],
+    "rows": [
+        {
+            "invoice_number": "FTE0164",
+            "invoice_date": "2026-10-07",
+            "customer_code": "PEDROTAVARES",
+            "customer_name": "Pedro Tavares Texteis LDA",
+            "provider_company_vat": "PT509331858",
+            "provider_company_id": null,
+            "sum_without_vat": 1433,
+            "vat": 0,
+            "sum_inc_vat": 1433,
+            "lines": [
+                {
+                    "code": "PALOMA106STARFISH30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA123ELEPHANT30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA104BISCUIT30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA103PEARL30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA105CREAM30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA112BRICK30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0165",
+            "invoice_date": "2026-10-09",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 192,
+            "vat": 40.32,
+            "sum_inc_vat": 232.32,
+            "lines": [
+                {
+                    "code": "SARAMO113BISON30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0166",
+            "invoice_date": "2026-10-09",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 2049,
+            "vat": 430.29,
+            "sum_inc_vat": 2479.29,
+            "lines": [
+                {
+                    "code": "PALOMA115CHOCOLATE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO112RUSTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO114COFFEE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA161PICANTE30",
+                    "meters": 30
+                },
+                {
+                    "code": "\/SARAMO\/KATALOGAI",
+                    "meters": 30
+                },
+                {
+                    "code": "\/ARGANO\/KATALOGAI",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA101WHITE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA134SPACE30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA103PEARL30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA172FIRE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0167",
+            "invoice_date": "2026-10-12",
+            "customer_code": "PEDROTAVARES",
+            "customer_name": "Pedro Tavares Texteis LDA",
+            "provider_company_vat": "PT509331858",
+            "provider_company_id": null,
+            "sum_without_vat": 1070,
+            "vat": 0,
+            "sum_inc_vat": 1070,
+            "lines": [
+                {
+                    "code": "BORGA124DRIZZLE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0168",
+            "invoice_date": "2026-10-13",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 1920,
+            "vat": 403.2,
+            "sum_inc_vat": 2323.2,
+            "lines": [
+                {
+                    "code": "AGNONA108SAFARI30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA122SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA103BLANC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA124SAGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO103BONE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA123OWL30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0169",
+            "invoice_date": "2026-10-15",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 1344,
+            "vat": 282.24,
+            "sum_inc_vat": 1626.24,
+            "lines": [
+                {
+                    "code": "PALOMA103PEARL30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0170",
+            "invoice_date": "2026-10-16",
+            "customer_code": "SVETMAR",
+            "customer_name": "Svetmar d.o.o",
+            "provider_company_vat": "HR73004539228",
+            "provider_company_id": null,
+            "sum_without_vat": 2143,
+            "vat": 0,
+            "sum_inc_vat": 2143,
+            "lines": [
+                {
+                    "code": "AGNONA133NAUTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO111GREIGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO141FOREST30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA101WHITE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO105CAMEL30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA106PEBBLE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA113COGNAC30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA111CAMEL30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0171",
+            "invoice_date": "2026-10-19",
+            "customer_code": "TYLIGADESBROS",
+            "customer_name": "Tyligadas Bros S.A.-VIOTAP",
+            "provider_company_vat": "EL094423021",
+            "provider_company_id": null,
+            "sum_without_vat": 3455,
+            "vat": 0,
+            "sum_inc_vat": 3455,
+            "lines": [
+                {
+                    "code": "AGNONA107STARFISH30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO133POSEIDON30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA102ARCTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA109COFFEE30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO123SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO126HARBOR30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA102VANILLA30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA151MUSTARD30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA145GREEN30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO102CREAM30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA106PEBBLE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA141LAUREL30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA162RUST30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA101WHITE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA122COAL30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0172",
+            "invoice_date": "2026-10-19",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 1152,
+            "vat": 241.92,
+            "sum_inc_vat": 1393.92,
+            "lines": [
+                {
+                    "code": "AGNONA118MUSTANG30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA122SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA119MOCCA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA120MULCH30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO113BISON30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA124SAGE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0173",
+            "invoice_date": "2026-10-20",
+            "customer_code": "TENATEXTRADE",
+            "customer_name": "TENA TEX TRADE , s.r.o",
+            "provider_company_vat": "CZ26900882",
+            "provider_company_id": "26900882",
+            "sum_without_vat": 4340,
+            "vat": 0,
+            "sum_inc_vat": 4340,
+            "lines": [
+                {
+                    "code": "AGNONA142TURQUOISE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA117CHESTNUT30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA108SAFARI30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA111COBBLE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA161ORANGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA172AURORA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA114COCOA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA126SHARK30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA134SPACE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA124SAGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA127MOON30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA132BLUE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA141FLOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA162RUST30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA131SKY30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0174",
+            "invoice_date": "2026-10-20",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 384,
+            "vat": 80.64,
+            "sum_inc_vat": 464.64,
+            "lines": [
+                {
+                    "code": "AGNONA122SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO113BISON30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0175",
+            "invoice_date": "2026-10-20",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 1339.5,
+            "vat": 281.3,
+            "sum_inc_vat": 1620.8,
+            "lines": [
+                {
+                    "code": "AGNONA161ORANGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "\/AGNONA\/KATALOGAI",
+                    "meters": 30
+                },
+                {
+                    "code": "\/PALOMA\/KATALOGAI",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA126SHARK30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA171MERLOT30",
+                    "meters": 30
+                },
+                {
+                    "code": "\/BORGA\/KATALOGAI",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO181ACAI30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA121BLACK30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0176",
+            "invoice_date": "2026-10-22",
+            "customer_code": "AUTOLEDER",
+            "customer_name": "Autoleder KFT",
+            "provider_company_vat": "HU23286577",
+            "provider_company_id": null,
+            "sum_without_vat": 2220,
+            "vat": 0,
+            "sum_inc_vat": 2220,
+            "lines": [
+                {
+                    "code": "AGNONA151GOLDFINCH30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA102ARCTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA122SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA101WHITE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA112TAUPE30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA103PEARL30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA110BUFF30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA132BLUE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0177",
+            "invoice_date": "2026-10-23",
+            "customer_code": "PEDROTAVARES",
+            "customer_name": "Pedro Tavares Texteis LDA",
+            "provider_company_vat": "PT509331858",
+            "provider_company_id": null,
+            "sum_without_vat": 1265,
+            "vat": 0,
+            "sum_inc_vat": 1265,
+            "lines": [
+                {
+                    "code": "AGNONA122SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA107KHAKI30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA127MOON30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA123OWL30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0178",
+            "invoice_date": "2026-10-23",
+            "customer_code": "TENATEXTRADE",
+            "customer_name": "TENA TEX TRADE , s.r.o",
+            "provider_company_vat": "CZ26900882",
+            "provider_company_id": null,
+            "sum_without_vat": 3502,
+            "vat": 0,
+            "sum_inc_vat": 3502,
+            "lines": [
+                {
+                    "code": "AGNONA151GOLDFINCH30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA107STARFISH30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA115FOXTROT30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA118MUSTANG30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA102ARCTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA109COFFEE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA122SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA144SPRUCE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA147LENTIL30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA152MIMOSA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA172AURORA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA119MOCCA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA110BUFF30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA173ROSE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0179",
+            "invoice_date": "2026-10-23",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 1842,
+            "vat": 386.82,
+            "sum_inc_vat": 2228.82,
+            "lines": [
+                {
+                    "code": "AGNONA102ARCTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA172AURORA30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO112RUSTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA119MOCCA30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA106PEBBLE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA115MOCCA30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0180",
+            "invoice_date": "2026-10-26",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 2070,
+            "vat": 434.7,
+            "sum_inc_vat": 2504.7,
+            "lines": [
+                {
+                    "code": "ARGANO133POSEIDON30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA102ARCTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA144SPRUCE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA112TAUPE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO105CAMEL30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO102CREAM30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO111TAUPE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA104SAFARI30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO103BONE30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO105TAN30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0181",
+            "invoice_date": "2026-10-27",
+            "customer_code": "PEDROTAVARES",
+            "customer_name": "Pedro Tavares Texteis LDA",
+            "provider_company_vat": "PT509331858",
+            "provider_company_id": null,
+            "sum_without_vat": 1265,
+            "vat": 0,
+            "sum_inc_vat": 1265,
+            "lines": [
+                {
+                    "code": "PALOMA113CHESTNUT30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA114MOCCA30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA108TWIG30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA109TEAK30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA111DUNE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0182",
+            "invoice_date": "2026-10-28",
+            "customer_code": "HANSREINKE",
+            "customer_name": "Hans Reinke Handelsgesellschaft  m.b.H",
+            "provider_company_vat": "DE118561096",
+            "provider_company_id": null,
+            "sum_without_vat": 19440,
+            "vat": 0,
+            "sum_inc_vat": 19440,
+            "lines": [
+                {
+                    "code": "LUGANO3302MUSSELGREY30",
+                    "meters": 30
+                },
+                {
+                    "code": "DAKOTA3000BLACK20",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0183",
+            "invoice_date": "2026-10-29",
+            "customer_code": "ATSTYLE",
+            "customer_name": "A & T Style ltd",
+            "provider_company_vat": "IE9689962L",
+            "provider_company_id": null,
+            "sum_without_vat": 2188,
+            "vat": 0,
+            "sum_inc_vat": 2188,
+            "lines": [
+                {
+                    "code": "BORGA124DRIZZLE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA151MUSTARD30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA161PICANTE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA141LAUREL30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA171MERLOT30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA142KOMBU30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA107TEAK30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA132TIDE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA133DEEP30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA173ROSE30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA105OAK30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0184",
+            "invoice_date": "2026-10-29",
+            "customer_code": "PEDROTAVARES",
+            "customer_name": "Pedro Tavares Texteis LDA",
+            "provider_company_vat": "PT509331858",
+            "provider_company_id": null,
+            "sum_without_vat": 1472,
+            "vat": 0,
+            "sum_inc_vat": 1472,
+            "lines": [
+                {
+                    "code": "AGNONA118MUSTANG30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO112RUSTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO141FOREST30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA125PALOMA30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA124GHOST30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA126STONE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0185",
+            "invoice_date": "2026-11-03",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 576,
+            "vat": 120.96,
+            "sum_inc_vat": 696.96,
+            "lines": [
+                {
+                    "code": "AGNONA118MUSTANG30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO131MIRAGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA172FIRE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0186",
+            "invoice_date": "2026-11-04",
+            "customer_code": "SVETMAR",
+            "customer_name": "Svetmar d.o.o",
+            "provider_company_vat": "HR73004539228",
+            "provider_company_id": null,
+            "sum_without_vat": 3415,
+            "vat": 0,
+            "sum_inc_vat": 3415,
+            "lines": [
+                {
+                    "code": "BORGA123ELEPHANT30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA102ARCTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA111COBBLE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO141FOREST30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA103BLANC30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO105CAMEL30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO113BISON30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA121BLACK30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0187",
+            "invoice_date": "2026-11-06",
+            "customer_code": "LAURITZON",
+            "customer_name": "Oy S.W.Lauritzon & Co, AB",
+            "provider_company_vat": "FI01042579",
+            "provider_company_id": null,
+            "sum_without_vat": 642,
+            "vat": 0,
+            "sum_inc_vat": 642,
+            "lines": [
+                {
+                    "code": "ARGANO133POSEIDON30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA133DEEP30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0188",
+            "invoice_date": "2026-11-06",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 192,
+            "vat": 40.32,
+            "sum_inc_vat": 232.32,
+            "lines": [
+                {
+                    "code": "SARAMO103BONE30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0189",
+            "invoice_date": "2026-11-09",
+            "customer_code": "PEDROTAVARES",
+            "customer_name": "Pedro Tavares Texteis LDA",
+            "provider_company_vat": "PT509331858",
+            "provider_company_id": null,
+            "sum_without_vat": 1527,
+            "vat": 0,
+            "sum_inc_vat": 1527,
+            "lines": [
+                {
+                    "code": "ARGANO135DRAGONFLY30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO132SKYDIVER30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO103OATMEAL30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO123SHADOW30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA114COCOA30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO102CREAM30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0190",
+            "invoice_date": "2026-11-10",
+            "customer_code": "TENATEXTRADE",
+            "customer_name": "TENA TEX TRADE , s.r.o",
+            "provider_company_vat": "CZ26900882",
+            "provider_company_id": null,
+            "sum_without_vat": 4774,
+            "vat": 0,
+            "sum_inc_vat": 4774,
+            "lines": [
+                {
+                    "code": "AGNONA107STARFISH30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA125MONUMENT30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA146CALLISTE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA108SAFARI30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA111COBBLE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA113DESERT30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA133NAUTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA172AURORA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA101WHITE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA114COCOA30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA126SHARK30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA134SPACE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA106BONE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA127MOON30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA132BLUE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA123OWL30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0191",
+            "invoice_date": "2026-11-10",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 576,
+            "vat": 120.96,
+            "sum_inc_vat": 696.96,
+            "lines": [
+                {
+                    "code": "AGNONA142TURQUOISE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA116ADOBE30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA119MOCCA30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0192",
+            "invoice_date": "2026-11-11",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 1728,
+            "vat": 362.88,
+            "sum_inc_vat": 2090.88,
+            "lines": [
+                {
+                    "code": "PALOMA104BISCUIT30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO112RUSTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO171MERLOT30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA134BERING30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA161ORANGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO113BISON30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO103BONE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO122COAL30",
+                    "meters": 30
+                }
+            ]
+        },
+        {
+            "invoice_number": "FTE0193",
+            "invoice_date": "2026-11-11",
+            "customer_code": "SVETMAR",
+            "customer_name": "Svetmar d.o.o",
+            "provider_company_vat": "HR73004539228",
+            "provider_company_id": null,
+            "sum_without_vat": 4553,
+            "vat": 0,
+            "sum_inc_vat": 4553,
+            "lines": [
+                {
+                    "code": "BORGA123ELEPHANT30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO111GREIGE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO112RUSTIC30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA126SHARK30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO102CREAM30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA103PEARL30",
+                    "meters": 30
+                },
+                {
+                    "code": "AGNONA103BLANC25",
+                    "meters": 25
+                },
+                {
+                    "code": "BORGA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "ARGANO131SEA30",
+                    "meters": 30
+                }
+            ]
+        }
+    ]
+}
