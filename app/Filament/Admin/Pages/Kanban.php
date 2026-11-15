@@ -68,9 +68,9 @@ class Kanban extends Page
         return [
             'id' => $todo->getKey(),
             'title' => $todo->displayTitle(),
-            'status' => $todo->status?->value ?? 'new',
-            'priority' => $todo->priority?->value ?? 'regular',
-            'color' => $this->statusColor($todo->status?->value),
+            'status' => $todo->status->value,
+            'priority' => $todo->priority->value,
+            'color' => $this->statusColor($todo->status->value),
             'can_edit' => $this->canEditTodo($todo),
             'user_label' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
             'deadline_label' => optional($todo->deadline)?->format('Y-m-d H:i:s') ?? '—',

@@ -1,0 +1,14 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+    - vendor/nesbot/carbon/extension.neon
+    - phpstan-baseline.neon
+
+parameters:
+    paths:
+        - app/
+    level: 5
+    # Filament Livewire pages/resources often look dynamic to PHPStan.
+    treatPhpDocTypesAsCertain: false
+    # Traits reused across Filament pages make baseline occurrence counts drift.
+    reportUnmatchedIgnoredErrors: false
+    tmpDir: storage/framework/cache/phpstan

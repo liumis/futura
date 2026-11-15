@@ -259,7 +259,7 @@ trait ManagesTodoQuickView
             return ['ok' => false, 'message' => 'Invalid status.'];
         }
 
-        if (($todo->status?->value ?? 'new') === $status) {
+        if ($todo->status->value === $status) {
             return [
                 'ok' => true,
                 ...$this->quickViewRefreshPayload(),
@@ -413,8 +413,8 @@ trait ManagesTodoQuickView
             'title' => (string) $todo->title,
             'display_title' => $todo->displayTitle(),
             'project_id' => $todo->project_id ? (int) $todo->project_id : null,
-            'status' => $todo->status?->value ?? 'new',
-            'priority' => $todo->priority?->value ?? 'regular',
+            'status' => $todo->status->value,
+            'priority' => $todo->priority->value,
             'can_edit' => $this->canEditTodo($todo),
             'user_id' => $todo->user_id ? (int) $todo->user_id : null,
             'user_label' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
@@ -473,8 +473,8 @@ trait ManagesTodoQuickView
             'user_id' => $userId,
             'project_id' => $this->resolveProjectId($payload['project_id'] ?? $existing?->project_id),
             'title' => trim((string) ($payload['title'] ?? '')),
-            'status' => $payload['status'] ?? ($existing?->status?->value ?? 'new'),
-            'priority' => $payload['priority'] ?? ($existing?->priority?->value ?? 'regular'),
+            'status' => $payload['status'] ?? ($existing?->status->value ?? 'new'),
+            'priority' => $payload['priority'] ?? ($existing?->priority->value ?? 'regular'),
             'start_date' => $this->parseQuickViewDate($payload['start_date'] ?? null) ?? $existing?->start_date,
             'deadline' => $this->parseQuickViewDate($payload['deadline'] ?? null) ?? $existing?->deadline,
             'description' => (string) ($payload['description'] ?? ''),

@@ -48,10 +48,10 @@ class Calendar extends Page
                 'title' => $todo->displayTitle(),
                 'start' => optional($todo->start_date)->toIso8601String() ?? optional($todo->deadline)->copy()->subHour()->toIso8601String(),
                 'end' => optional($todo->deadline)->toIso8601String(),
-                'color' => $this->statusColor($todo->status?->value),
+                'color' => $this->statusColor($todo->status->value),
                 'extendedProps' => [
                     'todo_id' => $todo->getKey(),
-                    'status' => $todo->status?->value ?? null,
+                    'status' => $todo->status->value,
                     'can_edit' => $this->canEditTodo($todo),
                     'user' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
                     'user_label' => $todo->user?->displayName() ?: ('User #'.$todo->user_id),
