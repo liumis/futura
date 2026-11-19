@@ -1,0 +1,458 @@
+{
+    "source": "F Duomenys / Darbai_4.html (new vs Darbai_3.html)",
+    "from": "2026-11-09",
+    "min_date": "2026-11-09",
+    "max_date": "2026-11-12",
+    "line_count": 56,
+    "order_groups": 5,
+    "rows": [
+        {
+            "customer_code": "",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-09",
+            "item": "AGNONA114COCOA30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-09",
+            "item": "ARGANO102CREAM30",
+            "quantity": 30,
+            "sales_eur": "216,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-09",
+            "item": "ARGANO103OATMEAL30",
+            "quantity": 30,
+            "sales_eur": "216,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-09",
+            "item": "ARGANO123SHADOW30",
+            "quantity": 30,
+            "sales_eur": "216,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-09",
+            "item": "ARGANO132SKYDIVER30",
+            "quantity": 30,
+            "sales_eur": "216,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-09",
+            "item": "ARGANO135DRAGONFLY30",
+            "quantity": 30,
+            "sales_eur": "216,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA101WHITE30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA106BONE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA107STARFISH30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA108SAFARI30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA111COBBLE30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA113DESERT30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA114COCOA30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA121BLACK30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA123OWL30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA125MONUMENT30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA126SHARK30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA127MOON30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA132BLUE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA133NAUTIC30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA134SPACE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA146CALLISTE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-10",
+            "item": "AGNONA172AURORA30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "AGNONA103BLANC25",
+            "quantity": 75,
+            "sales_eur": "630,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "AGNONA126SHARK30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "ARGANO131SEA30",
+            "quantity": 30,
+            "sales_eur": "216,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "BORGA121BLACK30",
+            "quantity": 90,
+            "sales_eur": "504,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "BORGA123ELEPHANT30",
+            "quantity": 30,
+            "sales_eur": "168,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "PALOMA103PEARL30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "SARAMO102CREAM30",
+            "quantity": 125,
+            "sales_eur": "1 050,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "SARAMO111GREIGE30",
+            "quantity": 75,
+            "sales_eur": "630,00"
+        },
+        {
+            "customer_code": "SVETMAR",
+            "customer": "Svetmar d.o.o.",
+            "sales_date": "2026-11-11",
+            "item": "SARAMO112RUSTIC30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA101WHITE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA104OATMEALC30",
+            "quantity": 125,
+            "sales_eur": "1 050,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA109COFFEE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA111COBBLE30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA112TAUPE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA113DESERT30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA115FOXTROT30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA116ADOBE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA117CHESTNUT30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA121BLACK30",
+            "quantity": 60,
+            "sales_eur": "414,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA124SAGE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA133NAUTIC30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "",
+            "customer": "TENA TEX TRADE , s.r.o.",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA134SPACE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA116ADOBE30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA119MOCCA30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "AGNONA142TURQUOISE30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "PALOMA104BISCUIT30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "PALOMA134BERING30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "PALOMA161ORANGE30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "SARAMO103BONE30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "SARAMO112RUSTIC30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "SARAMO113BISON30",
+            "quantity": 60,
+            "sales_eur": "384,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "SARAMO122COAL30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-12",
+            "item": "SARAMO171MERLOT30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        }
+    ]
+}
