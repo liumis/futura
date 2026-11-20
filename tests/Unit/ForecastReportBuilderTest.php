@@ -75,6 +75,10 @@ class ForecastReportBuilderTest extends TestCase
         $this->assertGreaterThan(0, $row['buy_m']);
         $this->assertGreaterThan(0, $row['buy_rolls']);
         $this->assertSame(['BIKINIS BROS S.A.'], collect($report['stable_customers'])->pluck('label')->all());
+        $this->assertNotEmpty($report['chart']['by_collection']);
+        $this->assertNotEmpty($report['chart']['top_colors']);
+        $this->assertSame('Argano', $report['chart']['by_collection'][0]['label']);
+        $this->assertGreaterThan(0, $report['chart']['top_colors'][0]['buy_m']);
     }
 
     public function test_on_hand_stock_reduces_buy_quantity(): void

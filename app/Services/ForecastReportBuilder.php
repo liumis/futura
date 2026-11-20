@@ -69,6 +69,10 @@ final class ForecastReportBuilder
      *         buy_rolls: int,
      *         sold_m: float,
      *         stable_colors: int
+     *     },
+     *     chart: array{
+     *         by_collection: list<array{label: string, buy_m: float, sold_m: float, on_hand_m: float, inbound_m: float}>,
+     *         top_colors: list<array{label: string, buy_m: float, on_hand_m: float, inbound_m: float, cover_m: float, stable: bool}>
      *     }
      * }
      */
@@ -175,6 +179,87 @@ final class ForecastReportBuilder
                 'sold_m' => round(array_sum(array_column($rows, 'sold_m')), 2),
                 'stable_colors' => count(array_filter($rows, fn (array $row): bool => $row['stable'])),
             ],
+            'chart' => self::chartPayload($rows),
+        ];
+    }
+
+    /**
+     * @param  list<array{
+     *     collection: string,
+     *     color_code: string,
+     *     color_name: string,
+     *     sold_m: float,
+     *     cover_m: float,
+     *     on_hand_m: float,
+     *     inbound_m: float,
+     *     buy_m: float,
+     *     stable: bool
+     * }>  $rows
+     * @return array{
+     *     by_collection: list<array{label: string, buy_m: float, sold_m: float, on_hand_m: float, inbound_m: float}>,
+     *     top_colors: list<array{label: string, buy_m: float, on_hand_m: float, inbound_m: float, cover_m: float, stable: bool}>
+     * }
+     */
+    public static function chartPayload(array $rows): array
+    {
+        $byCollection = [];
+
+        foreach ($rows as $row) {
+            $label = (string) ($row['collection'] ?? '—');
+            if (! isset($byCollection[$label])) {
+                $byCollection[$label] = [
+                    'label' => $label,
+                    'buy_m' => 0.0,
+                    'sold_m' => 0.0,
+                    'on_hand_m' => 0.0,
+                    'inbound_m' => 0.0,
+                ];
+            }
+
+            $byCollection[$label]['buy_m'] += (float) ($row['buy_m'] ?? 0);
+            $byCollection[$label]['sold_m'] += (float) ($row['sold_m'] ?? 0);
+            $byCollection[$label]['on_hand_m'] += (float) ($row['on_hand_m'] ?? 0);
+            $byCollection[$label]['inbound_m'] += (float) ($row['inbound_m'] ?? 0);
+        }
+
+        $collections = array_values(array_map(
+            function (array $row): array {
+                return [
+                    'label' => $row['label'],
+                    'buy_m' => round($row['buy_m'], 2),
+                    'sold_m' => round($row['sold_m'], 2),
+                    'on_hand_m' => round($row['on_hand_m'], 2),
+                    'inbound_m' => round($row['inbound_m'], 2),
+                ];
+            },
+            $byCollection,
+        ));
+
+        usort($collections, fn (array $a, array $b): int => $b['buy_m'] <=> $a['buy_m']);
+
+        $topColors = [];
+        foreach ($rows as $row) {
+            if ((float) ($row['buy_m'] ?? 0) <= 0) {
+                continue;
+            }
+
+            $topColors[] = [
+                'label' => trim(($row['collection'] ?? '').' '.($row['color_code'] ?? '').' '.($row['color_name'] ?? '')),
+                'buy_m' => round((float) $row['buy_m'], 2),
+                'on_hand_m' => round((float) ($row['on_hand_m'] ?? 0), 2),
+                'inbound_m' => round((float) ($row['inbound_m'] ?? 0), 2),
+                'cover_m' => round((float) ($row['cover_m'] ?? 0), 2),
+                'stable' => (bool) ($row['stable'] ?? false),
+            ];
+
+            if (count($topColors) >= 20) {
+                break;
+            }
+        }
+
+        return [
+            'by_collection' => $collections,
+            'top_colors' => $topColors,
         ];
     }
 

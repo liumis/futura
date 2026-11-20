@@ -23,7 +23,9 @@ class ReportsForecastPageTest extends TestCase
             ->assertSee('Stock forecast')
             ->assertSee('Forecast summary')
             ->assertSee('Lookback')
-            ->assertSee('Horizon');
+            ->assertSee('Horizon')
+            ->assertSee('forecast-chart-root', false)
+            ->assertSee('No forecast data to chart for these filters.');
     }
 
     private function actingAsAdmin(): User

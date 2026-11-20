@@ -29,6 +29,54 @@
         'class' => 'mt-6',
     ])
 
+    <div
+        class="mt-6"
+        id="forecast-chart-root"
+        data-has-chart="{{ (($report['summary']['colors'] ?? 0) > 0 && ((count($report['chart']['by_collection'] ?? []) > 0) || (count($report['chart']['top_colors'] ?? []) > 0))) ? '1' : '0' }}"
+    >
+        <script type="application/json" id="forecast-chart-json">@json($report['chart'] ?? ['by_collection' => [], 'top_colors' => []])</script>
+
+        @if (($report['summary']['colors'] ?? 0) === 0 || ((count($report['chart']['by_collection'] ?? []) === 0) && (count($report['chart']['top_colors'] ?? []) === 0)))
+            <div class="rounded-xl border border-gray-200 bg-white px-4 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
+                No forecast data to chart for these filters.
+            </div>
+        @else
+            <div class="grid gap-6 lg:grid-cols-2">
+                <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
+                    <div class="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/40">
+                        <h3 class="text-sm font-semibold tracking-tight text-gray-950 dark:text-white">
+                            Buy by collection
+                        </h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            Suggested meters
+                        </p>
+                    </div>
+                    <div class="p-4">
+                        <div class="relative h-80 w-full">
+                            <canvas id="forecast-collection-chart-canvas"></canvas>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
+                    <div class="flex items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-gray-700 dark:bg-gray-800/40">
+                        <h3 class="text-sm font-semibold tracking-tight text-gray-950 dark:text-white">
+                            Top colors to buy
+                        </h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">
+                            On hand · inbound · buy (m)
+                        </p>
+                    </div>
+                    <div class="p-4">
+                        <div class="relative h-80 w-full">
+                            <canvas id="forecast-colors-chart-canvas"></canvas>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        @endif
+    </div>
+
     <div class="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm ring-1 ring-gray-950/5 dark:border-gray-700 dark:bg-gray-900 dark:ring-white/10">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 text-sm dark:divide-gray-700">
@@ -83,4 +131,190 @@
             </table>
         </div>
     </div>
+
+    @script
+    <script>
+        let forecastCollectionChart = null;
+        let forecastColorsChart = null;
+
+        const formatForecastMeters = (amount) => {
+            const value = Number(amount ?? 0);
+            if (! Number.isFinite(value) || Math.abs(value) < 0.005) {
+                return '—';
+            }
+
+            return new Intl.NumberFormat(undefined, {
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 1,
+            }).format(value) + ' m';
+        };
+
+        const destroyForecastCharts = () => {
+            if (forecastCollectionChart) {
+                try { forecastCollectionChart.destroy(); } catch (e) {}
+                forecastCollectionChart = null;
+            }
+            if (forecastColorsChart) {
+                try { forecastColorsChart.destroy(); } catch (e) {}
+                forecastColorsChart = null;
+            }
+        };
+
+        const renderForecastCharts = () => {
+            const root = document.getElementById('forecast-chart-root');
+            const jsonEl = document.getElementById('forecast-chart-json');
+            const collectionCanvas = document.getElementById('forecast-collection-chart-canvas');
+            const colorsCanvas = document.getElementById('forecast-colors-chart-canvas');
+
+            if (! root || root.dataset.hasChart !== '1' || ! jsonEl) {
+                destroyForecastCharts();
+                return;
+            }
+
+            if (typeof window.Chart === 'undefined') {
+                setTimeout(renderForecastCharts, 100);
+                return;
+            }
+
+            let chart = {};
+            try {
+                chart = JSON.parse(jsonEl.textContent || '{}');
+            } catch (error) {
+                console.error(error);
+                return;
+            }
+
+            destroyForecastCharts();
+
+            const collections = Array.isArray(chart.by_collection) ? chart.by_collection : [];
+            const topColors = Array.isArray(chart.top_colors) ? chart.top_colors : [];
+
+            if (collectionCanvas && collections.length > 0) {
+                forecastCollectionChart = new Chart(collectionCanvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: collections.map((row) => row.label ?? ''),
+                        datasets: [
+                            {
+                                label: 'Buy',
+                                data: collections.map((row) => Number(row.buy_m ?? 0)),
+                                backgroundColor: 'rgba(235, 128, 39, 0.9)',
+                                borderColor: 'rgba(235, 128, 39, 1)',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                            },
+                            {
+                                label: 'Sold (lookback)',
+                                data: collections.map((row) => Number(row.sold_m ?? 0)),
+                                backgroundColor: 'rgba(34, 34, 34, 0.75)',
+                                borderColor: 'rgba(34, 34, 34, 1)',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const label = context.dataset?.label ?? '';
+                                        return label + ': ' + formatForecastMeters(context.parsed?.y ?? 0);
+                                    },
+                                },
+                            },
+                        },
+                        scales: {
+                            x: {
+                                ticks: { maxRotation: 45, minRotation: 0 },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                title: { display: true, text: 'Meters' },
+                            },
+                        },
+                    },
+                });
+            }
+
+            if (colorsCanvas && topColors.length > 0) {
+                forecastColorsChart = new Chart(colorsCanvas.getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: topColors.map((row) => row.label ?? ''),
+                        datasets: [
+                            {
+                                label: 'On hand',
+                                data: topColors.map((row) => Number(row.on_hand_m ?? 0)),
+                                backgroundColor: 'rgba(34, 34, 34, 0.8)',
+                                borderColor: 'rgba(34, 34, 34, 1)',
+                                borderWidth: 1,
+                            },
+                            {
+                                label: 'Inbound',
+                                data: topColors.map((row) => Number(row.inbound_m ?? 0)),
+                                backgroundColor: 'rgba(201, 201, 201, 0.95)',
+                                borderColor: 'rgba(160, 160, 160, 1)',
+                                borderWidth: 1,
+                            },
+                            {
+                                label: 'Buy',
+                                data: topColors.map((row) => Number(row.buy_m ?? 0)),
+                                backgroundColor: 'rgba(235, 128, 39, 0.9)',
+                                borderColor: 'rgba(235, 128, 39, 1)',
+                                borderWidth: 1,
+                            },
+                        ],
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        animation: false,
+                        plugins: {
+                            legend: { position: 'bottom' },
+                            tooltip: {
+                                callbacks: {
+                                    label: (context) => {
+                                        const label = context.dataset?.label ?? '';
+                                        return label + ': ' + formatForecastMeters(context.parsed?.x ?? 0);
+                                    },
+                                },
+                            },
+                        },
+                        scales: {
+                            x: {
+                                beginAtZero: true,
+                                stacked: false,
+                                title: { display: true, text: 'Meters' },
+                            },
+                            y: {
+                                ticks: {
+                                    autoSkip: false,
+                                    font: { size: 10 },
+                                },
+                            },
+                        },
+                    },
+                });
+            }
+        };
+
+        renderForecastCharts();
+
+        document.addEventListener('livewire:navigated', () => {
+            setTimeout(renderForecastCharts, 50);
+        });
+
+        Livewire.hook('morph.updated', ({ el }) => {
+            if (el?.id === 'forecast-chart-root' || el?.querySelector?.('#forecast-chart-root')) {
+                setTimeout(renderForecastCharts, 30);
+            }
+        });
+    </script>
+    @endscript
 </x-filament-panels::page>
