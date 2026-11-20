@@ -29,21 +29,15 @@
         'class' => 'mt-6',
     ])
 
-    @php
-        $forecastChart = $report['chart'] ?? ['by_collection' => [], 'top_colors' => []];
-        $forecastHasChart = ($report['summary']['colors'] ?? 0) > 0
-            && ((count($forecastChart['by_collection'] ?? []) > 0) || (count($forecastChart['top_colors'] ?? []) > 0));
-    @endphp
-
     <div
-        wire:key="forecast-chart-{{ ($this->data['lookback_days'] ?? 0) }}-{{ ($this->data['horizon_days'] ?? 0) }}-{{ (int) ($this->data['only_needs_order'] ?? 1) }}-{{ implode('-', $this->data['collection_ids'] ?? []) }}-{{ implode('-', $this->data['customer_ids'] ?? []) }}"
+        wire:key="forecast-chart-{{ $report['summary']['colors'] }}-{{ $report['summary']['buy_m'] }}-{{ ($this->data['lookback_days'] ?? 0) }}-{{ ($this->data['horizon_days'] ?? 0) }}-{{ (int) ($this->data['only_needs_order'] ?? 1) }}"
         class="mt-6"
         x-data="forecastChartPage()"
         x-init="init()"
     >
-        <script type="application/json" x-ref="forecastChartJson">@json($forecastChart)</script>
+        <script type="application/json" x-ref="forecastChartJson">@json($report['chart'] ?? ['by_collection' => [], 'top_colors' => []])</script>
 
-        @if (! $forecastHasChart)
+        @if (($report['summary']['colors'] ?? 0) === 0 || (count($report['chart']['by_collection'] ?? []) === 0 && count($report['chart']['top_colors'] ?? []) === 0))
             <div class="rounded-xl border border-gray-200 bg-white px-4 py-10 text-center text-sm text-gray-500 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400">
                 No forecast data to chart for these filters.
             </div>
