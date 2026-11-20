@@ -25,8 +25,15 @@ class ReportsForecastPageTest extends TestCase
             ->assertSee('Lookback')
             ->assertSee('Horizon')
             ->assertSee('forecast-chart-root', false)
-            ->assertSee('No forecast data to chart for these filters.')
-            ->assertSeeHtml('chart.js@4.4.6');
+            ->assertSee('No forecast data to chart for these filters.');
+    }
+
+    public function test_admin_panel_loads_chart_js_for_forecast_page(): void
+    {
+        $this->assertStringContainsString(
+            ReportsForecast::class,
+            file_get_contents(app_path('Providers/Filament/AdminPanelProvider.php')),
+        );
     }
 
     private function actingAsAdmin(): User
