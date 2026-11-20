@@ -25,7 +25,8 @@ class ReportsForecastPageTest extends TestCase
             ->assertSee('Lookback')
             ->assertSee('Horizon')
             ->assertSee('forecast-chart-root', false)
-            ->assertSee('No forecast data to chart for these filters.');
+            ->assertSee('No forecast data to chart for these filters.')
+            ->assertSeeHtml('chart.js@4.4.6');
     }
 
     private function actingAsAdmin(): User

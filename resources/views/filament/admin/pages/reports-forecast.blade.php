@@ -132,6 +132,10 @@
         </div>
     </div>
 
+    @assets
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js" data-navigate-track></script>
+    @endassets
+
     @script
     <script>
         let forecastCollectionChart = null;
