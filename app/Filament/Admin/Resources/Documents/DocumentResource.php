@@ -118,6 +118,31 @@ class DocumentResource extends Resource
                     ->native(false)
                     ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
 
+                Forms\Components\Select::make('customers')
+                    ->label('Assigned customers')
+                    ->relationship(
+                        name: 'customers',
+                        titleAttribute: 'name',
+                        modifyQueryUsing: fn (Builder $query): Builder => $query->role(User::ROLE_CUSTOMER),
+                    )
+                    ->getOptionLabelFromRecordUsing(function (User $record): string {
+                        $person = trim(implode(' ', array_filter([$record->name, $record->surname])));
+
+                        if (filled($record->company_name)) {
+                            return $person !== ''
+                                ? "{$record->company_name} ({$person})"
+                                : $record->company_name;
+                        }
+
+                        return $person !== '' ? $person : (string) ($record->email ?? $record->name ?? '');
+                    })
+                    ->multiple()
+                    ->searchable(['name', 'surname', 'email', 'company_name'])
+                    ->preload()
+                    ->native(false)
+                    ->helperText('These customers see this document in self-service → Documents.')
+                    ->disabled(fn (?Document $record): bool => $record?->isLocked() ?? false),
+
                 Forms\Components\Select::make('confirmation_audience')
                     ->label('Confirmation audience')
                     ->options(DocumentConfirmationAudience::options())
@@ -283,6 +308,12 @@ class DocumentResource extends Resource
                     ->url(fn (Document $record): ?string => $record->displayFileUrl())
                     ->openUrlInNewTab()
                     ->placeholder('—'),
+
+                Tables\Columns\TextColumn::make('customers_count')
+                    ->label('Customers')
+                    ->counts('customers')
+                    ->sortable()
+                    ->toggleable(),
 
                 Tables\Columns\TextColumn::make('documentType.name')
                     ->label('Document type')

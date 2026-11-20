@@ -96,17 +96,48 @@ Route::get('/mail-templates/{mailTemplate}/preview', function (MailTemplate $mai
     ]);
 })->middleware('signed')->name('mail-templates.preview');
 
-Route::get('/documents/{document}/file', function (Document $document) {
-    abort_unless(auth()->check() && (auth()->user()?->hasRole('admin') ?? false), 403);
-    abort_unless(DocumentBinaryStore::hasFile($document), 404);
+Route::get('/documents/{document}/file', function (Document $document, Request $request) {
+    abort_unless(auth()->check(), 403);
+
+    $user = auth()->user();
+    $isAdmin = $user?->hasRole('admin') ?? false;
+    $isAssignedCustomer = $document->isAssignedToCustomer($user instanceof User ? $user : null);
+    abort_unless($isAdmin || $isAssignedCustomer, 403);
+
+    $index = max(0, (int) $request->query('index', 0));
+    $sharepointFiles = is_array($document->sharepoint_files)
+        ? array_values(array_filter($document->sharepoint_files, fn ($row): bool => is_array($row)))
+        : [];
+    $selected = $sharepointFiles[$index] ?? null;
+    $itemId = filled($selected['item_id'] ?? null)
+        ? (string) $selected['item_id']
+        : (string) ($document->sharepoint_item_id ?? '');
+    $fileName = filled($selected['name'] ?? null)
+        ? (string) $selected['name']
+        : DocumentBinaryStore::downloadFileName($document);
 
     try {
-        $binary = DocumentBinaryStore::getBinary($document);
-    } catch (Throwable) {
+        if ($itemId !== '' && $selected !== null) {
+            $binary = SharepointGraphClient::make()->downloadItemContent($itemId);
+            if ($binary === '') {
+                throw new \RuntimeException('SharePoint returned an empty file.');
+            }
+        } else {
+            abort_unless(DocumentBinaryStore::hasFile($document), 404);
+            $binary = DocumentBinaryStore::getBinary($document);
+        }
+    } catch (\Throwable) {
+        $fallbackUrl = filled($selected['web_url'] ?? null)
+            ? (string) $selected['web_url']
+            : $document->displayFileUrl();
+
+        if (filled($fallbackUrl) && str_starts_with($fallbackUrl, 'http')) {
+            return redirect()->away($fallbackUrl);
+        }
+
         abort(404);
     }
 
-    $fileName = DocumentBinaryStore::downloadFileName($document);
     $mime = match (strtolower(pathinfo($fileName, PATHINFO_EXTENSION))) {
         'pdf' => 'application/pdf',
         'doc' => 'application/msword',
@@ -120,7 +151,12 @@ Route::get('/documents/{document}/file', function (Document $document) {
         'Document file',
         pathinfo($fileName, PATHINFO_EXTENSION) ?: 'bin',
         $document,
-        ['file_name' => $fileName, 'disposition' => 'inline'],
+        [
+            'file_name' => $fileName,
+            'disposition' => 'inline',
+            'index' => $index,
+            'customer_portal' => $isAssignedCustomer && ! $isAdmin,
+        ],
     );
 
     return response($binary, 200, [

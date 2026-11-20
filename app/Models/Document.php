@@ -122,11 +122,57 @@ class Document extends Model
     }
 
     /**
+     * Customer-portal users who may open this document (self-service Documents).
+     *
+     * Pivot table: document_customers (document_id, user_id)
+     */
+    public function customers(): BelongsToMany
+    {
+        return $this->belongsToMany(User::class, 'document_customers');
+    }
+
+    /**
      * Specific users who must confirm this document when audience = specific_users.
      */
     public function confirmationUsers(): BelongsToMany
     {
         return $this->belongsToMany(User::class, 'document_confirmation_users');
+    }
+
+    public function isAssignedToCustomer(?User $user): bool
+    {
+        if ($user === null || ! $user->hasRole(User::ROLE_CUSTOMER)) {
+            return false;
+        }
+
+        return $this->customers()->whereKey($user->getKey())->exists();
+    }
+
+    /**
+     * File links for the customer portal (proxied through the app, not raw SharePoint URLs).
+     *
+     * @return list<array{name: string, url: string}>
+     */
+    public function customerPortalFileLinks(): array
+    {
+        $links = [];
+        $files = $this->attachedFileLinks();
+
+        foreach ($files as $index => $file) {
+            $links[] = [
+                'name' => (string) ($file['name'] ?? 'file'),
+                'url' => route('documents.file', ['document' => $this, 'index' => $index]),
+            ];
+        }
+
+        if ($links === [] && (DocumentBinaryStore::hasFile($this) || $this->hasSharepointLink())) {
+            $links[] = [
+                'name' => filled($this->name) ? (string) $this->name : 'Open',
+                'url' => route('documents.file', $this),
+            ];
+        }
+
+        return $links;
     }
 
     public function confirmations(): HasMany
