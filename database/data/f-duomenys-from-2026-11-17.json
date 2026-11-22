@@ -1,0 +1,42 @@
+{
+    "source": "F Duomenys / Darbai_5.html (new vs Darbai_4.html)",
+    "from": "2026-11-17",
+    "min_date": "2026-11-17",
+    "max_date": "2026-11-17",
+    "line_count": 4,
+    "order_groups": 1,
+    "rows": [
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-17",
+            "item": "AGNONA112TAUPE30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-17",
+            "item": "BORGA103BEIGE30",
+            "quantity": 30,
+            "sales_eur": "153,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-17",
+            "item": "PALOMA121BLACK30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        },
+        {
+            "customer_code": "VINILAS",
+            "customer": "Vinilas Ltd",
+            "sales_date": "2026-11-17",
+            "item": "SARAMO113BISON30",
+            "quantity": 30,
+            "sales_eur": "192,00"
+        }
+    ]
+}
