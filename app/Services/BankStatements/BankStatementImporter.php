@@ -72,6 +72,30 @@ class BankStatementImporter
     }
 
     /**
+     * Import a previously parsed statement snapshot (e.g. migration JSON).
+     *
+     * @param  array{
+     *     message_id?: ?string,
+     *     statement_id?: ?string,
+     *     account_iban?: ?string,
+     *     bank_name?: ?string,
+     *     currency?: ?string,
+     *     period_from?: ?string,
+     *     period_to?: ?string,
+     *     transactions: list<array<string, mixed>>
+     * }  $parsed
+     * @return array{import: BankStatementImport, imported: int, skipped: int, total: int}
+     */
+    public function importFromParsed(
+        array $parsed,
+        string $originalFilename,
+        ?string $comment = null,
+        ?string $contentHash = null,
+    ): array {
+        return $this->storeParsed($parsed, $originalFilename, null, null, $comment, $contentHash);
+    }
+
+    /**
      * @return array{import: BankStatementImport, imported: int, skipped: int, total: int}
      */
     public function importExcel(

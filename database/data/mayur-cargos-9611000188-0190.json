@@ -1,0 +1,206 @@
+{
+    "source": "Mayur commercial invoices 9611000188 + 9611000190 (Goods / Muitinė / Baltic Air PDFs)",
+    "generated_at": "2026-11-22T21:20:00+02:00",
+    "cargos": [
+        {
+            "tracking": "9611000190",
+            "invoice_no": "9611000190",
+            "invoice_date": "2026-10-28",
+            "actual_date": "2026-11-09",
+            "status": "received",
+            "destination": "VILNIUS",
+            "shipping_cost": 208,
+            "additional_cost": 0,
+            "goods_value_eur": 2782.5,
+            "air_freight_eur": 3584,
+            "invoice_total_eur": 6366.5,
+            "customs": {
+                "ref": "26LTVA1000321E44R7",
+                "tax_amount": 509,
+                "paid_date": "2026-11-09"
+            },
+            "lines": [
+                {
+                    "collection": "BORGA",
+                    "color_code": "114",
+                    "color_name": "NUTMEG",
+                    "size": "25",
+                    "meters": 75,
+                    "rolls": 3,
+                    "unit_price_eur": 3.2
+                },
+                {
+                    "collection": "AGNONA",
+                    "color_code": "103",
+                    "color_name": "BLANC",
+                    "size": "25",
+                    "meters": 75,
+                    "rolls": 3,
+                    "unit_price_eur": 4.5
+                },
+                {
+                    "collection": "AGNONA",
+                    "color_code": "104",
+                    "color_name": "OATMEAL",
+                    "size": "25",
+                    "meters": 150,
+                    "rolls": 6,
+                    "unit_price_eur": 4.5
+                },
+                {
+                    "collection": "SARAMO",
+                    "color_code": "102",
+                    "color_name": "CREAM",
+                    "size": "25",
+                    "meters": 125,
+                    "rolls": 5,
+                    "unit_price_eur": 4.5
+                },
+                {
+                    "collection": "SARAMO",
+                    "color_code": "111",
+                    "color_name": "GREIGE",
+                    "size": "25",
+                    "meters": 125,
+                    "rolls": 5,
+                    "unit_price_eur": 4.5
+                },
+                {
+                    "collection": "PALOMA",
+                    "color_code": "103",
+                    "color_name": "PEARL",
+                    "size": "30",
+                    "meters": 90,
+                    "rolls": 3,
+                    "unit_price_eur": 4.5
+                }
+            ]
+        },
+        {
+            "tracking": "9611000188",
+            "invoice_no": "9611000188",
+            "invoice_date": "2026-10-23",
+            "actual_date": null,
+            "status": "shipped",
+            "destination": "HAMBURG",
+            "consignee": "HANS REINKE HANDELSGESELLSCHAFT",
+            "shipping_cost": 200,
+            "additional_cost": 5,
+            "goods_value_eur": 19224,
+            "invoice_total_eur": 19224,
+            "customs": null,
+            "lines": [
+                {
+                    "collection": "MERINO",
+                    "color_code": "7702",
+                    "color_name": "ANTHRACITE",
+                    "size": "30",
+                    "meters": 300,
+                    "rolls": 10,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "LUGANO",
+                    "color_code": "3308",
+                    "color_name": "SILK BEIGE",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "LUGANO",
+                    "color_code": "3302",
+                    "color_name": "MUSSEL GREY",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "MERINO",
+                    "color_code": "7713",
+                    "color_name": "GRAVEL",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "MERINO",
+                    "color_code": "7712",
+                    "color_name": "STONE",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "MERINO",
+                    "color_code": "7716",
+                    "color_name": "SADDLE BROWN",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "MERINO",
+                    "color_code": "7717",
+                    "color_name": "TARTUFO",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "CATANIA",
+                    "color_code": "1105",
+                    "color_name": "ALPINE GREY",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "CATANIA",
+                    "color_code": "1108",
+                    "color_name": "SILK BEIGE",
+                    "size": "30",
+                    "meters": 360,
+                    "rolls": 12,
+                    "unit_price_eur": 4.45
+                },
+                {
+                    "collection": "MERINO",
+                    "color_code": "K3000",
+                    "color_name": "BLACK",
+                    "size": "30",
+                    "meters": 1140,
+                    "rolls": 38,
+                    "unit_price_eur": 4.45
+                }
+            ]
+        }
+    ],
+    "expense_invoices": [
+        {
+            "invoice_number": "BALT-9611000190",
+            "contact_name": "Baltic Air Logistics Terminal UAB",
+            "invoice_date": "2026-11-09",
+            "sum_without_vat": 208,
+            "vat": 0,
+            "sum_inc_vat": 208,
+            "note": "Transport for Mayur 9611000190"
+        },
+        {
+            "invoice_number": "26LTVA1000321E44R7",
+            "contact_name": "Muitinės departamentas prie LR FM",
+            "invoice_date": "2026-11-09",
+            "sum_without_vat": 509,
+            "vat": 0,
+            "sum_inc_vat": 509,
+            "note": "Customs duty for Mayur 9611000190 / MRN 26LTVA1000321E44R7"
+        }
+    ]
+}
