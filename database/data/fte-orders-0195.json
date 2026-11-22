@@ -1,0 +1,37 @@
+{
+    "source": "FTE0195.2026.11.16.pdf (parsed locally; PDF not stored)",
+    "generated_at": "2026-11-22T20:07:46+00:00",
+    "invoice_count": 1,
+    "errors": [],
+    "rows": [
+        {
+            "invoice_number": "FTE0195",
+            "invoice_date": "2026-11-16",
+            "customer_code": "VINILAS",
+            "customer_name": "Vinilas, UAB",
+            "provider_company_vat": null,
+            "provider_company_id": "304140910",
+            "sum_without_vat": 729,
+            "vat": 153.09,
+            "sum_inc_vat": 882.09,
+            "lines": [
+                {
+                    "code": "AGNONA112TAUPE30",
+                    "meters": 30
+                },
+                {
+                    "code": "SARAMO113BISON30",
+                    "meters": 30
+                },
+                {
+                    "code": "PALOMA121BLACK30",
+                    "meters": 30
+                },
+                {
+                    "code": "BORGA103BEIGE30",
+                    "meters": 30
+                }
+            ]
+        }
+    ]
+}
