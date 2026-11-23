@@ -300,7 +300,7 @@ class Dashboard extends Page
             ->modalSubmitActionLabel('Create')
             ->modalWidth('md')
             ->visible(fn (): bool => $this->canSeeModule(AdminModule::Tasks))
-            ->form($this->taskQuickFormSchema())
+            ->form(fn (): array => $this->taskQuickFormSchema())
             ->action(function (array $data): void {
                 if (! $this->canSeeModule(AdminModule::Tasks)) {
                     Notification::make()
@@ -354,16 +354,21 @@ class Dashboard extends Page
                     return [];
                 }
 
+                $status = $todo->status instanceof TodoStatus ? $todo->status : TodoStatus::New;
+                $deadline = $todo->deadline instanceof CarbonInterface
+                    ? $todo->deadline->toDateString()
+                    : (is_string($todo->deadline) ? $todo->deadline : null);
+
                 return [
-                    'status' => $todo->status?->value ?? TodoStatus::New->value,
+                    'status' => $status->value,
                     'title' => $todo->title,
                     'project_id' => $todo->project_id,
-                    'deadline' => $todo->deadline?->toDateString(),
+                    'deadline' => $deadline,
                     'responsible_id' => $todo->responsible_id,
                     'description' => $todo->description,
                 ];
             })
-            ->form([
+            ->form(fn (): array => [
                 Hidden::make('status')
                     ->dehydrated(false)
                     ->live(),
@@ -553,7 +558,7 @@ class Dashboard extends Page
     }
 
     /**
-     * @return list<\Filament\Forms\Components\Component>
+     * @return array<int, \Filament\Schemas\Components\Component>
      */
     private function taskQuickFormSchema(): array
     {
