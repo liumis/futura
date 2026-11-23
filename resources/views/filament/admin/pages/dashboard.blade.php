@@ -62,6 +62,29 @@
             font-weight: 400;
             color: #6B6B6B;
         }
+        .dash-col__header-actions {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .dash-col__header-btn {
+            font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+            font-size: 9px;
+            font-weight: 400;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: #FFFFFF;
+            background: #111111;
+            border: 1px solid #111111;
+            padding: 4px 10px;
+            cursor: pointer;
+            line-height: 1.2;
+        }
+        .dash-col__header-btn:hover {
+            color: #FFFFFF;
+            background: #222222;
+            border-color: #222222;
+        }
         .dash-col__body {
             display: flex;
             flex: 1;
@@ -461,13 +484,34 @@
                 <div class="dash-stack-block dash-stack-block--tasks">
                     <header class="dash-col__header">
                         <span class="dash-col__title">Tasks</span>
-                        <span class="dash-col__count">{{ $canTasks ? $tasks->count() : '—' }}</span>
+                        <div class="dash-col__header-actions">
+                            @if ($canTasks)
+                                <button type="button" class="dash-col__header-btn" wire:click="mountAction('createTask')">
+                                    New task
+                                </button>
+                            @endif
+                            <span class="dash-col__count">{{ $canTasks ? $tasks->count() : '—' }}</span>
+                        </div>
                     </header>
                     <div class="dash-col__body">
                         @forelse ($tasks as $row)
                             @php($todo = $row['todo'])
-                            <a
-                                href="{{ $row['url'] }}"
+                            <div
+                                role="link"
+                                tabindex="0"
+                                x-data="{ clickTimer: null }"
+                                @click="
+                                    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
+                                    clickTimer = setTimeout(() => {
+                                        window.location.href = @js($row['url']);
+                                        clickTimer = null;
+                                    }, 250);
+                                "
+                                @dblclick.prevent="
+                                    if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
+                                    $wire.mountAction('editTask', { todoId: {{ $todo->getKey() }} });
+                                "
+                                @keydown.enter.prevent="window.location.href = @js($row['url'])"
                                 @class([
                                     'dash-row',
                                     'dash-row--late' => $row['late'],
@@ -493,7 +537,7 @@
                                         </span>
                                     @endif
                                 </div>
-                            </a>
+                            </div>
                         @empty
                             <div class="dash-col__empty">{{ $canTasks ? 'No open tasks' : 'No access' }}</div>
                         @endforelse

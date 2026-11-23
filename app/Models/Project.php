@@ -73,4 +73,30 @@ class Project extends Model
     {
         return "{$this->name} ({$this->code})";
     }
+
+    /**
+     * Preferred project for quick-create forms (Pardavimai / code P, else first active).
+     */
+    public static function defaultId(): ?int
+    {
+        $preferred = static::query()
+            ->active()
+            ->where(function (Builder $query): void {
+                $query->whereRaw('UPPER(code) = ?', ['P'])
+                    ->orWhereRaw('LOWER(name) = ?', ['pardavimai']);
+            })
+            ->orderBy('id')
+            ->value('id');
+
+        if ($preferred !== null) {
+            return (int) $preferred;
+        }
+
+        $fallback = static::query()
+            ->active()
+            ->orderBy('name')
+            ->value('id');
+
+        return $fallback !== null ? (int) $fallback : null;
+    }
 }

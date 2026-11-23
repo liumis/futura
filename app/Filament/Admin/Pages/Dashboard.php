@@ -23,21 +23,32 @@ use App\Models\Invoice;
 use App\Models\Note;
 use App\Models\Order;
 use App\Models\Payment;
+use App\Models\Project;
 use App\Models\Supplier;
 use App\Models\Todo;
+use App\Models\User;
+use App\Services\TodoStatusWorkflow;
 use App\Services\UnbalancedFinanceMonths;
 use App\Support\Money;
 use BackedEnum;
 use Carbon\CarbonInterface;
 use Filament\Actions\Action;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Hidden;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Schemas\Components\Actions;
+use Filament\Schemas\Components\Utilities\Get;
+use Filament\Schemas\Components\Utilities\Set as SchemaSet;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Collection;
+use Illuminate\Support\HtmlString;
 use Illuminate\Support\Str;
+use Throwable;
 use UnitEnum;
 
 class Dashboard extends Page
@@ -279,6 +290,344 @@ class Dashboard extends Page
                     ->success()
                     ->send();
             });
+    }
+
+    public function createTaskAction(): Action
+    {
+        return Action::make('createTask')
+            ->label('New task')
+            ->modalHeading('New task')
+            ->modalSubmitActionLabel('Create')
+            ->modalWidth('md')
+            ->visible(fn (): bool => $this->canSeeModule(AdminModule::Tasks))
+            ->form($this->taskQuickFormSchema())
+            ->action(function (array $data): void {
+                if (! $this->canSeeModule(AdminModule::Tasks)) {
+                    Notification::make()
+                        ->title('No access')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $userId = auth()->id();
+                if ($userId === null) {
+                    Notification::make()
+                        ->title('Not signed in')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $parsed = $this->parseTaskQuickFormData($data);
+                if ($parsed === null) {
+                    return;
+                }
+
+                Todo::query()->create([
+                    ...$parsed,
+                    'user_id' => $userId,
+                    'status' => TodoStatus::New,
+                    'archived' => false,
+                ]);
+
+                Notification::make()
+                    ->title('Task created')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    public function editTaskAction(): Action
+    {
+        return Action::make('editTask')
+            ->label('Edit task')
+            ->modalHeading('Edit task')
+            ->modalSubmitActionLabel('Save')
+            ->modalWidth('md')
+            ->visible(fn (): bool => $this->canSeeModule(AdminModule::Tasks))
+            ->fillForm(function (array $arguments): array {
+                $todo = Todo::query()->find((int) ($arguments['todoId'] ?? 0));
+                if ($todo === null) {
+                    return [];
+                }
+
+                return [
+                    'status' => $todo->status?->value ?? TodoStatus::New->value,
+                    'title' => $todo->title,
+                    'project_id' => $todo->project_id,
+                    'deadline' => $todo->deadline?->toDateString(),
+                    'responsible_id' => $todo->responsible_id,
+                    'description' => $todo->description,
+                ];
+            })
+            ->form([
+                Hidden::make('status')
+                    ->dehydrated(false)
+                    ->live(),
+                Placeholder::make('current_status')
+                    ->label('Status')
+                    ->content(function (Get $get): HtmlString {
+                        $status = TodoStatusWorkflow::normalize($get('status')) ?? TodoStatus::New;
+                        $label = e((string) ($status->getLabel() ?? $status->value));
+
+                        return new HtmlString(
+                            '<span style="display:inline-flex;align-items:center;border:1px solid #C9C9C9;padding:0.35rem 0.75rem;font-size:0.75rem;letter-spacing:0.12em;text-transform:uppercase;color:#222222;">'
+                            .$label
+                            .'</span>'
+                        );
+                    }),
+                Actions::make([
+                    Action::make('quickStatusBack')
+                        ->label(function (Get $get): string {
+                            $todo = $this->mountedEditTask();
+                            if ($todo === null) {
+                                return '← Back';
+                            }
+
+                            $back = TodoStatusWorkflow::stepBack(
+                                $todo,
+                                $get('status') ?? $todo->status,
+                                auth()->user() instanceof User ? auth()->user() : null,
+                            );
+
+                            return $back ? '← '.$back->getLabel() : '← Back';
+                        })
+                        ->color('gray')
+                        ->disabled(function (Get $get): bool {
+                            $todo = $this->mountedEditTask();
+                            if ($todo === null) {
+                                return true;
+                            }
+
+                            return TodoStatusWorkflow::stepBack(
+                                $todo,
+                                $get('status') ?? $todo->status,
+                                auth()->user() instanceof User ? auth()->user() : null,
+                            ) === null;
+                        })
+                        ->action(function (Get $get, SchemaSet $set): void {
+                            $this->applyQuickTaskStatusStep($get, $set, back: true);
+                        }),
+                    Action::make('quickStatusForward')
+                        ->label(function (Get $get): string {
+                            $todo = $this->mountedEditTask();
+                            if ($todo === null) {
+                                return 'Forward →';
+                            }
+
+                            $forward = TodoStatusWorkflow::stepForward(
+                                $todo,
+                                $get('status') ?? $todo->status,
+                                auth()->user() instanceof User ? auth()->user() : null,
+                            );
+
+                            return $forward ? $forward->getLabel().' →' : 'Forward →';
+                        })
+                        ->color('primary')
+                        ->disabled(function (Get $get): bool {
+                            $todo = $this->mountedEditTask();
+                            if ($todo === null) {
+                                return true;
+                            }
+
+                            return TodoStatusWorkflow::stepForward(
+                                $todo,
+                                $get('status') ?? $todo->status,
+                                auth()->user() instanceof User ? auth()->user() : null,
+                            ) === null;
+                        })
+                        ->action(function (Get $get, SchemaSet $set): void {
+                            $this->applyQuickTaskStatusStep($get, $set, back: false);
+                        }),
+                ])->key('quickStatus'),
+                ...$this->taskQuickFormSchema(),
+            ])
+            ->action(function (array $data, array $arguments): void {
+                if (! $this->canSeeModule(AdminModule::Tasks)) {
+                    Notification::make()
+                        ->title('No access')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $todo = Todo::query()->find((int) ($arguments['todoId'] ?? 0));
+                if ($todo === null) {
+                    Notification::make()
+                        ->title('Task not found')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
+                $parsed = $this->parseTaskQuickFormData($data);
+                if ($parsed === null) {
+                    return;
+                }
+
+                $todo->forceFill($parsed)->save();
+
+                Notification::make()
+                    ->title('Task updated')
+                    ->success()
+                    ->send();
+            });
+    }
+
+    private function mountedEditTask(): ?Todo
+    {
+        $todoId = 0;
+
+        foreach ($this->getMountedActions() as $action) {
+            $todoId = (int) ($action->getArguments()['todoId'] ?? 0);
+            if ($todoId > 0) {
+                break;
+            }
+        }
+
+        if ($todoId <= 0) {
+            $todoId = (int) ($this->mountedActions[0]['arguments']['todoId'] ?? 0);
+        }
+
+        if ($todoId <= 0) {
+            return null;
+        }
+
+        return Todo::query()->find($todoId);
+    }
+
+    private function applyQuickTaskStatusStep(Get $get, SchemaSet $set, bool $back): void
+    {
+        if (! $this->canSeeModule(AdminModule::Tasks)) {
+            Notification::make()
+                ->title('No access')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $todo = $this->mountedEditTask();
+        if ($todo === null) {
+            Notification::make()
+                ->title('Task not found')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
+        $from = $get('status') ?? $todo->status;
+        $next = $back
+            ? TodoStatusWorkflow::stepBack($todo, $from, $actor)
+            : TodoStatusWorkflow::stepForward($todo, $from, $actor);
+
+        if ($next === null) {
+            return;
+        }
+
+        try {
+            $todo->update(['status' => $next]);
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->title('Could not change status')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $set('status', $next->value);
+
+        Notification::make()
+            ->title('Status → '.$next->getLabel())
+            ->success()
+            ->send();
+    }
+
+    /**
+     * @return list<\Filament\Forms\Components\Component>
+     */
+    private function taskQuickFormSchema(): array
+    {
+        return [
+            TextInput::make('title')
+                ->label('Title')
+                ->required()
+                ->maxLength(255)
+                ->autofocus(),
+            Select::make('project_id')
+                ->label('Project')
+                ->options(fn (): array => Project::query()
+                    ->where('archived', false)
+                    ->orderBy('name')
+                    ->get()
+                    ->mapWithKeys(fn (Project $project): array => [
+                        $project->getKey() => $project->label(),
+                    ])
+                    ->all())
+                ->searchable()
+                ->default(fn (): ?int => Project::defaultId())
+                ->required(),
+            DatePicker::make('deadline')
+                ->label('Deadline')
+                ->native(false)
+                ->default(now()->addDay()->toDateString())
+                ->required(),
+            Select::make('responsible_id')
+                ->label('Responsible')
+                ->options(fn (): array => User::query()
+                    ->orderBy('name')
+                    ->orderBy('surname')
+                    ->get()
+                    ->mapWithKeys(fn (User $user): array => [
+                        $user->getKey() => $user->fullName() !== ''
+                            ? $user->fullName()
+                            : (string) ($user->email ?? $user->getKey()),
+                    ])
+                    ->all())
+                ->searchable()
+                ->default(fn (): ?int => auth()->id())
+                ->required(),
+            Textarea::make('description')
+                ->label('Description')
+                ->rows(3),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @return array{title: string, description: ?string, project_id: int, responsible_id: int, deadline: mixed}|null
+     */
+    private function parseTaskQuickFormData(array $data): ?array
+    {
+        $title = trim((string) ($data['title'] ?? ''));
+        $projectId = (int) ($data['project_id'] ?? 0);
+        $responsibleId = (int) ($data['responsible_id'] ?? 0);
+
+        if ($title === '' || $projectId <= 0 || $responsibleId <= 0) {
+            Notification::make()
+                ->title('Title, project and responsible are required')
+                ->warning()
+                ->send();
+
+            return null;
+        }
+
+        return [
+            'title' => $title,
+            'description' => filled($data['description'] ?? null) ? (string) $data['description'] : null,
+            'project_id' => $projectId,
+            'responsible_id' => $responsibleId,
+            'deadline' => $data['deadline'] ?? now()->addDay()->toDateString(),
+        ];
     }
 
     /**
