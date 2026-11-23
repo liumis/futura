@@ -1,0 +1,41 @@
+{
+    "source": "Board UŽDUOTYS (two lists) — import 2026-11-23",
+    "assignee": {
+        "name": "Deividas",
+        "email": "info@futuratextiles.eu"
+    },
+    "project": {
+        "name": "Pardavimai",
+        "code": "P"
+    },
+    "tasks": [
+        {
+            "title": "WEB/PANTONE",
+            "priority": "high"
+        },
+        {
+            "title": "12KMAYUR",
+            "priority": "high"
+        },
+        {
+            "title": "FJORD/GOBI/TAIGA 301126",
+            "priority": "regular"
+        },
+        {
+            "title": "FERRARA/ERASER TDS",
+            "priority": "high"
+        },
+        {
+            "title": "STOCKAI OEM",
+            "priority": "regular"
+        },
+        {
+            "title": "FERRARA STOCK",
+            "priority": "regular"
+        },
+        {
+            "title": "MORBERN CLAIM",
+            "priority": "regular"
+        }
+    ]
+}
