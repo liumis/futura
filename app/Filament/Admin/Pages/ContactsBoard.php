@@ -2,13 +2,16 @@
 
 namespace App\Filament\Admin\Pages;
 
+use App\Enums\DirectoryContactPriority;
 use App\Filament\Admin\Resources\DirectoryContacts\DirectoryContactResource;
 use App\Models\DirectoryContact;
 use App\Models\DirectoryContactComment;
+use App\Models\DirectoryContactPerson;
 use App\Models\DirectoryContactStage;
 use App\Services\ActivityLogger;
 use App\Services\DirectoryContactExcelImporter;
 use App\Support\UploadLimits;
+use Carbon\CarbonInterface;
 use Filament\Actions\Action;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\FileUpload;
@@ -445,6 +448,10 @@ class ContactsBoard extends Page implements HasForms
         $emails = [];
 
         foreach ($contacts as $contact) {
+            if (! $contact instanceof DirectoryContact) {
+                continue;
+            }
+
             foreach ($this->emailsFromContact($contact) as $email) {
                 $emails[Str::lower($email)] = $email;
             }
@@ -495,32 +502,56 @@ class ContactsBoard extends Page implements HasForms
             'Person emails',
         ];
 
-        $rows = $contacts->map(function (DirectoryContact $contact): array {
-            $persons = $contact->contactPersons
-                ->map(fn ($person): string => $person->fullName())
-                ->filter()
-                ->implode('; ');
-            $personEmails = $contact->contactPersons
-                ->map(fn ($person): string => trim((string) ($person->email ?? '')))
-                ->filter()
-                ->implode('; ');
+        $rows = [];
+        foreach ($contacts as $contact) {
+            if (! $contact instanceof DirectoryContact) {
+                continue;
+            }
 
-            return [
+            $personNames = [];
+            $personEmails = [];
+            foreach ($contact->contactPersons as $person) {
+                if (! $person instanceof DirectoryContactPerson) {
+                    continue;
+                }
+
+                $name = trim($person->fullName());
+                if ($name !== '') {
+                    $personNames[] = $name;
+                }
+
+                $email = trim((string) ($person->email ?? ''));
+                if ($email !== '') {
+                    $personEmails[] = $email;
+                }
+            }
+
+            $priority = $contact->priority;
+            $priorityLabel = $priority instanceof DirectoryContactPriority
+                ? $priority->label()
+                : (string) $priority;
+
+            $stage = $contact->stage;
+            $stageName = $stage instanceof DirectoryContactStage
+                ? (string) $stage->name
+                : '';
+
+            $rows[] = [
                 (string) ($contact->company_name ?? ''),
                 (string) ($contact->type ?? ''),
                 (string) ($contact->country ?? ''),
                 (string) ($contact->segment ?? ''),
-                (string) ($contact->priority?->label() ?? $contact->priority?->value ?? ''),
-                (string) ($contact->stage?->name ?? ''),
+                $priorityLabel,
+                $stageName,
                 (string) ($contact->email ?? ''),
                 (string) ($contact->phone ?? ''),
                 (string) ($contact->website ?? ''),
-                $contact->last_contact?->format('Y-m-d') ?? '',
-                $contact->next_contact?->format('Y-m-d') ?? '',
-                $persons,
-                $personEmails,
+                $this->formatContactDate($contact->last_contact),
+                $this->formatContactDate($contact->next_contact),
+                implode('; ', $personNames),
+                implode('; ', $personEmails),
             ];
-        })->all();
+        }
 
         return response()->streamDownload(function () use ($headers, $rows): void {
             echo "\xEF\xBB\xBF";
@@ -557,6 +588,10 @@ class ContactsBoard extends Page implements HasForms
         }
 
         foreach ($contact->contactPersons as $person) {
+            if (! $person instanceof DirectoryContactPerson) {
+                continue;
+            }
+
             $email = trim((string) ($person->email ?? ''));
             if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $emails[] = $email;
@@ -564,6 +599,19 @@ class ContactsBoard extends Page implements HasForms
         }
 
         return $emails;
+    }
+
+    protected function formatContactDate(mixed $value): string
+    {
+        if ($value instanceof CarbonInterface) {
+            return $value->format('Y-m-d');
+        }
+
+        if (is_string($value) && $value !== '') {
+            return $value;
+        }
+
+        return '';
     }
 
     /**
@@ -695,20 +743,33 @@ class ContactsBoard extends Page implements HasForms
 
         $today = now()->toDateString();
 
-        match ($this->summaryFilter) {
-            'needs_contact' => $query
-                ->whereNotNull('next_contact')
-                ->whereDate('next_contact', '<=', $today),
-            'overdue' => $query
-                ->whereNotNull('next_contact')
-                ->whereDate('next_contact', '<', $today),
-            'due_today' => $query->whereDate('next_contact', $today),
-            'upcoming' => $query
-                ->whereNotNull('next_contact')
-                ->whereDate('next_contact', '>', $today),
-            'never_contacted' => $query->whereNull('last_contact'),
-            default => null,
-        };
+        if ($this->summaryFilter === 'needs_contact') {
+            $query->whereNotNull('next_contact')->whereDate('next_contact', '<=', $today);
+
+            return;
+        }
+
+        if ($this->summaryFilter === 'overdue') {
+            $query->whereNotNull('next_contact')->whereDate('next_contact', '<', $today);
+
+            return;
+        }
+
+        if ($this->summaryFilter === 'due_today') {
+            $query->whereDate('next_contact', $today);
+
+            return;
+        }
+
+        if ($this->summaryFilter === 'upcoming') {
+            $query->whereNotNull('next_contact')->whereDate('next_contact', '>', $today);
+
+            return;
+        }
+
+        if ($this->summaryFilter === 'never_contacted') {
+            $query->whereNull('last_contact');
+        }
     }
 
     protected function applyDateRangeFilter(Builder $query, string $column, mixed $from, mixed $until): void
