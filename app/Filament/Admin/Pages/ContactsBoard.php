@@ -6,6 +6,7 @@ use App\Filament\Admin\Resources\DirectoryContacts\DirectoryContactResource;
 use App\Models\DirectoryContact;
 use App\Models\DirectoryContactComment;
 use App\Models\DirectoryContactStage;
+use App\Services\ActivityLogger;
 use App\Services\DirectoryContactExcelImporter;
 use App\Support\UploadLimits;
 use Filament\Actions\Action;
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
 
 class ContactsBoard extends Page implements HasForms
@@ -46,6 +48,22 @@ class ContactsBoard extends Page implements HasForms
      * @var array<string, mixed>|null
      */
     public ?array $filters = [];
+
+    /**
+     * Active summary card filter (null = all contacts matching form filters).
+     */
+    public ?string $summaryFilter = null;
+
+    /**
+     * @var list<string>
+     */
+    private const SUMMARY_FILTERS = [
+        'needs_contact',
+        'overdue',
+        'due_today',
+        'upcoming',
+        'never_contacted',
+    ];
 
     /**
      * @var list<string>
@@ -157,6 +175,21 @@ class ContactsBoard extends Page implements HasForms
 
     public function updatedFilters(): void
     {
+        $this->dispatch('contacts-board-filtered', items: $this->getKanbanItems());
+    }
+
+    public function setSummaryFilter(?string $filter): void
+    {
+        $filter = filled($filter) ? (string) $filter : null;
+
+        if ($filter === null || $filter === 'total' || ! in_array($filter, self::SUMMARY_FILTERS, true)) {
+            $this->summaryFilter = null;
+        } elseif ($this->summaryFilter === $filter) {
+            $this->summaryFilter = null;
+        } else {
+            $this->summaryFilter = $filter;
+        }
+
         $this->dispatch('contacts-board-filtered', items: $this->getKanbanItems());
     }
 
@@ -286,6 +319,36 @@ class ContactsBoard extends Page implements HasForms
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('exportFilteredExcel')
+                ->label(fn (): string => 'Export Excel ('.$this->filteredContactCount().')')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->color('gray')
+                ->action(fn (): ?StreamedResponse => $this->exportFilteredExcel()),
+            Action::make('copyFilteredEmails')
+                ->label(fn (): string => 'Copy emails ('.$this->filteredEmailCount().')')
+                ->icon('heroicon-o-clipboard-document')
+                ->color('gray')
+                ->action(function (): void {
+                    $emails = $this->filteredEmailAddresses();
+                    if ($emails === []) {
+                        Notification::make()
+                            ->title('No emails in current filter')
+                            ->warning()
+                            ->send();
+
+                        return;
+                    }
+
+                    // Semicolon works in Outlook / Windows mass-mail "To"/"Bcc" fields.
+                    $joined = implode('; ', $emails);
+                    $this->js('navigator.clipboard.writeText('.json_encode($joined).')');
+
+                    Notification::make()
+                        ->title('Copied '.count($emails).' emails')
+                        ->body('Semicolon-separated — paste into Outlook To / Bcc.')
+                        ->success()
+                        ->send();
+                }),
             Action::make('importExcel')
                 ->label('Import Excel')
                 ->icon('heroicon-o-arrow-up-tray')
@@ -358,6 +421,151 @@ class ContactsBoard extends Page implements HasForms
         ];
     }
 
+    public function filteredContactCount(): int
+    {
+        return $this->filteredContactsQuery()->count();
+    }
+
+    public function filteredEmailCount(): int
+    {
+        return count($this->filteredEmailAddresses());
+    }
+
+    /**
+     * Unique emails from company + persons for the current board filters.
+     *
+     * @return list<string>
+     */
+    public function filteredEmailAddresses(): array
+    {
+        $contacts = $this->filteredContactsQuery()
+            ->with('contactPersons:id,directory_contact_id,email')
+            ->get(['id', 'email']);
+
+        $emails = [];
+
+        foreach ($contacts as $contact) {
+            foreach ($this->emailsFromContact($contact) as $email) {
+                $emails[Str::lower($email)] = $email;
+            }
+        }
+
+        ksort($emails);
+
+        return array_values($emails);
+    }
+
+    public function exportFilteredExcel(): ?StreamedResponse
+    {
+        $contacts = $this->filteredContactsQuery()
+            ->with(['stage', 'contactPersons'])
+            ->orderBy('company_name')
+            ->get();
+
+        if ($contacts->isEmpty()) {
+            Notification::make()
+                ->title('No contacts to export')
+                ->warning()
+                ->send();
+
+            return null;
+        }
+
+        $fileName = 'contacts-board-'.now()->format('Ymd-His').'.xls';
+
+        ActivityLogger::logReportDownloaded('Contacts board Excel export', 'xls', properties: [
+            'file_name' => $fileName,
+            'count' => $contacts->count(),
+            'summary_filter' => $this->summaryFilter,
+        ]);
+
+        $headers = [
+            'Company',
+            'Type',
+            'Country',
+            'Segment',
+            'Priority',
+            'Stage',
+            'Email',
+            'Phone',
+            'Website',
+            'Last contact',
+            'Next contact',
+            'Persons',
+            'Person emails',
+        ];
+
+        $rows = $contacts->map(function (DirectoryContact $contact): array {
+            $persons = $contact->contactPersons
+                ->map(fn ($person): string => $person->fullName())
+                ->filter()
+                ->implode('; ');
+            $personEmails = $contact->contactPersons
+                ->map(fn ($person): string => trim((string) ($person->email ?? '')))
+                ->filter()
+                ->implode('; ');
+
+            return [
+                (string) ($contact->company_name ?? ''),
+                (string) ($contact->type ?? ''),
+                (string) ($contact->country ?? ''),
+                (string) ($contact->segment ?? ''),
+                (string) ($contact->priority?->label() ?? $contact->priority?->value ?? ''),
+                (string) ($contact->stage?->name ?? ''),
+                (string) ($contact->email ?? ''),
+                (string) ($contact->phone ?? ''),
+                (string) ($contact->website ?? ''),
+                $contact->last_contact?->format('Y-m-d') ?? '',
+                $contact->next_contact?->format('Y-m-d') ?? '',
+                $persons,
+                $personEmails,
+            ];
+        })->all();
+
+        return response()->streamDownload(function () use ($headers, $rows): void {
+            echo "\xEF\xBB\xBF";
+            echo '<table border="1"><thead><tr>';
+            foreach ($headers as $header) {
+                echo '<th>'.e($header).'</th>';
+            }
+            echo '</tr></thead><tbody>';
+
+            foreach ($rows as $row) {
+                echo '<tr>';
+                foreach ($row as $cell) {
+                    echo '<td>'.e((string) $cell).'</td>';
+                }
+                echo '</tr>';
+            }
+
+            echo '</tbody></table>';
+        }, $fileName, [
+            'Content-Type' => 'application/vnd.ms-excel; charset=UTF-8',
+        ]);
+    }
+
+    /**
+     * @return list<string>
+     */
+    protected function emailsFromContact(DirectoryContact $contact): array
+    {
+        $emails = [];
+
+        $companyEmail = trim((string) ($contact->email ?? ''));
+        if ($companyEmail !== '' && filter_var($companyEmail, FILTER_VALIDATE_EMAIL)) {
+            $emails[] = $companyEmail;
+        }
+
+        foreach ($contact->contactPersons as $person) {
+            $email = trim((string) ($person->email ?? ''));
+            if ($email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $emails[] = $email;
+            }
+        }
+
+        return $emails;
+    }
+
     /**
      * @return array<int, array{value: string, label: string, color: string}>
      */
@@ -395,7 +603,8 @@ class ContactsBoard extends Page implements HasForms
     public function getSummaryStats(): array
     {
         $today = now()->toDateString();
-        $base = $this->filteredContactsQuery();
+        // Counts ignore the active summary card so totals stay stable while filtering.
+        $base = $this->formFilteredContactsQuery();
 
         $needsContact = (clone $base)
             ->whereNotNull('next_contact')
@@ -447,6 +656,14 @@ class ContactsBoard extends Page implements HasForms
 
     protected function filteredContactsQuery(): Builder
     {
+        $query = $this->formFilteredContactsQuery();
+        $this->applySummaryFilter($query);
+
+        return $query;
+    }
+
+    protected function formFilteredContactsQuery(): Builder
+    {
         $query = DirectoryContact::query();
 
         $country = trim((string) ($this->filters['country'] ?? ''));
@@ -468,6 +685,30 @@ class ContactsBoard extends Page implements HasForms
         $this->applyDateRangeFilter($query, 'next_contact', $this->filters['next_contact_from'] ?? null, $this->filters['next_contact_until'] ?? null);
 
         return $query;
+    }
+
+    protected function applySummaryFilter(Builder $query): void
+    {
+        if ($this->summaryFilter === null || ! in_array($this->summaryFilter, self::SUMMARY_FILTERS, true)) {
+            return;
+        }
+
+        $today = now()->toDateString();
+
+        match ($this->summaryFilter) {
+            'needs_contact' => $query
+                ->whereNotNull('next_contact')
+                ->whereDate('next_contact', '<=', $today),
+            'overdue' => $query
+                ->whereNotNull('next_contact')
+                ->whereDate('next_contact', '<', $today),
+            'due_today' => $query->whereDate('next_contact', $today),
+            'upcoming' => $query
+                ->whereNotNull('next_contact')
+                ->whereDate('next_contact', '>', $today),
+            'never_contacted' => $query->whereNull('last_contact'),
+            default => null,
+        };
     }
 
     protected function applyDateRangeFilter(Builder $query, string $column, mixed $from, mixed $until): void

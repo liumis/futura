@@ -175,9 +175,24 @@
             background: #FFFFFF;
             padding: 14px 16px 12px;
             min-height: 78px;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            transition: border-color 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
+        }
+        .contact-summary__item:hover {
+            border-color: #222222;
         }
         .contact-summary__item--alert {
             border-color: #E8C4C0;
+            background: #FDF8F7;
+        }
+        .contact-summary__item--active {
+            border-color: #111111;
+            box-shadow: inset 0 0 0 1px #111111;
+        }
+        .contact-summary__item--alert.contact-summary__item--active {
+            border-color: #111111;
             background: #FDF8F7;
         }
         .contact-summary__label {
@@ -535,31 +550,76 @@
 
     <div class="contacts-dashboard space-y-8">
         @php($summary = $this->getSummaryStats())
-        <div class="contact-summary" wire:key="contacts-board-summary">
-            <div class="contact-summary__item">
+        @php($activeSummary = $this->summaryFilter)
+        <div class="contact-summary" wire:key="contacts-board-summary-{{ $activeSummary ?? 'all' }}">
+            <button
+                type="button"
+                wire:click="setSummaryFilter('total')"
+                @class([
+                    'contact-summary__item',
+                    'contact-summary__item--active' => $activeSummary === null,
+                ])
+            >
                 <div class="contact-summary__label">Total contacts</div>
                 <div class="contact-summary__value">{{ number_format($summary['total']) }}</div>
-            </div>
-            <div class="contact-summary__item{{ $summary['needs_contact'] > 0 ? ' contact-summary__item--alert' : '' }}">
+            </button>
+            <button
+                type="button"
+                wire:click="setSummaryFilter('needs_contact')"
+                @class([
+                    'contact-summary__item',
+                    'contact-summary__item--alert' => $summary['needs_contact'] > 0,
+                    'contact-summary__item--active' => $activeSummary === 'needs_contact',
+                ])
+            >
                 <div class="contact-summary__label">Needs contact</div>
                 <div class="contact-summary__value">{{ number_format($summary['needs_contact']) }}</div>
-            </div>
-            <div class="contact-summary__item{{ $summary['overdue'] > 0 ? ' contact-summary__item--alert' : '' }}">
+            </button>
+            <button
+                type="button"
+                wire:click="setSummaryFilter('overdue')"
+                @class([
+                    'contact-summary__item',
+                    'contact-summary__item--alert' => $summary['overdue'] > 0,
+                    'contact-summary__item--active' => $activeSummary === 'overdue',
+                ])
+            >
                 <div class="contact-summary__label">Overdue</div>
                 <div class="contact-summary__value">{{ number_format($summary['overdue']) }}</div>
-            </div>
-            <div class="contact-summary__item">
+            </button>
+            <button
+                type="button"
+                wire:click="setSummaryFilter('due_today')"
+                @class([
+                    'contact-summary__item',
+                    'contact-summary__item--active' => $activeSummary === 'due_today',
+                ])
+            >
                 <div class="contact-summary__label">Due today</div>
                 <div class="contact-summary__value">{{ number_format($summary['due_today']) }}</div>
-            </div>
-            <div class="contact-summary__item">
+            </button>
+            <button
+                type="button"
+                wire:click="setSummaryFilter('upcoming')"
+                @class([
+                    'contact-summary__item',
+                    'contact-summary__item--active' => $activeSummary === 'upcoming',
+                ])
+            >
                 <div class="contact-summary__label">Upcoming</div>
                 <div class="contact-summary__value">{{ number_format($summary['upcoming']) }}</div>
-            </div>
-            <div class="contact-summary__item">
+            </button>
+            <button
+                type="button"
+                wire:click="setSummaryFilter('never_contacted')"
+                @class([
+                    'contact-summary__item',
+                    'contact-summary__item--active' => $activeSummary === 'never_contacted',
+                ])
+            >
                 <div class="contact-summary__label">Never contacted</div>
                 <div class="contact-summary__value">{{ number_format($summary['never_contacted']) }}</div>
-            </div>
+            </button>
         </div>
 
         <div class="fi-contacts-board-filters rounded-xl bg-white p-4 shadow-sm ring-1 ring-gray-950/5 dark:bg-gray-900 dark:ring-white/10">

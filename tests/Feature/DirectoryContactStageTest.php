@@ -432,12 +432,12 @@ class DirectoryContactStageTest extends TestCase
             'next_contact' => null,
         ]);
 
-        $summary = Livewire::test(ContactsBoard::class)
+        $page = Livewire::test(ContactsBoard::class)
             ->assertOk()
             ->assertSee('Total contacts')
-            ->assertSee('Needs contact')
-            ->instance()
-            ->getSummaryStats();
+            ->assertSee('Needs contact');
+
+        $summary = $page->instance()->getSummaryStats();
 
         $this->assertSame(4, $summary['total']);
         $this->assertSame(2, $summary['needs_contact']);
@@ -445,6 +445,63 @@ class DirectoryContactStageTest extends TestCase
         $this->assertSame(1, $summary['due_today']);
         $this->assertSame(1, $summary['upcoming']);
         $this->assertSame(1, $summary['never_contacted']);
+
+        $page->call('setSummaryFilter', 'never_contacted')
+            ->assertSet('summaryFilter', 'never_contacted');
+
+        $neverItems = $page->instance()->getKanbanItems();
+        $this->assertCount(1, $neverItems);
+        $this->assertSame('Never Co', $neverItems[0]['title']);
+
+        $page->call('setSummaryFilter', 'overdue')
+            ->assertSet('summaryFilter', 'overdue');
+
+        $overdueItems = $page->instance()->getKanbanItems();
+        $this->assertCount(1, $overdueItems);
+        $this->assertSame('Overdue Co', $overdueItems[0]['title']);
+
+        $page->call('setSummaryFilter', 'overdue')
+            ->assertSet('summaryFilter', null);
+        $this->assertCount(4, $page->instance()->getKanbanItems());
+    }
+
+    public function test_board_exports_filtered_contacts_and_copies_emails(): void
+    {
+        $this->actingAsAdmin();
+
+        DirectoryContact::query()->create([
+            'company_name' => 'Export Co',
+            'email' => 'office@export.test',
+            'last_contact' => null,
+            'next_contact' => null,
+        ]);
+        DirectoryContact::query()->create([
+            'company_name' => 'Active Co',
+            'email' => 'hello@active.test',
+            'last_contact' => now()->subDay()->toDateString(),
+            'next_contact' => now()->addDay()->toDateString(),
+        ]);
+
+        $never = DirectoryContact::query()->where('company_name', 'Export Co')->firstOrFail();
+        $never->contactPersons()->create([
+            'name' => 'Ada',
+            'surname' => 'Buyer',
+            'email' => 'ada@export.test',
+        ]);
+
+        $page = Livewire::test(ContactsBoard::class)
+            ->call('setSummaryFilter', 'never_contacted')
+            ->assertSet('summaryFilter', 'never_contacted');
+
+        $emails = $page->instance()->filteredEmailAddresses();
+        sort($emails);
+        $this->assertSame(['ada@export.test', 'office@export.test'], $emails);
+
+        $page->callAction('exportFilteredExcel')
+            ->assertFileDownloaded();
+
+        $page->callAction('copyFilteredEmails')
+            ->assertNotified();
     }
 
     private function actingAsAdmin(): User
