@@ -1,0 +1,83 @@
+{
+    "source": "F Duomenys / Darbai_6.html (new vs Darbai_5.html)",
+    "from": "2026-11-25",
+    "min_date": "2026-11-25",
+    "max_date": "2026-11-25",
+    "line_count": 9,
+    "order_groups": 2,
+    "note": "SVETMAR 2026-11-11 quantity/SKU revisions skipped — already imported as HIST|SVETMAR|2026-11-11|FTE0193. Stock deducted via OrderStockAllocator (Completed).",
+    "rows": [
+        {
+            "customer_code": "AUTOLEDER",
+            "customer": "Autoleder Kft.",
+            "sales_date": "2026-11-25",
+            "item": "AGNONA115FOXTROT30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "AUTOLEDER",
+            "customer": "Autoleder Kft.",
+            "sales_date": "2026-11-25",
+            "item": "AGNONA142TURQUOISE30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "AUTOLEDER",
+            "customer": "Autoleder Kft.",
+            "sales_date": "2026-11-25",
+            "item": "ARGANO172MERLOT30",
+            "quantity": 30,
+            "sales_eur": "216,00"
+        },
+        {
+            "customer_code": "AUTOLEDER",
+            "customer": "Autoleder Kft.",
+            "sales_date": "2026-11-25",
+            "item": "BORGA121BLACK30",
+            "quantity": 300,
+            "sales_eur": "1 680,00"
+        },
+        {
+            "customer_code": "AUTOLEDER",
+            "customer": "Autoleder Kft.",
+            "sales_date": "2026-11-25",
+            "item": "PALOMA133ARONA30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "AUTOLEDER",
+            "customer": "Autoleder Kft.",
+            "sales_date": "2026-11-25",
+            "item": "SARAMO105CAMEL30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "AUTOLEDER",
+            "customer": "Autoleder Kft.",
+            "sales_date": "2026-11-25",
+            "item": "SARAMO113BISON30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        },
+        {
+            "customer_code": "PEDROTAVARES",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-25",
+            "item": "BORGA161PICANTE30",
+            "quantity": 30,
+            "sales_eur": "168,00"
+        },
+        {
+            "customer_code": "PEDROTAVARES",
+            "customer": "Pedro Tavares Texteis, Lda",
+            "sales_date": "2026-11-25",
+            "item": "PALOMA142EDEN30",
+            "quantity": 30,
+            "sales_eur": "207,00"
+        }
+    ]
+}
