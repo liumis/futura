@@ -767,9 +767,8 @@ class ContactsBoard extends Page implements HasForms
             return;
         }
 
-        if ($this->summaryFilter === 'never_contacted') {
-            $query->whereNull('last_contact');
-        }
+        // Remaining SUMMARY_FILTERS value after the checks above.
+        $query->whereNull('last_contact');
     }
 
     protected function applyDateRangeFilter(Builder $query, string $column, mixed $from, mixed $until): void
