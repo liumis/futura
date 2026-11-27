@@ -88,7 +88,7 @@ class AdminPanelProvider extends PanelProvider
                         'class' => 'fi-user-menu-profile',
                     ]),
 
-                'customize-menu' => fn (Action $action): Action => $action
+                Action::make('customizeMenu')
                     ->label('Customize menu')
                     ->icon(Heroicon::OutlinedBars3BottomLeft)
                     ->url(fn (): string => CustomizeMenu::getUrl())
