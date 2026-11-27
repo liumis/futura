@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Filament\Admin\Resources\Cargos\CargoResource;
+use App\Models\Color;
+use App\Models\Collection as ProductCollection;
 use App\Models\Product;
 use Illuminate\Support\Collection;
 
@@ -920,7 +922,16 @@ class CargoQuickOrderParser
             if ($collectionHint !== '') {
                 $hintNorm = $this->codes->normalizeCode($collectionHint);
                 foreach ($unique as $hit) {
-                    $col = $this->codes->normalizeCode((string) ($hit->color?->collection?->name ?? ''));
+                    $collectionName = '';
+                    $color = $hit->color;
+                    if ($color instanceof Color) {
+                        $collection = $color->collection;
+                        if ($collection instanceof ProductCollection) {
+                            $collectionName = (string) $collection->name;
+                        }
+                    }
+
+                    $col = $this->codes->normalizeCode($collectionName);
                     if ($col === $hintNorm) {
                         return [
                             'product' => $hit,

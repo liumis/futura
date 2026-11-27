@@ -44,8 +44,9 @@ final class AdminNavigation
      *     group: ?string,
      *     icon: mixed,
      *     sort: int,
-     *     url: string,
+     *     url: string|\Closure(): string,
      *     active_when: ?\Closure,
+     *     module: AdminModule,
      *     extra_attributes: array<string, mixed>
      * }>
      */
@@ -296,7 +297,7 @@ final class AdminNavigation
         $registeredOrder = array_values(array_filter(array_map(
             fn (NavigationGroup|string $group): ?string => $group instanceof NavigationGroup
                 ? $group->getLabel()
-                : (is_string($group) ? $group : null),
+                : $group,
             self::adminPanel()->getNavigationGroups(),
         )));
 
@@ -834,7 +835,7 @@ final class AdminNavigation
             'label' => $item->getLabel(),
             'group' => is_string($group) ? $group : null,
             'icon' => $item->getIcon(),
-            'sort' => (int) ($item->getSort() ?? 0),
+            'sort' => (int) $item->getSort(),
             'url' => $url,
             'factory' => $factory,
             'extra_attributes' => $item->getExtraAttributes(),

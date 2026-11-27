@@ -8,6 +8,7 @@ use App\Models\DirectoryContact;
 use App\Models\DirectoryContactComment;
 use App\Models\DirectoryContactPerson;
 use App\Models\DirectoryContactStage;
+use App\Models\User;
 use App\Services\ActivityLogger;
 use App\Services\DirectoryContactExcelImporter;
 use App\Support\UploadLimits;
@@ -823,19 +824,28 @@ class ContactsBoard extends Page implements HasForms
             return null;
         }
 
-        $comments = $contact->comments()
-            ->with('user')
-            ->orderByDesc('commented_at')
-            ->orderByDesc('id')
-            ->limit(8)
-            ->get()
-            ->map(fn (DirectoryContactComment $comment): array => [
-                'author' => $comment->user?->displayName() ?: 'Unknown user',
+        $comments = [];
+        foreach (
+            $contact->comments()
+                ->with('user')
+                ->orderByDesc('commented_at')
+                ->orderByDesc('id')
+                ->limit(8)
+                ->get() as $comment
+        ) {
+            if (! $comment instanceof DirectoryContactComment) {
+                continue;
+            }
+
+            $user = $comment->user;
+            $author = $user instanceof User ? $user->displayName() : '';
+
+            $comments[] = [
+                'author' => $author !== '' ? $author : 'Unknown user',
                 'commented_at' => $comment->commented_at?->format('Y-m-d H:i') ?? '',
                 'comment' => (string) $comment->comment,
-            ])
-            ->values()
-            ->all();
+            ];
+        }
 
         $persons = $contact->contactPersons()
             ->orderBy('id')

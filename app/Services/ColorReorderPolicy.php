@@ -2,8 +2,10 @@
 
 namespace App\Services;
 
+use App\Models\Collection;
 use App\Models\Color;
 use App\Models\Order;
+use App\Models\OrderItem;
 use App\Models\Product;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -91,7 +93,16 @@ class ColorReorderPolicy
 
         $colorIds = [];
         foreach ($order->orderItems as $item) {
-            $colorId = $item->product?->color_id;
+            if (! $item instanceof OrderItem) {
+                continue;
+            }
+
+            $product = $item->product;
+            if (! $product instanceof Product) {
+                continue;
+            }
+
+            $colorId = $product->color_id;
             if ($colorId !== null) {
                 $colorIds[(int) $colorId] = true;
             }
@@ -239,7 +250,10 @@ class ColorReorderPolicy
         }
 
         // Abbreviated colour names (PALERMO5555BL, FERRARA1985KO, AGNONA111COBBLE).
-        $collection = self::normalizeKey((string) ($color->collection?->name ?? ''));
+        $relatedCollection = $color->collection;
+        $collection = self::normalizeKey(
+            $relatedCollection instanceof Collection ? (string) $relatedCollection->name : ''
+        );
         $code = self::normalizeKey((string) $color->color_code);
         $name = self::normalizeKey((string) $color->color_name);
         if ($collection === '' || $code === '') {
@@ -299,7 +313,10 @@ class ColorReorderPolicy
     {
         $color->loadMissing('collection');
 
-        $collection = self::normalizeKey((string) ($color->collection?->name ?? ''));
+        $relatedCollection = $color->collection;
+        $collection = self::normalizeKey(
+            $relatedCollection instanceof Collection ? (string) $relatedCollection->name : ''
+        );
         $code = self::normalizeKey((string) $color->color_code);
         $name = self::normalizeKey((string) $color->color_name);
 

@@ -80,7 +80,7 @@ class Dashboard extends Page
     }
 
     /**
-     * @return Collection<int, array{todo: Todo, late: bool, approaching: bool, badge: ?string, url: string}>
+     * @return Collection<int, array{todo: Todo, late: bool, approaching: bool, badge: ?string, can_mark_done: bool, url: string}>
      */
     public function getTasks(): Collection
     {
