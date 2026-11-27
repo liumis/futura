@@ -19,6 +19,7 @@ class CustomsContact extends Model
         'phone',
         'email',
         'mail_template_id',
+        'email_signature',
         'bank_account',
         'bank_bic',
     ];

@@ -49,7 +49,8 @@ trait HandlesCargoQuickOrder
                         Group::make([
                             Forms\Components\Textarea::make('raw_text')
                                 ->label('Paste order text')
-                                ->placeholder("agnona\n101 - 10\nArctic - 20\n\nAGNONA102ARCTIC30 — 3 vnt")
+                                ->placeholder("agnona\n101 - 2 rit\nArctic - 50\n\nagnana 102 - 1\nAGNONA102ARCTIC30 — 3")
+                                ->helperText('Default = rolls (rit). Qty ≥ 25 without unit = meters. Typos in collection names are fuzzy-matched.')
                                 ->rows(14)
                                 ->required()
                                 ->columnSpanFull(),
@@ -61,16 +62,15 @@ trait HandlesCargoQuickOrder
                                     ->action(function (Get $get, Set $set): void {
                                         $supplierId = $this->quickOrderSupplierId();
                                         $rawText = (string) ($get('raw_text') ?? '');
-                                        $lines = app(CargoQuickOrderParser::class)->parse(
-                                            $rawText,
-                                            $supplierId,
-                                        );
-                                        $summary = app(CargoQuickOrderParser::class)->summary($lines);
+                                        $parser = app(CargoQuickOrderParser::class);
+                                        $lines = $parser->parse($rawText, $supplierId);
+                                        $summary = $parser->summary($lines);
                                         $set('lines', $lines);
                                         $set('summary', $summary);
                                         $this->rememberQuickOrderDraft($rawText, $lines, $summary);
 
                                         $matched = collect($lines)->where('matched', true)->count();
+                                        $soft = count($parser->unconfirmedSoftMatches($lines));
 
                                         Notification::make()
                                             ->title($matched > 0
@@ -78,8 +78,10 @@ trait HandlesCargoQuickOrder
                                                 : 'No products matched')
                                             ->body($matched === 0
                                                 ? 'Check the codes or select a supplier first.'
-                                                : null)
-                                            ->{$matched > 0 ? 'success' : 'warning'}()
+                                                : ($soft > 0
+                                                    ? "{$soft} soft match(es) need confirmation (orange/red)."
+                                                    : null))
+                                            ->{$matched > 0 ? ($soft > 0 ? 'warning' : 'success') : 'warning'}()
                                             ->send();
                                     }),
                             ]),
@@ -95,6 +97,9 @@ trait HandlesCargoQuickOrder
                                     Forms\Components\Hidden::make('stock'),
                                     Forms\Components\Hidden::make('size_meters'),
                                     Forms\Components\Hidden::make('detail'),
+                                    Forms\Components\Hidden::make('confidence'),
+                                    Forms\Components\Hidden::make('needs_confirmation'),
+                                    Forms\Components\Hidden::make('warning'),
                                     Forms\Components\TextInput::make('code')
                                         ->label('Code')
                                         ->disabled()
@@ -104,7 +109,7 @@ trait HandlesCargoQuickOrder
                                         ->disabled()
                                         ->dehydrated(),
                                     Forms\Components\TextInput::make('amount')
-                                        ->label('Qty')
+                                        ->label('Qty (rit)')
                                         ->numeric()
                                         ->minValue(0)
                                         ->required()
@@ -114,33 +119,63 @@ trait HandlesCargoQuickOrder
                                             $size = $get('size_meters');
                                             $stock = $get('stock');
                                             $matched = (bool) $get('matched');
+                                            $warning = (string) ($get('warning') ?? '');
 
                                             if (! $matched) {
-                                                $set('detail', 'Not matched');
+                                                $set('detail', $warning !== '' ? $warning : 'Not matched');
 
                                                 return;
                                             }
 
                                             if ($size) {
                                                 $meters = $amount * (float) $size;
-                                                $set('detail', sprintf(
-                                                    '%d vnt × %s m = %s m · stock %s',
+                                                $detail = sprintf(
+                                                    '%d rit × %s m = %s m · stock %s',
                                                     $amount,
                                                     rtrim(rtrim(number_format((float) $size, 2, '.', ''), '0'), '.'),
                                                     rtrim(rtrim(number_format($meters, 2, '.', ''), '0'), '.'),
                                                     $stock === null ? '—' : $stock,
-                                                ));
+                                                );
                                             } else {
-                                                $set('detail', sprintf(
-                                                    '%d vnt · stock %s',
+                                                $detail = sprintf(
+                                                    '%d rit · stock %s',
                                                     $amount,
                                                     $stock === null ? '—' : $stock,
-                                                ));
+                                                );
                                             }
+
+                                            if ($warning !== '') {
+                                                $detail .= ' · '.$warning;
+                                            }
+
+                                            $set('detail', $detail);
                                         }),
                                     Forms\Components\Placeholder::make('detail_view')
                                         ->label('Details')
                                         ->content(fn (Get $get): string => (string) ($get('detail') ?? '')),
+                                    Forms\Components\Placeholder::make('match_warning')
+                                        ->label('Match')
+                                        ->content(function (Get $get): string {
+                                            $confidence = (string) ($get('confidence') ?? '');
+                                            $warning = (string) ($get('warning') ?? '');
+                                            if (! (bool) ($get('matched') ?? false)) {
+                                                return '⛔ '.$warning;
+                                            }
+
+                                            return match ($confidence) {
+                                                'low' => '🔴 '.$warning,
+                                                'medium' => '🟠 '.$warning,
+                                                default => $warning !== '' ? $warning : 'OK',
+                                            };
+                                        })
+                                        ->visible(fn (Get $get): bool => (string) ($get('warning') ?? '') !== ''
+                                            || in_array((string) ($get('confidence') ?? ''), ['low', 'medium', 'none'], true)),
+                                    Forms\Components\Toggle::make('confirmed')
+                                        ->label('Confirm soft match')
+                                        ->helperText('Required before adding uncertain matches.')
+                                        ->visible(fn (Get $get): bool => (bool) ($get('needs_confirmation') ?? false))
+                                        ->live()
+                                        ->dehydrated(),
                                 ])
                                 ->columns(3)
                                 ->addable(false)
@@ -157,7 +192,16 @@ trait HandlesCargoQuickOrder
                                         $summary,
                                     );
                                 })
-                                ->itemLabel(fn (array $state): ?string => ($state['code'] ?? null).' · '.($state['amount'] ?? 0))
+                                ->itemLabel(function (array $state): ?string {
+                                    $flag = match ((string) ($state['confidence'] ?? '')) {
+                                        'low' => '🔴 ',
+                                        'medium' => '🟠 ',
+                                        'none' => '⛔ ',
+                                        default => '',
+                                    };
+
+                                    return $flag.($state['code'] ?? null).' · '.($state['amount'] ?? 0);
+                                })
                                 ->columnSpanFull(),
 
                             Forms\Components\Textarea::make('summary')
@@ -180,8 +224,21 @@ trait HandlesCargoQuickOrder
             ->action(function (array $data): void {
                 $lines = is_array($data['lines'] ?? null) ? $data['lines'] : [];
                 $rawText = (string) ($data['raw_text'] ?? '');
-                $summary = app(CargoQuickOrderParser::class)->summary($lines);
+                $parser = app(CargoQuickOrderParser::class);
+                $summary = $parser->summary($lines);
                 $this->rememberQuickOrderDraft($rawText, $lines, $summary);
+
+                $pending = $parser->unconfirmedSoftMatches($lines);
+                if ($pending !== []) {
+                    Notification::make()
+                        ->title('Confirm soft matches first')
+                        ->body(count($pending).' line(s) need the Confirm toggle (orange/red).')
+                        ->danger()
+                        ->send();
+
+                    return;
+                }
+
                 $this->applyQuickOrderLines($lines);
                 $this->orderCartOpen = $this->orderCartCount() > 0;
             });

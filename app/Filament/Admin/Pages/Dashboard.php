@@ -67,6 +67,8 @@ class Dashboard extends Page
 
     protected string $view = 'filament.admin.pages.dashboard';
 
+    private bool $applyingTaskStatus = false;
+
     public static function canAccess(): bool
     {
         return auth()->check();
@@ -86,6 +88,8 @@ class Dashboard extends Page
             return collect();
         }
 
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
+
         return Todo::query()
             ->notArchived()
             ->where('status', '!=', TodoStatus::Done)
@@ -94,7 +98,7 @@ class Dashboard extends Page
             ->orderBy('deadline')
             ->limit(20)
             ->get()
-            ->map(function (Todo $todo): array {
+            ->map(function (Todo $todo) use ($actor): array {
                 $deadline = $todo->deadline;
                 $late = $deadline !== null && $deadline->lt(now());
                 $approaching = ! $late && $deadline !== null && $deadline->lte(now()->addDays(2));
@@ -104,6 +108,12 @@ class Dashboard extends Page
                     'late' => $late,
                     'approaching' => $approaching,
                     'badge' => $late ? 'Late' : ($approaching ? 'Soon' : null),
+                    'can_mark_done' => TodoStatusWorkflow::canTransition(
+                        $todo,
+                        $todo->status,
+                        TodoStatus::Done,
+                        $actor,
+                    ),
                     'url' => TaskResource::getUrl('edit', ['record' => $todo]),
                 ];
             });
@@ -359,8 +369,12 @@ class Dashboard extends Page
                     ? $todo->deadline->toDateString()
                     : (is_string($todo->deadline) ? $todo->deadline : null);
 
+                $actor = auth()->user() instanceof User ? auth()->user() : null;
+                $statusOptions = TodoStatusWorkflow::optionsFor($todo, $actor);
+
                 return [
                     'status' => $status->value,
+                    'status_options' => $statusOptions,
                     'title' => $todo->title,
                     'project_id' => $todo->project_id,
                     'deadline' => $deadline,
@@ -369,9 +383,6 @@ class Dashboard extends Page
                 ];
             })
             ->form(fn (): array => [
-                Hidden::make('status')
-                    ->dehydrated(false)
-                    ->live(),
                 Placeholder::make('current_status')
                     ->label('Status')
                     ->content(function (Get $get): HtmlString {
@@ -383,6 +394,26 @@ class Dashboard extends Page
                             .$label
                             .'</span>'
                         );
+                    }),
+                Hidden::make('status_options')
+                    ->dehydrated(false),
+                Hidden::make('status')
+                    ->dehydrated(false)
+                    ->live()
+                    ->visible(fn (Get $get): bool => count((array) ($get('status_options') ?? [])) <= 1),
+                Select::make('status')
+                    ->label('Move to')
+                    ->options(fn (Get $get): array => (array) ($get('status_options') ?? []))
+                    ->native(false)
+                    ->live()
+                    ->dehydrated(false)
+                    ->visible(fn (Get $get): bool => count((array) ($get('status_options') ?? [])) > 1)
+                    ->afterStateUpdated(function (mixed $state, mixed $old, Get $get, SchemaSet $set): void {
+                        if ($this->applyingTaskStatus || $state === $old || blank($state)) {
+                            return;
+                        }
+
+                        $this->applyQuickTaskStatusSelect($state, $get, $set);
                     }),
                 Actions::make([
                     Action::make('quickStatusBack')
@@ -506,8 +537,89 @@ class Dashboard extends Page
         return Todo::query()->find($todoId);
     }
 
+    private function applyQuickTaskStatusSelect(mixed $state, Get $get, SchemaSet $set): void
+    {
+        if ($this->applyingTaskStatus) {
+            return;
+        }
+
+        if (! $this->canSeeModule(AdminModule::Tasks)) {
+            Notification::make()
+                ->title('No access')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $todo = $this->mountedEditTask();
+        if ($todo === null) {
+            Notification::make()
+                ->title('Task not found')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $next = TodoStatusWorkflow::normalize($state);
+        if ($next === null) {
+            return;
+        }
+
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
+        $from = TodoStatusWorkflow::normalize($todo->status) ?? TodoStatus::New;
+
+        if ($from === $next) {
+            return;
+        }
+
+        if (! TodoStatusWorkflow::canTransition($todo, $from, $next, $actor)) {
+            $this->applyingTaskStatus = true;
+            try {
+                $set('status', $from->value);
+            } finally {
+                $this->applyingTaskStatus = false;
+            }
+            Notification::make()
+                ->title('Status change not allowed')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        $this->applyingTaskStatus = true;
+        try {
+            $todo->update(['status' => $next]);
+            $todo->refresh();
+            $set('status', $next->value);
+            $set('status_options', TodoStatusWorkflow::optionsFor($todo, $actor));
+        } catch (Throwable $exception) {
+            $set('status', $from->value);
+            Notification::make()
+                ->title('Could not change status')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        } finally {
+            $this->applyingTaskStatus = false;
+        }
+
+        Notification::make()
+            ->title('Status → '.$next->getLabel())
+            ->success()
+            ->send();
+    }
+
     private function applyQuickTaskStatusStep(Get $get, SchemaSet $set, bool $back): void
     {
+        if ($this->applyingTaskStatus) {
+            return;
+        }
+
         if (! $this->canSeeModule(AdminModule::Tasks)) {
             Notification::make()
                 ->title('No access')
@@ -537,8 +649,65 @@ class Dashboard extends Page
             return;
         }
 
+        $this->applyingTaskStatus = true;
         try {
             $todo->update(['status' => $next]);
+            $todo->refresh();
+            $set('status', $next->value);
+            $set('status_options', TodoStatusWorkflow::optionsFor($todo, $actor));
+        } catch (Throwable $exception) {
+            Notification::make()
+                ->title('Could not change status')
+                ->body($exception->getMessage())
+                ->danger()
+                ->send();
+
+            return;
+        } finally {
+            $this->applyingTaskStatus = false;
+        }
+
+        Notification::make()
+            ->title('Status → '.$next->getLabel())
+            ->success()
+            ->send();
+    }
+
+    public function markTaskDone(int $todoId): void
+    {
+        if (! $this->canSeeModule(AdminModule::Tasks)) {
+            Notification::make()
+                ->title('No access')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $todo = Todo::query()->find($todoId);
+        if ($todo === null) {
+            Notification::make()
+                ->title('Task not found')
+                ->danger()
+                ->send();
+
+            return;
+        }
+
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
+
+        if (! TodoStatusWorkflow::canTransition($todo, $todo->status, TodoStatus::Done, $actor)) {
+            Notification::make()
+                ->title('Cannot mark as Done')
+                ->body('This task cannot be moved to Done from its current status.')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        try {
+            $todo->update(['status' => TodoStatus::Done]);
         } catch (Throwable $exception) {
             Notification::make()
                 ->title('Could not change status')
@@ -549,10 +718,8 @@ class Dashboard extends Page
             return;
         }
 
-        $set('status', $next->value);
-
         Notification::make()
-            ->title('Status → '.$next->getLabel())
+            ->title('Task marked Done')
             ->success()
             ->send();
     }

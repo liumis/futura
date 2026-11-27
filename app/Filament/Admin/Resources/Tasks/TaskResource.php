@@ -14,6 +14,7 @@ use App\Models\Todo;
 use App\Models\TodoComment;
 use App\Models\User;
 use App\Services\TodoStatusWorkflow;
+use App\Support\SingleOptionField;
 use App\Support\UploadLimits;
 use BackedEnum;
 use Filament\Actions\Action;
@@ -23,6 +24,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Forms\Components\Hidden;
 use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\Toggle;
 use Filament\Forms\Set;
@@ -221,22 +223,23 @@ class TaskResource extends Resource
                     ->maxLength(255)
                     ->disabled(fn (callable $get): bool => ! ((bool) $get('can_edit')))
                     ->columnSpanFull(),
-                Forms\Components\Select::make('project_id')
-                    ->label('Project')
-                    ->options(function (): array {
-                        return Project::query()
-                            ->where('archived', false)
-                            ->orderBy('name')
-                            ->get()
-                            ->mapWithKeys(fn (Project $project): array => [
-                                $project->getKey() => $project->label(),
-                            ])
-                            ->all();
-                    })
-                    ->searchable()
-                    ->required()
-                    ->disabled(fn (callable $get): bool => ! ((bool) $get('can_edit')))
-                    ->columnSpanFull(),
+                SingleOptionField::make(
+                    'project_id',
+                    Project::query()
+                        ->where('archived', false)
+                        ->orderBy('name')
+                        ->get()
+                        ->mapWithKeys(fn (Project $project): array => [
+                            $project->getKey() => $project->label(),
+                        ])
+                        ->all(),
+                    fn (Select $select): Select => $select
+                        ->label('Project')
+                        ->searchable()
+                        ->required()
+                        ->disabled(fn (callable $get): bool => ! ((bool) $get('can_edit')))
+                        ->columnSpanFull(),
+                ),
                 Forms\Components\TextInput::make('user_name')
                     ->label('Author')
                     ->disabled(),
@@ -336,23 +339,32 @@ class TaskResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $projectOptions = Project::query()
+            ->where('archived', false)
+            ->orderBy('name')
+            ->get()
+            ->mapWithKeys(fn (Project $project): array => [
+                $project->getKey() => $project->label(),
+            ])
+            ->all();
+
         return $schema
             ->components([
+                ...self::statusStepperFields(),
+
                 Forms\Components\TextInput::make('title')
                     ->required()
                     ->maxLength(255),
 
-                Forms\Components\Select::make('project_id')
-                    ->label('Project')
-                    ->relationship(
-                        name: 'project',
-                        titleAttribute: 'name',
-                        modifyQueryUsing: fn (Builder $query): Builder => $query->where('archived', false),
-                    )
-                    ->getOptionLabelFromRecordUsing(fn (Project $record): string => $record->label())
-                    ->searchable(['name', 'code'])
-                    ->preload()
-                    ->required(),
+                SingleOptionField::make(
+                    'project_id',
+                    $projectOptions,
+                    fn (Select $select): Select => $select
+                        ->label('Project')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                ),
 
                 Forms\Components\DateTimePicker::make('deadline')
                     ->required()
@@ -598,8 +610,6 @@ class TaskResource extends Resource
                     ->required()
                     ->live()
                     ->default(fn (): ?int => auth()->id()),
-
-                ...self::statusStepperFields(),
 
                 Forms\Components\Select::make('priority')
                     ->label('Priority')
@@ -965,7 +975,7 @@ class TaskResource extends Resource
     }
 
     /**
-     * Status is always New on create (hidden). On edit, back/forward step buttons.
+     * Status is always New on create (hidden). On edit: badge + Select jump + back/forward.
      *
      * @param  (callable(callable): bool)|null  $canEditUsing
      * @return array<int, mixed>
@@ -980,154 +990,273 @@ class TaskResource extends Resource
             || $visibleOnCreate
             || $operation === 'edit';
 
+        $statusOptions = function (Get $get, ?Todo $record): array {
+            $actor = auth()->user() instanceof User ? auth()->user() : null;
+
+            // Prefer persisted record so Select::make('status') options do not $get itself.
+            if ($record instanceof Todo) {
+                return TodoStatusWorkflow::optionsFor($record, $actor);
+            }
+
+            return TodoStatusWorkflow::optionsFor(
+                TodoStatusWorkflow::proxyFromForm($get, $record),
+                $actor,
+            );
+        };
+
         return [
+            // Create: Hidden New. Edit: Select below owns status (Hidden stays for single-option).
             Hidden::make('status')
                 ->default(TodoStatus::New)
-                ->dehydrated()
-                ->live(),
+                ->live()
+                ->dehydrated(function (string $operation, Get $get) use ($stepperVisible): bool {
+                    if (! $stepperVisible($operation)) {
+                        return true;
+                    }
 
-            Forms\Components\Placeholder::make('status_current')
-                ->label('Status')
-                ->content(function (Get $get): HtmlString {
-                    $status = TodoStatusWorkflow::normalize($get('status')) ?? TodoStatus::New;
-                    $label = e((string) ($status->getLabel() ?? $status->value));
-                    $class = match ($status) {
-                        TodoStatus::New => 'background:#6b7280;color:#fff;',
-                        TodoStatus::InProgress => 'background:#f59e0b;color:#111;',
-                        TodoStatus::Confirm => 'background:#2563eb;color:#fff;',
-                        TodoStatus::Returned => 'background:#9333ea;color:#fff;',
-                        TodoStatus::Done => 'background:#16a34a;color:#fff;',
-                    };
-
-                    return new HtmlString(
-                        '<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:0.35rem 0.85rem;font-size:0.875rem;font-weight:600;'.$class.'">'.$label.'</span>'
-                    );
+                    return count((array) ($get('status_options') ?? [])) <= 1;
                 })
-                ->visible($stepperVisible),
+                ->visible(function (string $operation, Get $get) use ($stepperVisible): bool {
+                    if (! $stepperVisible($operation)) {
+                        return true;
+                    }
 
-            Actions::make([
-                Action::make('stepStatusBack')
-                    ->label(function (Get $get, ?Todo $record) use ($canEdit): string {
-                        if (! $canEdit($get)) {
-                            return '← Back';
-                        }
+                    return count((array) ($get('status_options') ?? [])) <= 1;
+                }),
 
-                        $back = TodoStatusWorkflow::stepBack(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        );
+            Hidden::make('status_options')
+                ->default([])
+                ->dehydrated(false)
+                ->visible(false)
+                ->afterStateHydrated(function (Hidden $component, Get $get, ?Todo $record) use ($statusOptions): void {
+                    $component->state($statusOptions($get, $record));
+                }),
 
-                        return $back
-                            ? '← '.$back->getLabel()
-                            : '← Back';
-                    })
-                    ->color('gray')
-                    ->disabled(function (Get $get, ?Todo $record) use ($canEdit): bool {
-                        if (! $canEdit($get)) {
-                            return true;
-                        }
-
-                        return TodoStatusWorkflow::stepBack(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        ) === null;
-                    })
-                    ->modalHeading(function (Get $get, ?Todo $record): string {
-                        $back = TodoStatusWorkflow::stepBack(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        );
-
-                        return $back
-                            ? 'Move status to '.$back->getLabel().'?'
-                            : 'Change status?';
-                    })
-                    ->modalSubmitActionLabel('Confirm')
-                    ->modalWidth('lg')
-                    ->form(self::statusStepConfirmFormSchema())
-                    ->action(function (array $data, SchemaSet $set, Get $get, ?Todo $record) use ($canEdit): void {
-                        if (! $canEdit($get)) {
-                            return;
-                        }
-
-                        $back = TodoStatusWorkflow::stepBack(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        );
-
-                        if ($back === null) {
-                            return;
-                        }
-
-                        self::applyStatusStep($set, $get, $record, $back, $data);
-                    }),
-                Action::make('stepStatusForward')
-                    ->label(function (Get $get, ?Todo $record) use ($canEdit): string {
-                        if (! $canEdit($get)) {
-                            return 'Forward →';
-                        }
-
-                        $forward = TodoStatusWorkflow::stepForward(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        );
-
-                        return $forward
-                            ? $forward->getLabel().' →'
-                            : 'Forward →';
-                    })
-                    ->color('primary')
-                    ->disabled(function (Get $get, ?Todo $record) use ($canEdit): bool {
-                        if (! $canEdit($get)) {
-                            return true;
-                        }
-
-                        return TodoStatusWorkflow::stepForward(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        ) === null;
-                    })
-                    ->modalHeading(function (Get $get, ?Todo $record): string {
-                        $forward = TodoStatusWorkflow::stepForward(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        );
-
-                        return $forward
-                            ? 'Move status to '.$forward->getLabel().'?'
-                            : 'Change status?';
-                    })
-                    ->modalSubmitActionLabel('Confirm')
-                    ->modalWidth('lg')
-                    ->form(self::statusStepConfirmFormSchema())
-                    ->action(function (array $data, SchemaSet $set, Get $get, ?Todo $record) use ($canEdit): void {
-                        if (! $canEdit($get)) {
-                            return;
-                        }
-
-                        $forward = TodoStatusWorkflow::stepForward(
-                            TodoStatusWorkflow::proxyFromForm($get, $record),
-                            $get('status'),
-                            auth()->user(),
-                        );
-
-                        if ($forward === null) {
-                            return;
-                        }
-
-                        self::applyStatusStep($set, $get, $record, $forward, $data);
-                    }),
+            Grid::make([
+                'default' => 1,
+                'md' => 12,
             ])
+                ->schema([
+                    Forms\Components\Placeholder::make('status_current')
+                        ->label('Status')
+                        ->content(function (Get $get): HtmlString {
+                            $status = TodoStatusWorkflow::normalize($get('status')) ?? TodoStatus::New;
+                            $label = e((string) ($status->getLabel() ?? $status->value));
+                            $class = match ($status) {
+                                TodoStatus::New => 'background:#6b7280;color:#fff;',
+                                TodoStatus::InProgress => 'background:#f59e0b;color:#111;',
+                                TodoStatus::Confirm => 'background:#2563eb;color:#fff;',
+                                TodoStatus::Returned => 'background:#9333ea;color:#fff;',
+                                TodoStatus::Done => 'background:#16a34a;color:#fff;',
+                            };
+
+                            return new HtmlString(
+                                '<span style="display:inline-flex;align-items:center;border-radius:9999px;padding:0.35rem 0.85rem;font-size:0.875rem;font-weight:600;'.$class.'">'.$label.'</span>'
+                            );
+                        })
+                        ->columnSpan(['default' => 1, 'md' => 3]),
+
+                    Forms\Components\Select::make('status')
+                        ->label('Move to')
+                        ->options(fn (Get $get): array => (array) ($get('status_options') ?? []))
+                        ->native(false)
+                        ->live()
+                        ->disabled(fn (Get $get): bool => ! $canEdit($get))
+                        ->dehydrated(fn (Get $get): bool => count((array) ($get('status_options') ?? [])) > 1)
+                        ->visible(function (string $operation, Get $get) use ($stepperVisible): bool {
+                            return $stepperVisible($operation)
+                                && count((array) ($get('status_options') ?? [])) > 1;
+                        })
+                        ->afterStateUpdated(function (mixed $state, mixed $old, SchemaSet $set, Get $get, ?Todo $record) use ($canEdit, $statusOptions): void {
+                            if (! $canEdit($get) || $state === $old || blank($state)) {
+                                return;
+                            }
+
+                            self::applyStatusSelectChange($set, $get, $record, $state);
+                            $set('status_options', $statusOptions($get, $record instanceof Todo ? $record->fresh() : $record));
+                        })
+                        ->columnSpan(['default' => 1, 'md' => 4]),
+
+                    Actions::make([
+                        Action::make('stepStatusBack')
+                            ->label(function (Get $get, ?Todo $record) use ($canEdit): string {
+                                if (! $canEdit($get)) {
+                                    return '← Back';
+                                }
+
+                                $back = TodoStatusWorkflow::stepBack(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                );
+
+                                return $back
+                                    ? '← '.$back->getLabel()
+                                    : '← Back';
+                            })
+                            ->color('gray')
+                            ->disabled(function (Get $get, ?Todo $record) use ($canEdit): bool {
+                                if (! $canEdit($get)) {
+                                    return true;
+                                }
+
+                                return TodoStatusWorkflow::stepBack(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                ) === null;
+                            })
+                            ->modalHeading(function (Get $get, ?Todo $record): string {
+                                $back = TodoStatusWorkflow::stepBack(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                );
+
+                                return $back
+                                    ? 'Move status to '.$back->getLabel().'?'
+                                    : 'Change status?';
+                            })
+                            ->modalSubmitActionLabel('Confirm')
+                            ->modalWidth('lg')
+                            ->form(self::statusStepConfirmFormSchema())
+                            ->action(function (array $data, SchemaSet $set, Get $get, ?Todo $record) use ($canEdit): void {
+                                if (! $canEdit($get)) {
+                                    return;
+                                }
+
+                                $back = TodoStatusWorkflow::stepBack(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                );
+
+                                if ($back === null) {
+                                    return;
+                                }
+
+                                self::applyStatusStep($set, $get, $record, $back, $data);
+                            }),
+                        Action::make('stepStatusForward')
+                            ->label(function (Get $get, ?Todo $record) use ($canEdit): string {
+                                if (! $canEdit($get)) {
+                                    return 'Forward →';
+                                }
+
+                                $forward = TodoStatusWorkflow::stepForward(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                );
+
+                                return $forward
+                                    ? $forward->getLabel().' →'
+                                    : 'Forward →';
+                            })
+                            ->color('primary')
+                            ->disabled(function (Get $get, ?Todo $record) use ($canEdit): bool {
+                                if (! $canEdit($get)) {
+                                    return true;
+                                }
+
+                                return TodoStatusWorkflow::stepForward(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                ) === null;
+                            })
+                            ->modalHeading(function (Get $get, ?Todo $record): string {
+                                $forward = TodoStatusWorkflow::stepForward(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                );
+
+                                return $forward
+                                    ? 'Move status to '.$forward->getLabel().'?'
+                                    : 'Change status?';
+                            })
+                            ->modalSubmitActionLabel('Confirm')
+                            ->modalWidth('lg')
+                            ->form(self::statusStepConfirmFormSchema())
+                            ->action(function (array $data, SchemaSet $set, Get $get, ?Todo $record) use ($canEdit): void {
+                                if (! $canEdit($get)) {
+                                    return;
+                                }
+
+                                $forward = TodoStatusWorkflow::stepForward(
+                                    TodoStatusWorkflow::proxyFromForm($get, $record),
+                                    $get('status'),
+                                    auth()->user(),
+                                );
+
+                                if ($forward === null) {
+                                    return;
+                                }
+
+                                self::applyStatusStep($set, $get, $record, $forward, $data);
+                            }),
+                    ])
+                        ->columnSpan(['default' => 1, 'md' => 5]),
+                ])
                 ->visible($stepperVisible)
                 ->columnSpanFull(),
         ];
+    }
+
+    protected static function applyStatusSelectChange(
+        SchemaSet $set,
+        Get $get,
+        ?Todo $record,
+        mixed $state,
+    ): void {
+        $next = TodoStatusWorkflow::normalize($state);
+        if ($next === null) {
+            return;
+        }
+
+        $actor = auth()->user() instanceof User ? auth()->user() : null;
+
+        if ($record instanceof Todo) {
+            $from = TodoStatusWorkflow::normalize($record->status) ?? TodoStatus::New;
+            if ($from === $next) {
+                return;
+            }
+
+            if (! TodoStatusWorkflow::canTransition($record, $from, $next, $actor)) {
+                $set('status', $from->value);
+                Notification::make()
+                    ->title('Status change not allowed')
+                    ->warning()
+                    ->send();
+
+                return;
+            }
+
+            self::applyStatusStep($set, $get, $record, $next, []);
+
+            return;
+        }
+
+        $from = TodoStatus::New;
+        $proxy = TodoStatusWorkflow::proxyFromForm(
+            function (string $key) use ($get, $from): mixed {
+                return $key === 'status' ? $from->value : $get($key);
+            },
+            null,
+        );
+
+        if (! TodoStatusWorkflow::canTransition($proxy, $from, $next, $actor)) {
+            $set('status', $from->value);
+            Notification::make()
+                ->title('Status change not allowed')
+                ->warning()
+                ->send();
+
+            return;
+        }
+
+        self::applyStatusStep($set, $get, null, $next, []);
     }
 
     /**
@@ -1205,8 +1334,16 @@ class TaskResource extends Resource
                 ]);
             }
 
+            $fresh = $record->fresh(['comments.user']) ?? $record;
             $set('status', $nextStatus->value);
-            $set('comments_history', self::commentHistoryRows($record->fresh(['comments.user']) ?? $record));
+            $set(
+                'status_options',
+                TodoStatusWorkflow::optionsFor(
+                    $fresh,
+                    auth()->user() instanceof User ? auth()->user() : null,
+                ),
+            );
+            $set('comments_history', self::commentHistoryRows($fresh));
             $set('new_comment_content', '');
             $set('new_comment_attachments', []);
 
@@ -1219,6 +1356,13 @@ class TaskResource extends Resource
         }
 
         $set('status', $nextStatus->value);
+        $set(
+            'status_options',
+            TodoStatusWorkflow::optionsFor(
+                TodoStatusWorkflow::proxyFromForm($get, null),
+                auth()->user() instanceof User ? auth()->user() : null,
+            ),
+        );
 
         if ($comment !== '' || $attachments !== []) {
             $history = collect($get('comments_history') ?? [])->values()->all();

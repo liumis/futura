@@ -91,11 +91,14 @@ class EditOrder extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $amounts = [];
+        $notes = [];
         $this->record->loadMissing('orderItems');
         foreach ($this->record->orderItems as $item) {
             $amounts[(string) $item->product_id] = $item->amount;
+            $notes[(string) $item->product_id] = (string) ($item->notes ?? '');
         }
         $data['order_amounts'] = $amounts;
+        $data['order_notes'] = $notes;
 
         return $data;
     }
@@ -295,7 +298,14 @@ class EditOrder extends EditRecord
         $amounts = is_array($this->data['order_amounts'] ?? null)
             ? $this->data['order_amounts']
             : ($this->form->getRawState()['order_amounts'] ?? []);
-        OrderResource::syncOrderItemsFromAmounts($this->record, is_array($amounts) ? $amounts : []);
+        $notes = is_array($this->data['order_notes'] ?? null)
+            ? $this->data['order_notes']
+            : ($this->form->getRawState()['order_notes'] ?? []);
+        OrderResource::syncOrderItemsFromAmounts(
+            $this->record,
+            is_array($amounts) ? $amounts : [],
+            is_array($notes) ? $notes : [],
+        );
         OrderResource::recalculateOrderAmount($this->record->fresh());
 
         $order = $this->record->fresh();

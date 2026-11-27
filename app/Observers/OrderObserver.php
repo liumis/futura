@@ -6,6 +6,7 @@ use App\Enums\ActivityLogEvent;
 use App\Enums\OrderStatus;
 use App\Models\Order;
 use App\Services\ActivityLogger;
+use App\Services\ColorReorderPolicy;
 use App\Services\OrderNotifier;
 use App\Services\OrderStockAllocator;
 
@@ -25,7 +26,15 @@ class OrderObserver
         if ($order->wasChanged('status')) {
             $old = $order->getOriginal('status');
             $new = $order->status;
+            $stockAffecting = OrderStockAllocator::statusReservesStock($old)
+                !== OrderStockAllocator::statusReservesStock($new);
+
             OrderStockAllocator::applyStatusTransition($order, $old, $new);
+
+            if ($stockAffecting) {
+                // Silent refresh — no Filament/email notifications.
+                ColorReorderPolicy::refreshForOrder($order);
+            }
 
             if (OrderStatus::fromMixed($new) === OrderStatus::Pending
                 && OrderStatus::fromMixed($old) !== OrderStatus::Pending) {

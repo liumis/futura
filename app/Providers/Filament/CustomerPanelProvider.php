@@ -74,9 +74,15 @@ class CustomerPanelProvider extends PanelProvider
             ])
             ->passwordReset()
             ->login(Login::class)
-            ->brandName('FuturaTextiles')
-            ->brandLogo(asset('images/logo.png'))
-            ->brandLogoHeight('2.85rem')
+            ->brandName('futura textiles europe')
+            ->brandLogo(fn (): HtmlString => new HtmlString(
+                '<span class="fi-brand-wordmark" role="img" aria-label="futura textiles europe">'
+                .'<span class="fi-brand-wordmark__line">futura</span>'
+                .'<span class="fi-brand-wordmark__line">textiles</span>'
+                .'<span class="fi-brand-wordmark__line">europe</span>'
+                .'</span>'
+            ))
+            ->brandLogoHeight('3.25rem')
             ->favicon(asset('images/favicon.png'))
             ->colors([
                 'primary' => Color::hex('#222222'),

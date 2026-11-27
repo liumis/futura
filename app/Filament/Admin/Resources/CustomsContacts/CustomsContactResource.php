@@ -70,6 +70,12 @@ class CustomsContactResource extends Resource
                     ->native(false)
                     ->helperText('Used when sending customs documents from a confirmed warehouse order.'),
 
+                Forms\Components\Textarea::make('email_signature')
+                    ->label('Email signature')
+                    ->rows(6)
+                    ->columnSpanFull()
+                    ->helperText('Appended automatically when sending. In the template you can also place {signature} where it should appear.'),
+
                 Forms\Components\TextInput::make('bank_account')
                     ->label('Bank account (IBAN)')
                     ->helperText('Used for SEB payment files from Import taxes.')

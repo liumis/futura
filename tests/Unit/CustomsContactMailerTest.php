@@ -65,6 +65,55 @@ class CustomsContactMailerTest extends TestCase
         $this->assertSame('WO #'.$cargo->id.' for Baltic Customs', $subject);
     }
 
+    public function test_build_body_appends_email_signature_when_not_in_template(): void
+    {
+        $template = MailTemplate::query()->create([
+            'name' => 'Customs no signature placeholder',
+            'subject' => 'Docs',
+            'text' => 'Hello {company_name},',
+        ]);
+
+        $contact = CustomsContact::query()->create([
+            'company_name' => 'Baltic Customs',
+            'email' => 'customs@example.com',
+            'mail_template_id' => $template->id,
+            'email_signature' => "Best regards,\nCustoms Team",
+        ]);
+
+        $cargo = Cargo::factory()->create([
+            'status' => CargoStatus::Confirmed,
+        ]);
+
+        $body = CustomsContactMailer::buildBody($contact, $cargo);
+
+        $this->assertStringContainsString('Hello Baltic Customs,', $body);
+        $this->assertStringEndsWith("Best regards,\nCustoms Team", $body);
+    }
+
+    public function test_build_body_uses_signature_placeholder_without_double_append(): void
+    {
+        $template = MailTemplate::query()->create([
+            'name' => 'Customs with signature placeholder',
+            'subject' => 'Docs',
+            'text' => "Hello {company_name},\n\n{signature}\n\nThanks.",
+        ]);
+
+        $contact = CustomsContact::query()->create([
+            'company_name' => 'Baltic Customs',
+            'email' => 'customs@example.com',
+            'mail_template_id' => $template->id,
+            'email_signature' => 'Kind regards',
+        ]);
+
+        $cargo = Cargo::factory()->create([
+            'status' => CargoStatus::Confirmed,
+        ]);
+
+        $body = CustomsContactMailer::buildBody($contact, $cargo);
+
+        $this->assertSame("Hello Baltic Customs,\n\nKind regards\n\nThanks.", $body);
+    }
+
     public function test_send_updates_customs_email_sent_at(): void
     {
         Mail::fake();

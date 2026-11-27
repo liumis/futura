@@ -104,6 +104,11 @@ class CreateCargo extends CreateRecord
      */
     protected ?array $pendingCargoCosts = null;
 
+    /**
+     * @var array<string|int, mixed>|null
+     */
+    protected ?array $pendingCargoNotes = null;
+
     public function confirmWarehouseOrderAction(): Action
     {
         return Action::make('confirmWarehouseOrder')
@@ -163,8 +168,9 @@ class CreateCargo extends CreateRecord
     {
         $this->pendingCargoAmounts = $data['cargo_amounts'] ?? [];
         $this->pendingCargoCosts = $data['cargo_costs'] ?? [];
+        $this->pendingCargoNotes = $data['cargo_notes'] ?? [];
 
-        unset($data['cargo_amounts'], $data['cargo_costs'], $data['cargo_line_filters']);
+        unset($data['cargo_amounts'], $data['cargo_costs'], $data['cargo_notes'], $data['cargo_line_filters']);
 
         return $data;
     }
@@ -175,6 +181,7 @@ class CreateCargo extends CreateRecord
             $this->record,
             is_array($this->pendingCargoAmounts) ? $this->pendingCargoAmounts : [],
             is_array($this->pendingCargoCosts) ? $this->pendingCargoCosts : [],
+            is_array($this->pendingCargoNotes) ? $this->pendingCargoNotes : [],
         );
 
         $cargo = $this->record->fresh();

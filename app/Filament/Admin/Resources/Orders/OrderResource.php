@@ -22,6 +22,7 @@ use App\Services\OrderInvoiceCreator;
 use App\Services\OrderShippedMailer;
 use App\Services\OrderStockAllocator;
 use App\Support\Money;
+use App\Support\SingleOptionField;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -69,7 +70,10 @@ class OrderResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
+        $packageOptions = self::packageProfileOptions();
+
         return $schema
+            ->columns(3)
             ->components([
                 Select::make('status')
                     ->options(OrderStatus::class)
@@ -110,14 +114,20 @@ class OrderResource extends Resource
                     ->default(fn (): string => now()->toDateString())
                     ->visible(fn (): bool => SchemaFacade::hasColumn('orders', 'order_date')),
 
-                Select::make('package_id')
-                    ->label('Package profile')
-                    ->options(fn (): array => self::packageProfileOptions())
-                    ->default(fn (): ?int => self::defaultPackageProfileId())
-                    ->native(false)
-                    ->searchable()
-                    ->live()
-                    ->visible(fn (): bool => self::packageProfileOptions() !== [] && ! self::isCustomerUser()),
+                ...(($packageOptions !== [] && ! self::isCustomerUser())
+                    ? [
+                        SingleOptionField::make(
+                            'package_id',
+                            $packageOptions,
+                            fn (Select $select): Select => $select
+                                ->label('Package profile')
+                                ->default(fn (): ?int => self::defaultPackageProfileId())
+                                ->native(false)
+                                ->searchable()
+                                ->live(),
+                        ),
+                    ]
+                    : []),
 
                 View::make('filament.admin.components.order-package-summary')
                     ->viewData([
@@ -367,7 +377,7 @@ class OrderResource extends Resource
                 ->schema([
                     View::make('filament.admin.components.cargo-order-table-chrome')
                         ->viewData([
-                            'headings' => ['', 'Color / product', 'Code', 'Size (m)', 'Stock', 'Upcoming', 'Amount'],
+                            'headings' => ['', 'Color / product', 'Code', 'Size (m)', 'Stock', 'Upcoming', 'Amount', 'Notes'],
                         ])
                         ->columnSpanFull(),
                     ...$groups,
@@ -418,6 +428,7 @@ class OrderResource extends Resource
             ->columnSpanFull()
             ->viewData(function (?Order $record, Get $get) use ($sectionKey, $heading, $products, $upcomingByProductId, $productIds, $colorStockMetersById): array {
                 $amounts = is_array($get('order_amounts')) ? $get('order_amounts') : [];
+                $notes = is_array($get('order_notes')) ? $get('order_notes') : [];
 
                 return [
                     'sectionKey' => $sectionKey,
@@ -431,6 +442,7 @@ class OrderResource extends Resource
                             $record,
                             $amounts,
                             $colorStockMetersById,
+                            $notes,
                         ),
                         $products,
                     ),
@@ -465,6 +477,7 @@ class OrderResource extends Resource
      * @param  array{amount: int, estimated_arrival: string|null}|null  $upcoming
      * @param  array<string|int, mixed>  $amounts
      * @param  array<int, float>  $colorStockMetersById
+     * @param  array<string|int, mixed>  $notes
      * @return array<string, mixed>
      */
     private static function orderCatalogRowData(
@@ -474,6 +487,7 @@ class OrderResource extends Resource
         ?Order $record,
         array $amounts,
         array $colorStockMetersById = [],
+        array $notes = [],
     ): array {
         $search = strtolower(trim(implode(' ', array_filter([
             $collectionName,
@@ -539,6 +553,7 @@ class OrderResource extends Resource
         }
 
         $amount = (int) ($amounts[(string) $product->id] ?? $amounts[$product->id] ?? 0);
+        $note = (string) ($notes[(string) $product->id] ?? $notes[$product->id] ?? '');
         $max = self::availableOrderAmount(
             $product,
             $upcomingAmount,
@@ -560,6 +575,7 @@ class OrderResource extends Resource
             'stock_html' => $stockHtml,
             'upcoming_html' => $upcomingHtml,
             'amount' => $amount,
+            'notes' => $note,
             'max' => $max,
         ];
     }
@@ -668,8 +684,9 @@ class OrderResource extends Resource
 
     /**
      * @param  array<string|int, mixed>  $amounts
+     * @param  array<string|int, mixed>  $notes
      */
-    public static function syncOrderItemsFromAmounts(Order $order, array $amounts): void
+    public static function syncOrderItemsFromAmounts(Order $order, array $amounts, array $notes = []): void
     {
         $wasReserved = (bool) $order->stock_reserved;
 
@@ -680,9 +697,12 @@ class OrderResource extends Resource
         $order->orderItems()->delete();
 
         foreach (self::clampAmountsToAvailability($amounts) as $productId => $amount) {
+            $note = trim((string) ($notes[$productId] ?? $notes[(string) $productId] ?? ''));
+
             $order->orderItems()->create([
                 'product_id' => $productId,
                 'amount' => $amount,
+                'notes' => $note !== '' ? $note : null,
             ]);
         }
 

@@ -1,0 +1,2232 @@
+{
+  "order_policy": {
+    "asOf": "2026-10-30",
+    "leadMonths": 3.5,
+    "cycleMonths": 1,
+    "coverMonths": 4.5,
+    "triggerM": 12000,
+    "moq": 300,
+    "rollF": 25,
+    "rollV": 30,
+    "minM": 100,
+    "canAddMonths": 1.5,
+    "overstockMonths": 12,
+    "air": false,
+    "containers": [
+      {
+        "name": "20ft",
+        "m": 15000
+      },
+      {
+        "name": "40ft",
+        "m": 25000
+      }
+    ],
+    "service": {
+      "A": "98 %",
+      "B": "95 %",
+      "C": "90 %"
+    },
+    "safetyCapMonths": {
+      "A": 2.5,
+      "B": 2,
+      "C": 1.5
+    }
+  },
+  "order_nomark": [
+    "FERRARABIEL",
+    "ERASERBIEL",
+    "FERRARA1633PDG",
+    "PALERMO6666BR",
+    "0001",
+    "PALERMO3333",
+    "KAT"
+  ],
+  "stock_rules": {
+    "PALERMO5555BL": {
+      "name": "5555 JUODA (PALERMO + BARI)",
+      "desc": "PALERMO 5555-BLACK",
+      "keys": [
+        "PALERMO5555BL",
+        "BARI5555BL"
+      ],
+      "avg": 6250,
+      "limit": 43000,
+      "orderUpTo": 43000,
+      "canAdd": 52380,
+      "co": "V",
+      "cls": "A",
+      "roll": 30,
+      "moq": 300
+    },
+    "PALERMO4444GR": {
+      "name": "4444 PILKA (PALERMO + BARI)",
+      "desc": "PALERMO 4444-GREY",
+      "keys": [
+        "PALERMO4444GR",
+        "BARI4444GR"
+      ],
+      "avg": 3280,
+      "limit": 21930,
+      "orderUpTo": 21930,
+      "canAdd": 26850,
+      "co": "V",
+      "cls": "A",
+      "roll": 30,
+      "moq": 300
+    },
+    "BORGA121BLACK": {
+      "name": "BORGA 121-BLACK",
+      "keys": [
+        "BORGA121BLACK"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 153,
+      "limit": 1075,
+      "orderUpTo": 1550,
+      "canAdd": 1325,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA121BLACK": {
+      "name": "AGNONA 121-BLACK",
+      "keys": [
+        "AGNONA121BLACK"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 156,
+      "limit": 1100,
+      "orderUpTo": 1575,
+      "canAdd": 1350,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO162AUTUMN": {
+      "name": "ARGANO 162-AUTUMN",
+      "keys": [
+        "ARGANO162AUTUMN"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 525,
+      "orderUpTo": 575,
+      "canAdd": 550,
+      "roll": 25,
+      "moq": 300,
+      "reserve": 425,
+      "reserveFor": "Biskinis Bros"
+    },
+    "AGNONA101WHITE": {
+      "name": "AGNONA 101-WHITE",
+      "keys": [
+        "AGNONA101WHITE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 111,
+      "limit": 800,
+      "orderUpTo": 1150,
+      "canAdd": 975,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO124STEEL": {
+      "name": "ARGANO 124-STEEL",
+      "keys": [
+        "ARGANO124STEEL"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 425,
+      "orderUpTo": 475,
+      "canAdd": 450,
+      "roll": 25,
+      "moq": 300,
+      "reserve": 325,
+      "reserveFor": "Biskinis Bros"
+    },
+    "AGNONA111COBBLE": {
+      "name": "AGNONA 111-COBBLESTONE",
+      "keys": [
+        "AGNONA111COBBLE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 99,
+      "limit": 700,
+      "orderUpTo": 1000,
+      "canAdd": 850,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA103PEARL": {
+      "name": "PALOMA 103-PEARL",
+      "keys": [
+        "PALOMA103PEARL"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 63,
+      "limit": 450,
+      "orderUpTo": 650,
+      "canAdd": 550,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO121BLACK": {
+      "name": "SARAMO 121-BLACK",
+      "keys": [
+        "SARAMO121BLACK"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 60,
+      "limit": 425,
+      "orderUpTo": 625,
+      "canAdd": 525,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA114NUTMEG": {
+      "name": "BORGA 114-NUTMEG",
+      "keys": [
+        "BORGA114NUTMEG"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 57,
+      "limit": 400,
+      "orderUpTo": 575,
+      "canAdd": 500,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA118MUSTANG": {
+      "name": "AGNONA 118-MUSTANG",
+      "keys": [
+        "AGNONA118MUSTANG"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 58,
+      "limit": 425,
+      "orderUpTo": 600,
+      "canAdd": 525,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO112RUSTIC": {
+      "name": "SARAMO 112-RUSTIC",
+      "keys": [
+        "SARAMO112RUSTIC"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 57,
+      "limit": 400,
+      "orderUpTo": 575,
+      "canAdd": 500,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA122SHADOW": {
+      "name": "AGNONA 122-SHADOW",
+      "keys": [
+        "AGNONA122SHADOW"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA105PARCHMENT": {
+      "name": "AGNONA 105-PARCHMENT",
+      "keys": [
+        "AGNONA105PARCHMENT"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 48,
+      "limit": 350,
+      "orderUpTo": 500,
+      "canAdd": 425,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO113BISON": {
+      "name": "SARAMO 113-BISON",
+      "keys": [
+        "SARAMO113BISON"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 51,
+      "limit": 375,
+      "orderUpTo": 550,
+      "canAdd": 475,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO114COFFEE": {
+      "name": "SARAMO 114-COFFEE",
+      "keys": [
+        "SARAMO114COFFEE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 51,
+      "limit": 375,
+      "orderUpTo": 550,
+      "canAdd": 475,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO105TAN": {
+      "name": "ARGANO 105-TAN",
+      "keys": [
+        "ARGANO105TAN"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA106BONE": {
+      "name": "AGNONA 106-BONE",
+      "keys": [
+        "AGNONA106BONE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA124DRIZZLE": {
+      "name": "BORGA 124-DRIZZLE",
+      "keys": [
+        "BORGA124DRIZZLE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA102VANILLA": {
+      "name": "BORGA 102-VANILLA",
+      "keys": [
+        "BORGA102VANILLA"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA132BLUE": {
+      "name": "AGNONA 132-BLUE",
+      "keys": [
+        "AGNONA132BLUE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA119MOCCA": {
+      "name": "AGNONA 119-MOCCA",
+      "keys": [
+        "AGNONA119MOCCA"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA121BLACK": {
+      "name": "PALOMA 121-BLACK",
+      "keys": [
+        "PALOMA121BLACK",
+        "25229E121BLACK"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA126SHARK": {
+      "name": "AGNONA 126-SHARK",
+      "keys": [
+        "AGNONA126SHARK"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO101ARCTIC": {
+      "name": "ARGANO 101-ARCTIC",
+      "keys": [
+        "ARGANO101ARCTIC"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA101WHITE": {
+      "name": "BORGA 101-WHITE",
+      "keys": [
+        "BORGA101WHITE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA114COCOA": {
+      "name": "AGNONA 114-COCOA",
+      "keys": [
+        "AGNONA114COCOA"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO111GREIGE": {
+      "name": "SARAMO 111-GREIGE",
+      "keys": [
+        "SARAMO111GREIGE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA101WHITE": {
+      "name": "PALOMA 101-WHITE",
+      "keys": [
+        "PALOMA101WHITE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 45,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA103BLANC": {
+      "name": "AGNONA 103-BLANC",
+      "keys": [
+        "AGNONA103BLANC"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO104STARFISH": {
+      "name": "SARAMO 104-STARFISH",
+      "keys": [
+        "SARAMO104STARFISH"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 44,
+      "limit": 325,
+      "orderUpTo": 475,
+      "canAdd": 400,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA162RUST": {
+      "name": "AGNONA 162-RUST",
+      "keys": [
+        "AGNONA162RUST"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 36,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA112TAUPE": {
+      "name": "AGNONA 112-TAUPE",
+      "keys": [
+        "AGNONA112TAUPE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA108SAFARI": {
+      "name": "AGNONA 108-SAFARI",
+      "keys": [
+        "AGNONA108SAFARI"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 39,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA102VANILLA": {
+      "name": "PALOMA 102-VANILLA",
+      "keys": [
+        "PALOMA102VANILLA"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO102CREAM": {
+      "name": "SARAMO 102-CREAM",
+      "keys": [
+        "SARAMO102CREAM"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO141FOREST": {
+      "name": "SARAMO 141-FOREST",
+      "keys": [
+        "SARAMO141FOREST"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 42,
+      "limit": 300,
+      "orderUpTo": 450,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA126STONE": {
+      "name": "PALOMA 126-STONE",
+      "keys": [
+        "PALOMA126STONE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 41,
+      "limit": 300,
+      "orderUpTo": 425,
+      "canAdd": 375,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA102ARCTIC": {
+      "name": "AGNONA 102-ARCTIC",
+      "keys": [
+        "AGNONA102ARCTIC"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 36,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA106PEBBLE": {
+      "name": "BORGA 106-PEBBLE",
+      "keys": [
+        "BORGA106PEBBLE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 36,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA110BUFF": {
+      "name": "AGNONA 110-BUFF",
+      "keys": [
+        "AGNONA110BUFF"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA116ADOBE": {
+      "name": "AGNONA 116-ADOBE",
+      "keys": [
+        "AGNONA116ADOBE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 36,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO105CAMEL": {
+      "name": "SARAMO 105-CAMEL",
+      "keys": [
+        "SARAMO105CAMEL"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 39,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA123ELEPHANT": {
+      "name": "BORGA 123-ELEPHANT",
+      "keys": [
+        "BORGA123ELEPHANT"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 36,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA161ORANGE": {
+      "name": "AGNONA 161-ORANGE",
+      "keys": [
+        "AGNONA161ORANGE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 34,
+      "limit": 250,
+      "orderUpTo": 375,
+      "canAdd": 325,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA147LENTIL": {
+      "name": "AGNONA 147-LENTIL",
+      "keys": [
+        "AGNONA147LENTIL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA131SURF": {
+      "name": "BORGA 131-SURF",
+      "keys": [
+        "BORGA131SURF"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA111CAMEL": {
+      "name": "BORGA 111-CAMEL",
+      "keys": [
+        "BORGA111CAMEL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA125MONUMENT": {
+      "name": "AGNONA 125-MONUMENT",
+      "keys": [
+        "AGNONA125MONUMENT"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO103BONE": {
+      "name": "SARAMO 103-BONE",
+      "keys": [
+        "SARAMO103BONE"
+      ],
+      "co": "F",
+      "cls": "A",
+      "avg": 36,
+      "limit": 275,
+      "orderUpTo": 400,
+      "canAdd": 350,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA152MIMOSA": {
+      "name": "AGNONA 152-MIMOSA",
+      "keys": [
+        "AGNONA152MIMOSA"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA131CORAL": {
+      "name": "PALOMA 131-CORAL",
+      "keys": [
+        "PALOMA131CORAL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA145GREEN": {
+      "name": "AGNONA 145-GREEN",
+      "keys": [
+        "AGNONA145GREEN"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA134SPACE": {
+      "name": "AGNONA 134-SPACE",
+      "keys": [
+        "AGNONA134SPACE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA115FOXTROT": {
+      "name": "AGNONA 115-FOXTROT",
+      "keys": [
+        "AGNONA115FOXTROT"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA107STARFISH": {
+      "name": "AGNONA 107-STARFISH",
+      "keys": [
+        "AGNONA107STARFISH"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA122COAL": {
+      "name": "BORGA 122-COAL",
+      "keys": [
+        "BORGA122COAL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 33,
+      "limit": 225,
+      "orderUpTo": 325,
+      "canAdd": 275,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA131SKY": {
+      "name": "AGNONA 131-SKY",
+      "keys": [
+        "AGNONA131SKY"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA123OWL": {
+      "name": "AGNONA 123-OWL",
+      "keys": [
+        "AGNONA123OWL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA117CHESTNUT": {
+      "name": "AGNONA 117-CHESTNUT",
+      "keys": [
+        "AGNONA117CHESTNUT"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA104OATMEAL": {
+      "name": "AGNONA 104-OATMEAL",
+      "keys": [
+        "AGNONA104OATMEAL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA109COFFEE": {
+      "name": "AGNONA 109-COFFEE",
+      "keys": [
+        "AGNONA109COFFEE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO111TAUPE": {
+      "name": "ARGANO 111-TAUPE",
+      "keys": [
+        "ARGANO111TAUPE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO171MERLOT": {
+      "name": "SARAMO 171-MERLOT",
+      "keys": [
+        "SARAMO171MERLOT"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 30,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA172AURORA": {
+      "name": "AGNONA 172-AURORA",
+      "keys": [
+        "AGNONA172AURORA"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA133NAUTIC": {
+      "name": "AGNONA 133-NAUTIC",
+      "keys": [
+        "AGNONA133NAUTIC"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA103BEIGE": {
+      "name": "BORGA 103-BEIGE",
+      "keys": [
+        "BORGA103BEIGE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO121BLACK": {
+      "name": "ARGANO 121-BLACK",
+      "keys": [
+        "ARGANO121BLACK"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA151GOLDFINCH": {
+      "name": "AGNONA 151-GOLDFINCH",
+      "keys": [
+        "AGNONA151GOLDFINCH"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA144SPRUCE": {
+      "name": "AGNONA 144-SPRUCE",
+      "keys": [
+        "AGNONA144SPRUCE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO133POSEIDON": {
+      "name": "ARGANO 133-POSEIDON",
+      "keys": [
+        "ARGANO133POSEIDON"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA107TEAK": {
+      "name": "BORGA 107-TEAK",
+      "keys": [
+        "BORGA107TEAK"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO126HARBOR": {
+      "name": "ARGANO 126-HARBOR",
+      "keys": [
+        "ARGANO126HARBOR"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA113DESERT": {
+      "name": "AGNONA 113-DESERT",
+      "keys": [
+        "AGNONA113DESERT"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA127MOON": {
+      "name": "AGNONA 127-MOON",
+      "keys": [
+        "AGNONA127MOON"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA143VIRIDIAN": {
+      "name": "AGNONA 143-VIRIDIAN",
+      "keys": [
+        "AGNONA143VIRIDIAN"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO103OATMEAL": {
+      "name": "ARGANO 103-OATMEAL",
+      "keys": [
+        "ARGANO103OATMEAL"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 425,
+      "orderUpTo": 500,
+      "canAdd": 475,
+      "roll": 25,
+      "moq": 300,
+      "reserve": 300,
+      "reserveFor": "Biskinis Bros"
+    },
+    "AGNONA124SAGE": {
+      "name": "AGNONA 124-SAGE",
+      "keys": [
+        "AGNONA124SAGE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO142OLIVE": {
+      "name": "ARGANO 142-OLIVE",
+      "keys": [
+        "ARGANO142OLIVE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA104SAFARI": {
+      "name": "BORGA 104-SAFARI",
+      "keys": [
+        "BORGA104SAFARI"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO106STARFISH": {
+      "name": "ARGANO 106-STARFISH",
+      "keys": [
+        "ARGANO106STARFISH"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA173ROSE": {
+      "name": "AGNONA 173-ROSE",
+      "keys": [
+        "AGNONA173ROSE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA171MERLOT": {
+      "name": "BORGA 171-MERLOT",
+      "keys": [
+        "BORGA171MERLOT"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA122COAL": {
+      "name": "PALOMA 122-COAL",
+      "keys": [
+        "PALOMA122COAL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO104GRAVEL": {
+      "name": "ARGANO 104-GRAVEL",
+      "keys": [
+        "ARGANO104GRAVEL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 27,
+      "limit": 200,
+      "orderUpTo": 300,
+      "canAdd": 250,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA171RUBY": {
+      "name": "AGNONA 171-RUBY",
+      "keys": [
+        "AGNONA171RUBY"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 24,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA106STARFISH": {
+      "name": "PALOMA 106-STARFISH",
+      "keys": [
+        "PALOMA106STARFISH",
+        "25229E106STARFISH"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA107KHAKI": {
+      "name": "PALOMA 107-KHAKI",
+      "keys": [
+        "PALOMA107KHAKI",
+        "25229E107KHAKI"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA108TWIG": {
+      "name": "PALOMA 108-TWIG",
+      "keys": [
+        "PALOMA108TWIG"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA124GHOST": {
+      "name": "PALOMA 124-GHOST",
+      "keys": [
+        "PALOMA124GHOST"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA134BERING": {
+      "name": "PALOMA 134-BERING",
+      "keys": [
+        "PALOMA134BERING"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO122COAL": {
+      "name": "SARAMO 122-COAL",
+      "keys": [
+        "SARAMO122COAL"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA111DUNE": {
+      "name": "PALOMA 111-DUNE",
+      "keys": [
+        "PALOMA111DUNE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 24,
+      "limit": 175,
+      "orderUpTo": 250,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA142KOMBU": {
+      "name": "BORGA 142-KOMBU",
+      "keys": [
+        "BORGA142KOMBU"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA151MUSTARD": {
+      "name": "BORGA 151-MUSTARD",
+      "keys": [
+        "BORGA151MUSTARD"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA115MOCCA": {
+      "name": "BORGA 115-MOCCA",
+      "keys": [
+        "BORGA115MOCCA"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA132TIDE": {
+      "name": "BORGA 132-TIDE",
+      "keys": [
+        "BORGA132TIDE"
+      ],
+      "co": "F",
+      "cls": "B",
+      "avg": 26,
+      "limit": 175,
+      "orderUpTo": 275,
+      "canAdd": 225,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA113COGNAC": {
+      "name": "BORGA 113-COGNAC",
+      "keys": [
+        "BORGA113COGNAC"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA141FLOW": {
+      "name": "AGNONA 141-FLOW",
+      "keys": [
+        "AGNONA141FLOW"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO102CREAM": {
+      "name": "ARGANO 102-CREAM",
+      "keys": [
+        "ARGANO102CREAM"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA146CALLISTE": {
+      "name": "AGNONA 146-CALLISTE",
+      "keys": [
+        "AGNONA146CALLISTE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA142TURQUOISE": {
+      "name": "AGNONA 142-TURQUOISE",
+      "keys": [
+        "AGNONA142TURQUOISE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO125ELEPHANT": {
+      "name": "ARGANO 125-ELEPHANT",
+      "keys": [
+        "ARGANO125ELEPHANT"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA105OAK": {
+      "name": "BORGA 105-OAK",
+      "keys": [
+        "BORGA105OAK"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA123GRANITE": {
+      "name": "PALOMA 123-GRANITE",
+      "keys": [
+        "PALOMA123GRANITE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA125PALOMA": {
+      "name": "PALOMA 125-PALOMA",
+      "keys": [
+        "PALOMA125PALOMA"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO131MIRAGE": {
+      "name": "SARAMO 131-MIRAGE",
+      "keys": [
+        "SARAMO131MIRAGE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA172FIRE": {
+      "name": "PALOMA 172-FIRE",
+      "keys": [
+        "PALOMA172FIRE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA133DEEP": {
+      "name": "BORGA 133-DEEP",
+      "keys": [
+        "BORGA133DEEP"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA114MOCCA": {
+      "name": "PALOMA 114-MOCCA",
+      "keys": [
+        "PALOMA114MOCCA"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA141PALM": {
+      "name": "PALOMA 141-PALM",
+      "keys": [
+        "PALOMA141PALM"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 21,
+      "limit": 150,
+      "orderUpTo": 225,
+      "canAdd": 200,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO181ACAI": {
+      "name": "ARGANO 181-ACAI",
+      "keys": [
+        "ARGANO181ACAI"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO122CARBON": {
+      "name": "ARGANO 122-CARBON",
+      "keys": [
+        "ARGANO122CARBON"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO131SEA": {
+      "name": "ARGANO 131-SEA",
+      "keys": [
+        "ARGANO131SEA"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA132ADRIA": {
+      "name": "PALOMA 132-ADRIA",
+      "keys": [
+        "PALOMA132ADRIA"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA142EDEN": {
+      "name": "PALOMA 142-EDEN",
+      "keys": [
+        "PALOMA142EDEN"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA161ORANGE": {
+      "name": "PALOMA 161-ORANGE",
+      "keys": [
+        "PALOMA161ORANGE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA115CHOCOLATE": {
+      "name": "PALOMA 115-CHOCOLATE",
+      "keys": [
+        "PALOMA115CHOCOLATE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA104BISCUIT": {
+      "name": "PALOMA 104-BISCUIT",
+      "keys": [
+        "PALOMA104BISCUIT"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA105CREAM": {
+      "name": "PALOMA 105-CREAM",
+      "keys": [
+        "PALOMA105CREAM"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA109TEAK": {
+      "name": "PALOMA 109-TEAK",
+      "keys": [
+        "PALOMA109TEAK"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA112BRICK": {
+      "name": "PALOMA 112-BRICK",
+      "keys": [
+        "PALOMA112BRICK"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 18,
+      "limit": 125,
+      "orderUpTo": 200,
+      "canAdd": 175,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO141LIME": {
+      "name": "ARGANO 141-LIME",
+      "keys": [
+        "ARGANO141LIME"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA141LAUREL": {
+      "name": "BORGA 141-LAUREL",
+      "keys": [
+        "BORGA141LAUREL"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA135NAVY": {
+      "name": "AGNONA 135-NAVY",
+      "keys": [
+        "AGNONA135NAVY"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO135DRAGONFLY": {
+      "name": "ARGANO 135-DRAGONFLY",
+      "keys": [
+        "ARGANO135DRAGONFLY"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO123SHADOW": {
+      "name": "ARGANO 123-SHADOW",
+      "keys": [
+        "ARGANO123SHADOW"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO107MINK": {
+      "name": "ARGANO 107-MINK",
+      "keys": [
+        "ARGANO107MINK"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA112TOBACCO": {
+      "name": "BORGA 112-TOBACCO",
+      "keys": [
+        "BORGA112TOBACCO"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA161PICANTE": {
+      "name": "BORGA 161-PICANTE",
+      "keys": [
+        "BORGA161PICANTE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA113CHESTNUT": {
+      "name": "PALOMA 113-CHESTNUT",
+      "keys": [
+        "PALOMA113CHESTNUT"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA172GOJI": {
+      "name": "BORGA 172-GOJI",
+      "keys": [
+        "BORGA172GOJI"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "BORGA173ROSE": {
+      "name": "BORGA 173-ROSE",
+      "keys": [
+        "BORGA173ROSE"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 12,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA133ARONA": {
+      "name": "PALOMA 133-ARONA",
+      "keys": [
+        "PALOMA133ARONA"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA173GARNET": {
+      "name": "PALOMA 173-GARNET",
+      "keys": [
+        "PALOMA173GARNET"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA135MARITIME": {
+      "name": "PALOMA 135-MARITIME",
+      "keys": [
+        "PALOMA135MARITIME"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 15,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO113MOCCA": {
+      "name": "ARGANO 113-MOCCA",
+      "keys": [
+        "ARGANO113MOCCA"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 9,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "AGNONA120MULCH": {
+      "name": "AGNONA 120-MULCH",
+      "keys": [
+        "AGNONA120MULCH"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 9,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO112MULCH": {
+      "name": "ARGANO 112-MULCH",
+      "keys": [
+        "ARGANO112MULCH"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 6,
+      "limit": 100,
+      "orderUpTo": 125,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO132SKYDIVER": {
+      "name": "ARGANO 132-SKYDIVER",
+      "keys": [
+        "ARGANO132SKYDIVER"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 9,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "PALOMA171PINK": {
+      "name": "PALOMA 171-PINK",
+      "keys": [
+        "PALOMA171PINK"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 9,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO171GOJI": {
+      "name": "ARGANO 171-GOJI",
+      "keys": [
+        "ARGANO171GOJI"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 3,
+      "limit": 100,
+      "orderUpTo": 125,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "SARAMO172PINK": {
+      "name": "SARAMO 172-PINK",
+      "keys": [
+        "SARAMO172PINK"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 9,
+      "limit": 100,
+      "orderUpTo": 150,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO161PECAN": {
+      "name": "ARGANO 161-PECAN",
+      "keys": [
+        "ARGANO161PECAN"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 3,
+      "limit": 100,
+      "orderUpTo": 125,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO172MERLOT": {
+      "name": "ARGANO 172-MERLOT",
+      "keys": [
+        "ARGANO172MERLOT"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 3,
+      "limit": 100,
+      "orderUpTo": 125,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "ARGANO134ORION": {
+      "name": "ARGANO 134-ORION",
+      "keys": [
+        "ARGANO134ORION"
+      ],
+      "co": "F",
+      "cls": "C",
+      "avg": 3,
+      "limit": 100,
+      "orderUpTo": 125,
+      "canAdd": 125,
+      "roll": 25,
+      "moq": 300
+    },
+    "FERRARA1985KO": {
+      "name": "FERRARA 1985-KOALA",
+      "keys": [
+        "FERRARA1985KO"
+      ],
+      "cls": "B",
+      "avg": 582,
+      "limit": 3510,
+      "orderUpTo": 3510,
+      "canAdd": 4380,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    },
+    "FERRARA1984CO": {
+      "name": "FERRARA 1984-COAL",
+      "keys": [
+        "FERRARA1984CO"
+      ],
+      "cls": "B",
+      "avg": 462,
+      "limit": 2790,
+      "orderUpTo": 2790,
+      "canAdd": 3480,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    },
+    "FERRARA1632RE": {
+      "name": "FERRARA 1632-REFLECTION",
+      "keys": [
+        "FERRARA1632RE"
+      ],
+      "cls": "B",
+      "avg": 339,
+      "limit": 2040,
+      "orderUpTo": 2040,
+      "canAdd": 2550,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    },
+    "FERRARA1627BL": {
+      "name": "FERRARA 1627-BLACK",
+      "keys": [
+        "FERRARA1627BL"
+      ],
+      "cls": "C",
+      "avg": 36,
+      "limit": 240,
+      "orderUpTo": 240,
+      "canAdd": 300,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    },
+    "FERRARA1633DG": {
+      "name": "FERRARA 1633-DR GREY",
+      "keys": [
+        "FERRARA1633DG"
+      ],
+      "cls": "B",
+      "avg": 153,
+      "limit": 900,
+      "orderUpTo": 900,
+      "canAdd": 1140,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    },
+    "ERASER2126CH": {
+      "name": "ERASER 2126-CHARCOAL",
+      "keys": [
+        "ERASER2126CH"
+      ],
+      "cls": "B",
+      "avg": 136,
+      "limit": 840,
+      "orderUpTo": 840,
+      "canAdd": 1050,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    },
+    "ERASER2125GR": {
+      "name": "ERASER 2125-GREY",
+      "keys": [
+        "ERASER2125GR"
+      ],
+      "cls": "B",
+      "avg": 108,
+      "limit": 660,
+      "orderUpTo": 660,
+      "canAdd": 840,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    },
+    "ERASER2115BE": {
+      "name": "ERASER 2115-BEIGE",
+      "keys": [
+        "ERASER2115BE"
+      ],
+      "cls": "C",
+      "avg": 39,
+      "limit": 240,
+      "orderUpTo": 240,
+      "canAdd": 300,
+      "co": "V",
+      "roll": 30,
+      "moq": 300
+    }
+  },
+  "source": "Darbai_6.html",
+  "extracted_at": "2026-11-27"
+}

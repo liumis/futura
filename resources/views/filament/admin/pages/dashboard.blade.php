@@ -536,6 +536,19 @@
                                             {{ $row['badge'] }}
                                         </span>
                                     @endif
+                                    @if ($row['can_mark_done'] ?? false)
+                                        <button
+                                            type="button"
+                                            class="dash-row__dismiss"
+                                            title="Mark as Done"
+                                            aria-label="Mark as Done"
+                                            @click.stop
+                                            wire:click.stop="markTaskDone({{ $todo->getKey() }})"
+                                            wire:confirm="Mark this task as Done?"
+                                        >
+                                            ×
+                                        </button>
+                                    @endif
                                 </div>
                             </div>
                         @empty

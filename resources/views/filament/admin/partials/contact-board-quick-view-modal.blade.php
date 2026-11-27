@@ -78,8 +78,8 @@
                 </div>
 
                 <div>
-                    <label class="contact-qv__label">Comment (for myself)</label>
-                    <textarea x-model="quickViewForm.comment" rows="4" class="contact-qv__input" placeholder="Add a new comment"></textarea>
+                    <label class="contact-qv__label">Comments</label>
+                    <textarea x-model="quickViewForm.comment" rows="4" class="contact-qv__input" placeholder="Add comment"></textarea>
                 </div>
 
                 <div x-show="(quickViewForm.comments ?? []).length > 0" class="space-y-2">
@@ -87,7 +87,10 @@
                     <div class="contact-qv__comments">
                         <template x-for="(entry, index) in (quickViewForm.comments ?? [])" :key="index">
                             <div class="contact-qv__comment">
-                                <div class="contact-qv__comment-date" x-text="entry.commented_at || '—'"></div>
+                                <div
+                                    class="contact-qv__comment-date"
+                                    x-text="[entry.author, entry.commented_at].filter(Boolean).join(' · ') || '—'"
+                                ></div>
                                 <div class="contact-qv__comment-text" x-text="entry.comment"></div>
                             </div>
                         </template>

@@ -25,6 +25,11 @@ class EditOrder extends EditRecord
      */
     protected ?array $pendingOrderAmounts = null;
 
+    /**
+     * @var array<string|int, mixed>|null
+     */
+    protected ?array $pendingOrderNotes = null;
+
     public function content(Schema $schema): Schema
     {
         return $this->orderPageContent($schema);
@@ -37,11 +42,14 @@ class EditOrder extends EditRecord
     protected function mutateFormDataBeforeFill(array $data): array
     {
         $amounts = [];
+        $notes = [];
         $this->record->loadMissing('orderItems');
         foreach ($this->record->orderItems as $item) {
             $amounts[(string) $item->product_id] = $item->amount;
+            $notes[(string) $item->product_id] = (string) ($item->notes ?? '');
         }
         $data['order_amounts'] = $amounts;
+        $data['order_notes'] = $notes;
 
         return $data;
     }
@@ -64,8 +72,13 @@ class EditOrder extends EditRecord
             throw new Halt;
         }
 
-        $this->pendingOrderAmounts = $data['order_amounts'] ?? [];
-        unset($data['order_amounts'], $data['status'], $data['tracking_number']);
+        $this->pendingOrderAmounts = is_array($this->data['order_amounts'] ?? null)
+            ? $this->data['order_amounts']
+            : ($data['order_amounts'] ?? []);
+        $this->pendingOrderNotes = is_array($this->data['order_notes'] ?? null)
+            ? $this->data['order_notes']
+            : ($data['order_notes'] ?? []);
+        unset($data['order_amounts'], $data['order_notes'], $data['status'], $data['tracking_number']);
         $data['user_id'] = auth()->id();
         $data['package_id'] = AdminOrderResource::packageIdFromAmounts(
             is_array($this->pendingOrderAmounts) ? $this->pendingOrderAmounts : [],
@@ -80,9 +93,11 @@ class EditOrder extends EditRecord
             AdminOrderResource::syncOrderItemsFromAmounts(
                 $this->record,
                 $this->pendingOrderAmounts,
+                is_array($this->pendingOrderNotes) ? $this->pendingOrderNotes : [],
             );
             AdminOrderResource::recalculateOrderAmount($this->record->fresh());
             $this->pendingOrderAmounts = null;
+            $this->pendingOrderNotes = null;
         }
     }
 

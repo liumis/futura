@@ -45,6 +45,20 @@ final class AdminHomepage
             return $fallback;
         }
 
+        $landingKey = AdminNavigation::landingItemKey($user);
+
+        if ($landingKey !== null) {
+            try {
+                $landingUrl = AdminNavigation::urlForItemKey($user, $landingKey);
+
+                if (is_string($landingUrl) && $landingUrl !== '') {
+                    return $landingUrl;
+                }
+            } catch (Throwable) {
+                // Fall through to homepage_module / dashboard.
+            }
+        }
+
         $module = self::resolveModule($user);
 
         if ($module === null) {

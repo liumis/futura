@@ -824,11 +824,13 @@ class ContactsBoard extends Page implements HasForms
         }
 
         $comments = $contact->comments()
+            ->with('user')
             ->orderByDesc('commented_at')
             ->orderByDesc('id')
             ->limit(8)
             ->get()
             ->map(fn (DirectoryContactComment $comment): array => [
+                'author' => $comment->user?->displayName() ?: 'Unknown user',
                 'commented_at' => $comment->commented_at?->format('Y-m-d H:i') ?? '',
                 'comment' => (string) $comment->comment,
             ])

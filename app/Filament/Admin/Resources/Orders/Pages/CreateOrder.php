@@ -29,6 +29,11 @@ class CreateOrder extends CreateRecord
      */
     protected ?array $pendingOrderAmounts = null;
 
+    /**
+     * @var array<string|int, mixed>|null
+     */
+    protected ?array $pendingOrderNotes = null;
+
     protected bool $sendEmailAfterCreate = false;
 
     protected bool $saveAsDraft = false;
@@ -120,7 +125,10 @@ class CreateOrder extends CreateRecord
         $this->pendingOrderAmounts = is_array($this->data['order_amounts'] ?? null)
             ? $this->data['order_amounts']
             : ($data['order_amounts'] ?? []);
-        unset($data['order_amounts']);
+        $this->pendingOrderNotes = is_array($this->data['order_notes'] ?? null)
+            ? $this->data['order_notes']
+            : ($data['order_notes'] ?? []);
+        unset($data['order_amounts'], $data['order_notes']);
         $data['amount'] = '0.00';
 
         if ($this->saveAsDraft) {
@@ -150,6 +158,7 @@ class CreateOrder extends CreateRecord
         OrderResource::syncOrderItemsFromAmounts(
             $this->record,
             is_array($this->pendingOrderAmounts) ? $this->pendingOrderAmounts : [],
+            is_array($this->pendingOrderNotes) ? $this->pendingOrderNotes : [],
         );
         OrderStockAllocator::applyCreated($this->record->fresh(['orderItems']));
         OrderResource::recalculateOrderAmount($this->record->fresh());

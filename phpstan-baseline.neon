@@ -679,7 +679,7 @@ parameters:
 			path: app/Filament/Admin/Pages/ContactsBoard.php
 
 		-
-			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{commented_at\: mixed, comment\: string\}, Closure\(App\\Models\\DirectoryContactComment\)\: array\{commented_at\: mixed, comment\: string\} given\.$#'
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Illuminate\\Database\\Eloquent\\Model\>\:\:map\(\) expects callable\(Illuminate\\Database\\Eloquent\\Model, int\)\: array\{author\: string, commented_at\: mixed, comment\: string\}, Closure\(App\\Models\\DirectoryContactComment\)\: array\{author\: string, commented_at\: mixed, comment\: string\} given\.$#'
 			identifier: argument.type
 			count: 1
 			path: app/Filament/Admin/Pages/ContactsBoard.php

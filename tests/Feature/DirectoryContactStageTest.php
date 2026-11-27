@@ -8,11 +8,14 @@ use App\Filament\Admin\Resources\DirectoryContactStages\DirectoryContactStageRes
 use App\Filament\Admin\Resources\DirectoryContactStages\Pages\CreateDirectoryContactStage;
 use App\Filament\Admin\Resources\DirectoryContactStages\Pages\ListDirectoryContactStages;
 use App\Models\DirectoryContact;
+use App\Models\DirectoryContactComment;
 use App\Models\DirectoryContactStage;
 use App\Models\OriginCountry;
 use App\Models\User;
+use App\Notifications\DirectoryContactCommentNotification;
 use Filament\Facades\Filament;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Notification;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
@@ -141,7 +144,7 @@ class DirectoryContactStageTest extends TestCase
             ->assertSee('New contact')
             ->assertSee('Last contact')
             ->assertSee('Next contact')
-            ->assertSee('Comment (for myself)')
+            ->assertSee('Comments')
             ->assertSee('Summary')
             ->assertSee('Contacts')
             ->assertSee('Type')
@@ -182,11 +185,63 @@ class DirectoryContactStageTest extends TestCase
         $this->assertSame('Called about samples', $contact->latestComment?->comment);
         $this->assertNotNull($contact->latestComment?->commented_at);
 
+        $quickViewAfter = $page->instance()->getContactQuickView($contact->id);
+        $this->assertCount(1, $quickViewAfter['comments']);
+        $this->assertSame('Called about samples', $quickViewAfter['comments'][0]['comment']);
+        $this->assertNotEmpty($quickViewAfter['comments'][0]['author']);
+        $this->assertArrayHasKey('commented_at', $quickViewAfter['comments'][0]);
+
         $updated = collect($result['items'])->firstWhere('id', $contact->id);
         $this->assertSame('2026-09-03', $updated['last_contact']);
         $this->assertSame('2026-09-20', $updated['next_contact']);
         $this->assertSame(1, $updated['comments_count']);
         $this->assertSame('Distributor', $updated['type']);
+    }
+
+    public function test_new_contact_comment_notifies_previous_commenters_only(): void
+    {
+        Notification::fake();
+
+        $admin = $this->actingAsAdmin();
+        $previousCommenter = User::factory()->create(['email' => 'prior-commenter@example.com']);
+        $country = OriginCountry::query()->first()?->name
+            ?? OriginCountry::query()->create(['name' => 'Lithuania'])->name;
+
+        $contact = DirectoryContact::query()->create([
+            'company_name' => 'Notify Yarns',
+            'country' => $country,
+        ]);
+
+        DirectoryContactComment::query()->create([
+            'directory_contact_id' => $contact->id,
+            'user_id' => $previousCommenter->id,
+            'commented_at' => now()->subDay(),
+            'comment' => 'Earlier thread note',
+        ]);
+
+        $result = Livewire::test(ContactsBoard::class)
+            ->instance()
+            ->saveContactQuickView($contact->id, [
+                'type' => '',
+                'phone' => '',
+                'email' => '',
+                'last_contact' => now()->toDateString(),
+                'next_contact' => '',
+                'comment' => 'Follow-up from board',
+            ]);
+
+        $this->assertTrue($result['ok']);
+
+        Notification::assertSentTo(
+            $previousCommenter,
+            DirectoryContactCommentNotification::class,
+            function (DirectoryContactCommentNotification $notification) use ($contact): bool {
+                return $notification->directoryContactId === (int) $contact->id
+                    && str_contains($notification->contactName, 'Notify Yarns')
+                    && str_contains($notification->commentPreview, 'Follow-up from board');
+            },
+        );
+        Notification::assertNotSentTo($admin, DirectoryContactCommentNotification::class);
     }
 
     public function test_adding_a_board_comment_sets_last_contact_when_empty(): void

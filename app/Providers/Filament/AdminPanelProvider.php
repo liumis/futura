@@ -2,29 +2,24 @@
 
 namespace App\Providers\Filament;
 
-use App\Enums\AdminModule;
 use App\Filament\Admin\Auth\Login;
 use App\Filament\Admin\Pages\AbsenceCalendar;
 use App\Filament\Admin\Pages\Calendar;
 use App\Filament\Admin\Pages\Charts;
 use App\Filament\Admin\Pages\ContactsBoard;
+use App\Filament\Admin\Pages\CustomizeMenu;
 use App\Filament\Admin\Pages\Dashboard;
 use App\Filament\Admin\Pages\EditProfile;
 use App\Filament\Admin\Pages\Kanban;
-use App\Filament\Admin\Pages\MonthlyPayment;
-use App\Filament\Admin\Pages\NewInvoice;
 use App\Filament\Admin\Pages\OrderCharts;
-use App\Filament\Admin\Pages\PaymentReports;
 use App\Filament\Admin\Pages\ProjectsBoard;
 use App\Filament\Admin\Pages\ReportsBankPayments;
 use App\Filament\Admin\Pages\ReportsForecast;
 use App\Filament\Admin\Pages\ReportsInvoicesChart;
 use App\Filament\Admin\Pages\ReportsOrdersChart;
 use App\Filament\Admin\Pages\ReportsStockChart;
-use App\Filament\Admin\Resources\Documents\DocumentResource;
-use App\Filament\Admin\Resources\Orders\OrderResource;
-use App\Filament\Admin\Resources\Tasks\TaskResource;
 use App\Services\AdminHomepage;
+use App\Services\AdminNavigation;
 use App\Services\EmailTestMode;
 use App\Support\PanelHosts;
 use Filament\Actions\Action;
@@ -32,8 +27,8 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Filament\Navigation\NavigationBuilder;
 use Filament\Navigation\NavigationGroup;
-use Filament\Navigation\NavigationItem;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -92,6 +87,12 @@ class AdminPanelProvider extends PanelProvider
                     ->extraAttributes([
                         'class' => 'fi-user-menu-profile',
                     ]),
+
+                'customize-menu' => fn (Action $action): Action => $action
+                    ->label('Customize menu')
+                    ->icon(Heroicon::OutlinedBars3BottomLeft)
+                    ->url(fn (): string => CustomizeMenu::getUrl())
+                    ->sort(10),
 
                 'logout' => fn (Action $action): Action => $action
                     ->label(__('filament-panels::layout.actions.logout.label'))
@@ -154,7 +155,7 @@ class AdminPanelProvider extends PanelProvider
             ->renderHook(
                 PanelsRenderHook::SCRIPTS_AFTER,
                 fn (): string => '<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>',
-                scopes: [Kanban::class, ContactsBoard::class, ProjectsBoard::class],
+                scopes: [Kanban::class, ContactsBoard::class, ProjectsBoard::class, CustomizeMenu::class],
             )
             ->navigationGroups([
                 NavigationGroup::make('Orders')->collapsed(),
@@ -169,64 +170,9 @@ class AdminPanelProvider extends PanelProvider
                 NavigationGroup::make('System')->collapsed(),
                 NavigationGroup::make('Financial options')->collapsed(),
             ])
-            ->navigationItems([
-                NavigationItem::make('New order')
-                    ->label('New order')
-                    ->icon('heroicon-o-plus-circle')
-                    ->url(fn (): string => OrderResource::getUrl('create'))
-                    ->group('Orders')
-                    ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Orders) ?? false)
-                    ->isActiveWhen(fn (): bool => request()->routeIs(OrderResource::getRouteBaseName().'.create'))
-                    ->extraAttributes([
-                        'class' => 'fi-sidebar-new-order',
-                    ]),
-                NavigationItem::make('TASK')
-                    ->label('TASK')
-                    ->icon('heroicon-o-plus-circle')
-                    ->url(fn (): string => TaskResource::getUrl('create'))
-                    ->group('Tasks')
-                    ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Tasks) ?? false)
-                    ->isActiveWhen(fn (): bool => request()->routeIs(TaskResource::getRouteBaseName().'.create'))
-                    ->extraAttributes([
-                        'class' => 'fi-sidebar-new-order',
-                    ]),
-                NavigationItem::make('New invoice')
-                    ->label('New invoice')
-                    ->icon('heroicon-o-plus-circle')
-                    ->url(fn (): string => NewInvoice::getUrl())
-                    ->group('Finances')
-                    ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Finances) ?? false)
-                    ->isActiveWhen(fn (): bool => request()->routeIs(NewInvoice::getRouteName()))
-                    ->extraAttributes([
-                        'class' => 'fi-sidebar-new-order',
-                    ]),
-                NavigationItem::make('New document')
-                    ->label('New document')
-                    ->icon('heroicon-o-plus-circle')
-                    ->url(fn (): string => DocumentResource::getUrl('create'))
-                    ->group('Documents')
-                    ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::Documents) ?? false)
-                    ->isActiveWhen(fn (): bool => request()->routeIs(DocumentResource::getRouteBaseName().'.create'))
-                    ->extraAttributes([
-                        'class' => 'fi-sidebar-new-order',
-                    ]),
-                NavigationItem::make('Payments')
-                    ->label('Payments')
-                    ->icon('heroicon-o-plus-circle')
-                    ->url(fn (): string => MonthlyPayment::getUrl())
-                    ->group('Employees & contracts')
-                    ->sort(99)
-                    ->visible(fn (): bool => auth()->user()?->canAccessModule(AdminModule::EmployeesContracts) ?? false)
-                    ->isActiveWhen(fn (): bool => request()->routeIs(MonthlyPayment::getRouteName())
-                        || request()->routeIs(PaymentReports::getRouteName()))
-                    ->extraAttributes([
-                        'class' => 'fi-sidebar-new-order',
-                    ]),
-            ])
+            ->navigation(function (NavigationBuilder $builder): NavigationBuilder {
+                return AdminNavigation::build($builder);
+            })
             ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

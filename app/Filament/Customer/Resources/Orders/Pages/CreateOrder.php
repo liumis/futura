@@ -28,6 +28,11 @@ class CreateOrder extends CreateRecord
      */
     protected ?array $pendingOrderAmounts = null;
 
+    /**
+     * @var array<string|int, mixed>|null
+     */
+    protected ?array $pendingOrderNotes = null;
+
     protected bool $saveAsDraft = false;
 
     /**
@@ -73,8 +78,13 @@ class CreateOrder extends CreateRecord
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
-        $this->pendingOrderAmounts = $data['order_amounts'] ?? [];
-        unset($data['order_amounts']);
+        $this->pendingOrderAmounts = is_array($this->data['order_amounts'] ?? null)
+            ? $this->data['order_amounts']
+            : ($data['order_amounts'] ?? []);
+        $this->pendingOrderNotes = is_array($this->data['order_notes'] ?? null)
+            ? $this->data['order_notes']
+            : ($data['order_notes'] ?? []);
+        unset($data['order_amounts'], $data['order_notes']);
         $data['amount'] = '0.00';
         $data['status'] = $this->saveAsDraft
             ? OrderStatus::Draft->value
@@ -108,6 +118,7 @@ class CreateOrder extends CreateRecord
         AdminOrderResource::syncOrderItemsFromAmounts(
             $this->record,
             is_array($this->pendingOrderAmounts) ? $this->pendingOrderAmounts : [],
+            is_array($this->pendingOrderNotes) ? $this->pendingOrderNotes : [],
         );
         OrderStockAllocator::applyCreated($this->record->fresh(['orderItems']));
         AdminOrderResource::recalculateOrderAmount($this->record->fresh());

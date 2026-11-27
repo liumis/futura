@@ -240,10 +240,12 @@ class EditCargo extends EditRecord
 
         $amounts = [];
         $costs = [];
+        $notes = [];
         $this->record->loadMissing('cargoItems.product');
         foreach ($this->record->cargoItems as $item) {
             $amounts[(string) $item->product_id] = $item->amount;
             $costs[(string) $item->product_id] = (float) $item->self_cost;
+            $notes[(string) $item->product_id] = (string) ($item->notes ?? '');
         }
 
         Product::query()
@@ -259,6 +261,7 @@ class EditCargo extends EditRecord
 
         $data['cargo_amounts'] = $amounts;
         $data['cargo_costs'] = $costs;
+        $data['cargo_notes'] = $notes;
         $data['customs_document_uploads'] = [];
         $data['customs_document_upload_names'] = [];
 
@@ -409,10 +412,12 @@ class EditCargo extends EditRecord
         $state = $this->form->getState();
         $amounts = $state['cargo_amounts'] ?? [];
         $costs = $state['cargo_costs'] ?? [];
+        $notes = $state['cargo_notes'] ?? [];
         CargoResource::syncCargoItemsFromAmounts(
             $this->record,
             is_array($amounts) ? $amounts : [],
             is_array($costs) ? $costs : [],
+            is_array($notes) ? $notes : [],
         );
         CargoResource::setCostContext($this->record->fresh(['cargoItems']));
 

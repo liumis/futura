@@ -107,9 +107,36 @@ html.fi,
 
 .fi-simple-layout .fi-logo,
 .fi-topbar .fi-logo {
-    height: 2.35rem;
+    height: auto;
     width: auto;
     max-width: 11.5rem;
+}
+
+/* Brandbook wordmark — text only (no geometric mark), public / login. */
+.fi-brand-wordmark {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    line-height: 1.05;
+    font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: 0.01em;
+    text-transform: lowercase;
+    color: #222222;
+    white-space: nowrap;
+}
+
+.fi-brand-wordmark__line {
+    display: block;
+}
+
+.fi-sidebar .fi-brand-wordmark {
+    font-size: 0.95rem;
+}
+
+.fi-simple-layout .fi-simple-header-heading:empty {
+    display: none;
 }
 
 .fi-topbar {
@@ -253,6 +280,34 @@ html.fi,
 .fi-sidebar .fi-sidebar-new-order.fi-active > .fi-sidebar-item-btn .fi-sidebar-item-label,
 .fi-sidebar .fi-sidebar-new-order.fi-active > .fi-sidebar-item-btn > .fi-icon {
     color: #222222;
+}
+
+.fi-sidebar .fi-sidebar-group--colored .fi-sidebar-group-label {
+    color: var(--nav-group-color, #6B6B6B);
+}
+
+.fi-sidebar .fi-sidebar-group--colored.fi-sidebar-group--color-primary .fi-sidebar-group-label {
+    color: var(--primary-600, #222222);
+}
+
+.fi-sidebar .fi-sidebar-group--colored.fi-sidebar-group--color-warning .fi-sidebar-group-label {
+    color: var(--warning-600, #EB8027);
+}
+
+.fi-sidebar .fi-sidebar-group--colored.fi-sidebar-group--color-danger .fi-sidebar-group-label {
+    color: var(--danger-600, #b91c1c);
+}
+
+.fi-sidebar .fi-sidebar-group--colored.fi-sidebar-group--color-success .fi-sidebar-group-label {
+    color: var(--success-600, #15803d);
+}
+
+.fi-sidebar .fi-sidebar-group--colored.fi-sidebar-group--color-info .fi-sidebar-group-label {
+    color: var(--info-600, #2563eb);
+}
+
+.fi-sidebar .fi-sidebar-group--colored.fi-sidebar-group--color-gray .fi-sidebar-group-label {
+    color: var(--gray-600, #6B6B6B);
 }
 
 .fi-btn {
@@ -848,13 +903,14 @@ html.fi,
 .fi-cargo-order-row > .fi-sc,
 .fi-cargo-order-row.fi-sc {
     display: grid;
-    grid-template-columns: 2.25rem minmax(7rem, 1.4fr) minmax(5.5rem, 1fr) minmax(14rem, 1.8fr) minmax(11rem, 1.2fr);
+    /* swatch | name | code | stock | amount/cost | notes */
+    grid-template-columns: 2.25rem minmax(7rem, 1.4fr) minmax(5.5rem, 1fr) minmax(12rem, 1.6fr) minmax(9rem, 1fr) minmax(7rem, 0.9fr);
     align-items: center;
     gap: 0.35rem 0.65rem;
-    min-width: 48rem;
+    min-width: 52rem;
 }
 
-/* Customer orders: swatch | name | code | size | stock | upcoming | amount */
+/* Customer orders: swatch | name | code | size | stock | upcoming | amount | notes */
 .fi-cargo-order-wrap--sales .fi-cargo-order-head,
 .fi-cargo-order-wrap--sales .fi-cargo-order-row > .fi-sc,
 .fi-cargo-order-wrap--sales .fi-cargo-order-row.fi-sc {
@@ -863,10 +919,11 @@ html.fi,
         minmax(6rem, 1.15fr)
         minmax(5rem, 0.85fr)
         minmax(3.25rem, 0.5fr)
-        minmax(11rem, 1.45fr)
-        minmax(6.5rem, 0.85fr)
-        minmax(5rem, 0.65fr);
-    min-width: 58rem;
+        minmax(10rem, 1.35fr)
+        minmax(6rem, 0.8fr)
+        minmax(4.5rem, 0.6fr)
+        minmax(7rem, 0.9fr);
+    min-width: 64rem;
 }
 
 .fi-cargo-order-wrap--sales .fi-order-product-upcoming {
@@ -877,10 +934,15 @@ html.fi,
     @apply text-sm tabular-nums text-gray-600 dark:text-gray-300;
 }
 
-.fi-cargo-order-wrap--sales .fi-cargo-order-row > .fi-sc > :nth-child(7) .fi-input-wrp,
-.fi-cargo-order-wrap--sales .fi-cargo-order-row.fi-sc > :nth-child(7) .fi-input-wrp,
-.fi-cargo-order-wrap--sales .fi-cargo-order-row .fi-cargo-order-amount {
+.fi-cargo-order-wrap--sales:not(.fi-cargo-order-wrap--grid) .fi-cargo-order-row > .fi-sc > :nth-child(7) .fi-input-wrp,
+.fi-cargo-order-wrap--sales:not(.fi-cargo-order-wrap--grid) .fi-cargo-order-row.fi-sc > :nth-child(7) .fi-input-wrp,
+.fi-cargo-order-wrap--sales:not(.fi-cargo-order-wrap--grid) .fi-cargo-order-row .fi-cargo-order-amount {
     @apply max-w-[5.5rem];
+}
+
+.fi-cargo-order-wrap--sales:not(.fi-cargo-order-wrap--grid) .fi-cargo-order-row .fi-cargo-order-notes,
+.fi-cargo-order-wrap--sales:not(.fi-cargo-order-wrap--grid) .fi-cargo-order-row .fi-cargo-order-notes-input {
+    @apply max-w-none;
 }
 
 .fi-cargo-order-amount-input {
@@ -1090,7 +1152,7 @@ td.ss-cell-edit:hover {
     grid-column: 1 / -1 !important;
 }
 
-/* Grid / shop-card layout. */
+/* Grid / shop-card layout — equal-height rows (Order + Warehouse). */
 .fi-cargo-order-wrap--grid .fi-section-content {
     overflow-x: visible;
 }
@@ -1103,6 +1165,8 @@ td.ss-cell-edit:hover {
     --cols-xl: repeat(5, minmax(0, 1fr));
     display: grid !important;
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-auto-rows: 1fr;
+    align-items: stretch;
     gap: 0.75rem;
 }
 
@@ -1110,6 +1174,8 @@ td.ss-cell-edit:hover {
 .fi-cargo-order-wrap--grid .fi-cargo-order-collection > .fi-sc {
     display: grid !important;
     grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-auto-rows: 1fr;
+    align-items: stretch;
     gap: 0.75rem;
 }
 
@@ -1123,15 +1189,25 @@ td.ss-cell-edit:hover {
     grid-column: span 1 !important;
     --col-span-default: span 1;
     min-width: 0;
+    height: 100%;
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-collection .fi-grid-col:has(.fi-cargo-order-row) > .fi-sc-component {
     min-width: 0;
     width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-row {
-    @apply h-full rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900;
+    @apply box-border h-full rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900;
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-row:not(.fi-cargo-order-row--ordered) {
@@ -1146,80 +1222,56 @@ td.ss-cell-edit:hover {
 .fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-cargo-order-row--low-stock:not(.fi-cargo-order-row--ordered),
 .fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-cargo-order-row--low-stock.fi-cargo-order-row--ordered {
     /* Keep a single red border (no inset ring) so Safari does not double-paint cards. */
-    @apply border-2 border-red-500 shadow-none;
+    @apply box-border border-2 border-red-500 shadow-none;
 }
 
+/* Card body: flex column so amount/notes pin to the bottom. */
 .fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc,
 .fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc {
-    display: grid;
+    display: flex !important;
+    flex-direction: column;
+    flex: 1 1 auto;
     min-width: 0;
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-        "swatch"
-        "name"
-        "code"
-        "meta"
-        "order";
-    gap: 0.4rem 0.5rem;
-    align-items: start;
+    min-height: 100%;
+    height: 100%;
+    gap: 0.4rem;
+    align-items: stretch;
+    grid-template-columns: none !important;
+    min-width: 0 !important;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(1),
-.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(1) {
-    grid-area: swatch;
-}
-
+.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(1),
 .fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(2),
-.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(2) {
-    grid-area: name;
-}
-
+.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(2),
 .fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(3),
-.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(3) {
-    grid-area: code;
-}
-
+.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(3),
 .fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(4),
-.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(4) {
-    grid-area: meta;
-}
-
+.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(4),
 .fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(5),
-.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(5) {
-    grid-area: order;
+.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(5),
+.fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(6),
+.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(6) {
+    grid-area: unset;
 }
 
-/* Sales order cards: size + stock + upcoming before amount */
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc,
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc {
-    grid-template-areas:
-        "swatch"
-        "name"
-        "code"
-        "size"
-        "meta"
-        "upcoming"
-        "order";
+/* Pin amount / notes / order-line controls to the card bottom. */
+.fi-cargo-order-wrap--grid .fi-cargo-order-row .fi-cargo-order-footer,
+.fi-cargo-order-wrap--grid .fi-cargo-order-row .fi-cargo-order-order-line,
+.fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > .fi-cargo-order-amount,
+.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > .fi-cargo-order-amount {
+    margin-top: auto;
 }
 
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(4),
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(4) {
-    grid-area: size;
+.fi-cargo-order-wrap--grid .fi-cargo-order-upcoming {
+    min-height: 1.25rem;
+    display: flex;
+    align-items: center;
 }
 
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(5),
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(5) {
-    grid-area: meta;
-}
-
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(6),
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(6) {
-    grid-area: upcoming;
-}
-
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row > .fi-sc > :nth-child(7),
-.fi-cargo-order-wrap--sales.fi-cargo-order-wrap--grid .fi-cargo-order-row.fi-sc > :nth-child(7) {
-    grid-area: order;
+.fi-cargo-order-wrap--grid .fi-cargo-order-upcoming:empty::before {
+    content: '\2014';
+    opacity: 0.45;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-row .fi-order-product-swatch {
@@ -1230,9 +1282,25 @@ td.ss-cell-edit:hover {
     @apply max-w-none;
 }
 
+/* List view: footer children become separate table columns. */
+.fi-cargo-order-wrap:not(.fi-cargo-order-wrap--grid) .fi-cargo-order-footer {
+    display: contents;
+}
+
+.fi-cargo-order-wrap--grid .fi-cargo-order-footer {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    width: 100%;
+}
+
 .fi-cargo-order-wrap--grid .fi-cargo-order-order-line > .fi-sc,
 .fi-cargo-order-wrap--grid .fi-cargo-order-order-line.fi-sc {
+    display: grid !important;
     grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.35rem;
+    min-width: 0 !important;
+    height: auto;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-amount .fi-input-wrp {
@@ -1241,6 +1309,10 @@ td.ss-cell-edit:hover {
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-amount .fi-input {
     @apply py-2 text-lg;
+}
+
+.fi-cargo-order-wrap--grid .fi-cargo-order-amount-input {
+    @apply max-w-none;
 }
 
 .fi-cargo-order-wrap--grid .fi-cargo-order-cost {
@@ -1257,6 +1329,21 @@ td.ss-cell-edit:hover {
 .fi-cargo-order-wrap--grid .fi-cargo-order-meta-formula,
 .fi-cargo-order-wrap--grid .fi-cargo-order-meta-rec {
     @apply whitespace-nowrap;
+}
+
+.fi-cargo-order-notes,
+.fi-cargo-order-notes-input {
+    @apply w-full rounded-lg border border-gray-300 bg-white px-2 py-1 text-xs text-gray-950 shadow-sm dark:border-gray-600 dark:bg-gray-900 dark:text-white;
+}
+
+.fi-cargo-order-wrap--grid .fi-cargo-order-notes .fi-input-wrp,
+.fi-cargo-order-wrap--grid .fi-cargo-order-notes-input {
+    @apply max-w-none;
+}
+
+.fi-cargo-order-wrap--grid .fi-cargo-order-notes .fi-input,
+.fi-cargo-order-wrap--grid .fi-cargo-order-notes-input {
+    @apply py-1 text-xs;
 }
 
 /* User menu profile row: allow long email + icon (Filament defaults to whitespace-nowrap on items). */
@@ -3874,5 +3961,60 @@ td.ss-cell-edit:hover {
 
     .invoices-table {
         min-width: 1100px;
+    }
+}
+
+/* Compact Filament forms — MacBook Air 14″ / ~1280–1512px widths */
+@media (min-width: 1280px) and (max-width: 1512px) {
+    .fi-sc-form,
+    .fi-resource-create-record-page .fi-sc,
+    .fi-resource-edit-record-page .fi-sc {
+        row-gap: 0.65rem;
+    }
+
+    .fi-section {
+        @apply mb-3;
+    }
+
+    .fi-section-content,
+    .fi-section-content-ctn {
+        padding-block: 0.65rem;
+    }
+
+    .fi-fo-field-wrp {
+        gap: 0.2rem;
+    }
+
+    .fi-fo-field-label,
+    .fi-fo-field-wrp-label {
+        margin-bottom: 0.1rem;
+    }
+
+    .fi-input,
+    .fi-select-input,
+    .fi-textarea {
+        padding-block: 0.4rem;
+    }
+
+    .fi-section-header {
+        padding-block: 0.55rem;
+    }
+
+    .fi-resource-orders .fi-sc-form > .fi-grid,
+    .fi-resource-cargos .fi-sc-form > .fi-grid,
+    .fi-resource-orders form > .fi-sc,
+    .fi-resource-cargos form > .fi-sc {
+        gap: 0.65rem 0.85rem;
+    }
+
+    .fi-order-package-summary {
+        padding: 0.55rem 0.75rem;
+        gap: 0.45rem;
+    }
+
+    .fi-order-package-summary,
+    .fi-order-package-summary * {
+        font-size: 0.8rem;
+        line-height: 1.3;
     }
 }

@@ -452,6 +452,17 @@
                     }
                 }
 
+                if (event.target.matches('[data-order-note-input]')) {
+                    const productId = parseInt(event.target.getAttribute('data-order-note-input') || '0', 10);
+                    const wire = findLivewireComponent(chrome);
+                    if (productId > 0 && wire && typeof wire.onOrderNoteInputUpdated === 'function') {
+                        clearTimeout(event.target.__fiOrderNoteSyncTimer);
+                        event.target.__fiOrderNoteSyncTimer = setTimeout(() => {
+                            wire.onOrderNoteInputUpdated(productId, String(event.target.value || ''));
+                        }, 300);
+                    }
+                }
+
                 if (event.target.matches('[data-cargo-product-amount], [data-order-amount-input]')) {
                     const row = event.target.closest('.fi-cargo-order-row');
                     if (row) {
@@ -483,6 +494,17 @@
                     const wire = findLivewireComponent(chrome);
                     if (productId > 0 && wire && typeof wire.onOrderAmountInputUpdated === 'function') {
                         wire.onOrderAmountInputUpdated(productId, amount);
+                    }
+
+                    return;
+                }
+
+                if (event.target.matches('[data-order-note-input]')) {
+                    const productId = parseInt(event.target.getAttribute('data-order-note-input') || '0', 10);
+                    clearTimeout(event.target.__fiOrderNoteSyncTimer);
+                    const wire = findLivewireComponent(chrome);
+                    if (productId > 0 && wire && typeof wire.onOrderNoteInputUpdated === 'function') {
+                        wire.onOrderNoteInputUpdated(productId, String(event.target.value || ''));
                     }
 
                     return;

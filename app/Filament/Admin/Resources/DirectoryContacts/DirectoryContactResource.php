@@ -7,6 +7,7 @@ use App\Filament\Admin\Support\DoubleClickCellEdit;
 use App\Models\DirectoryContact;
 use App\Models\DirectoryContactStage;
 use App\Models\OriginCountry;
+use App\Models\User;
 use BackedEnum;
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
@@ -14,6 +15,7 @@ use Filament\Actions\EditAction;
 use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Schema;
 use Filament\Tables;
 use Filament\Tables\Filters\Filter;
@@ -133,18 +135,33 @@ class DirectoryContactResource extends Resource
                     ->label('Next contact')
                     ->native(false),
 
-                Section::make('Comment (for myself)')
-                    ->description('Internal notes. Each note is stored with a date.')
+                Section::make('Comments')
+                    ->description('Internal notes. Each note is stored with a date and author.')
                     ->schema([
                         Forms\Components\Repeater::make('comments')
                             ->relationship(
                                 'comments',
                                 modifyQueryUsing: fn (Builder $query) => $query
+                                    ->with('user')
                                     ->orderByDesc('commented_at')
                                     ->orderByDesc('id'),
                             )
                             ->label('')
                             ->schema([
+                                Forms\Components\Hidden::make('user_id')
+                                    ->default(fn (): ?int => auth()->id()),
+
+                                Forms\Components\Placeholder::make('author_display')
+                                    ->label('Author')
+                                    ->content(function (Get $get): string {
+                                        $userId = $get('user_id');
+                                        if (filled($userId)) {
+                                            return User::query()->find($userId)?->displayName() ?? '—';
+                                        }
+
+                                        return auth()->user()?->displayName() ?? '—';
+                                    }),
+
                                 Forms\Components\DateTimePicker::make('commented_at')
                                     ->label('Date')
                                     ->required()

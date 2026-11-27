@@ -212,6 +212,80 @@ class CargoQuickOrderParserTest extends TestCase
         );
     }
 
+    public function test_fuzzy_collection_typo_needs_confirmation(): void
+    {
+        $collection = Collection::factory()->create(['name' => 'Agnona']);
+        $color = Color::factory()->create([
+            'collection_id' => $collection->id,
+            'color_code' => '101',
+            'color_name' => 'Black',
+        ]);
+        $product = Product::factory()->create([
+            'color_id' => $color->id,
+            'name' => '25',
+            'product_code' => 'AG101BLACK-25',
+            'current_amount' => 5,
+        ]);
+
+        $lines = app(CargoQuickOrderParser::class)->parse("agnana\n101 - 2\n");
+
+        $this->assertCount(1, $lines);
+        $this->assertTrue($lines[0]['matched']);
+        $this->assertSame($product->id, $lines[0]['product_id']);
+        $this->assertSame(2, $lines[0]['amount']);
+        $this->assertContains($lines[0]['confidence'], ['medium', 'low']);
+        $this->assertTrue($lines[0]['needs_confirmation']);
+        $this->assertNotSame('', $lines[0]['warning']);
+    }
+
+    public function test_rit_unit_means_rolls_and_qty_ge_25_means_meters(): void
+    {
+        $collection = Collection::factory()->create(['name' => 'Agnona']);
+        $color = Color::factory()->create([
+            'collection_id' => $collection->id,
+            'color_code' => '102',
+            'color_name' => 'Arctic',
+        ]);
+        $product = Product::factory()->create([
+            'color_id' => $color->id,
+            'name' => '25',
+            'product_code' => 'AG102ARCTIC-25',
+            'alternative_code' => 'AGNONA102ARCTIC25',
+        ]);
+
+        $parser = app(CargoQuickOrderParser::class);
+
+        $ritLines = $parser->parse("agnona\n102 - 3 rit\n");
+        $this->assertSame($product->id, $ritLines[0]['product_id']);
+        $this->assertSame(3, $ritLines[0]['amount']);
+
+        $meterLines = $parser->parse("agnona\n102 - 50\n");
+        $this->assertSame($product->id, $meterLines[0]['product_id']);
+        // 50 m / 25 m roll = 2 rolls
+        $this->assertSame(2, $meterLines[0]['amount']);
+    }
+
+    public function test_unconfirmed_soft_matches_helper(): void
+    {
+        $parser = app(CargoQuickOrderParser::class);
+        $pending = $parser->unconfirmedSoftMatches([
+            [
+                'matched' => true,
+                'needs_confirmation' => true,
+                'confirmed' => false,
+                'amount' => 2,
+            ],
+            [
+                'matched' => true,
+                'needs_confirmation' => true,
+                'confirmed' => true,
+                'amount' => 1,
+            ],
+        ]);
+
+        $this->assertCount(1, $pending);
+    }
+
     public function test_supplier_product_ids_exclude_catalog(): void
     {
         $supplier = Supplier::query()->create(['name' => 'Leather Only Supplier']);

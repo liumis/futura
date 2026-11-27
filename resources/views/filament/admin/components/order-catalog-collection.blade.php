@@ -28,17 +28,28 @@
             <div class="fi-cargo-order-size">{{ $row['size_label'] }}</div>
             {!! $row['stock_html'] !!}
             {!! $row['upcoming_html'] !!}
-            <div class="fi-cargo-order-amount">
+            <div class="fi-cargo-order-footer">
+                <div class="fi-cargo-order-amount">
+                    <input
+                        type="number"
+                        class="fi-cargo-order-amount-input"
+                        data-order-amount-input="{{ (int) $row['product_id'] }}"
+                        inputmode="numeric"
+                        min="0"
+                        step="1"
+                        max="{{ (int) ($row['max'] ?? 0) }}"
+                        value="{{ (int) ($row['amount'] ?? 0) }}"
+                        aria-label="Amount"
+                    />
+                </div>
                 <input
-                    type="number"
-                    class="fi-cargo-order-amount-input"
-                    data-order-amount-input="{{ (int) $row['product_id'] }}"
-                    inputmode="numeric"
-                    min="0"
-                    step="1"
-                    max="{{ (int) ($row['max'] ?? 0) }}"
-                    value="{{ (int) ($row['amount'] ?? 0) }}"
-                    aria-label="Amount"
+                    type="text"
+                    class="fi-cargo-order-notes-input"
+                    data-order-note-input="{{ (int) $row['product_id'] }}"
+                    value="{{ e((string) ($row['notes'] ?? '')) }}"
+                    placeholder="Notes"
+                    maxlength="2000"
+                    aria-label="Notes"
                 />
             </div>
         </div>

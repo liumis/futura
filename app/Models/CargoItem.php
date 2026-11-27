@@ -19,6 +19,7 @@ class CargoItem extends Model
         'cargo_id',
         'product_id',
         'amount',
+        'notes',
         'self_cost',
     ];
 

@@ -423,6 +423,16 @@ class User extends Authenticatable implements CanResetPasswordContract, Filament
         return $this->hasMany(DocumentConfirmation::class);
     }
 
+    public function navigationGroups(): HasMany
+    {
+        return $this->hasMany(UserNavigationGroup::class);
+    }
+
+    public function navigationItems(): HasMany
+    {
+        return $this->hasMany(UserNavigationItem::class);
+    }
+
     /**
      * Lithuania domestic customers (export=false, or country/VAT LT when export unset).
      *

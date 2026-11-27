@@ -120,11 +120,11 @@
         $wire.$watch('data.order_amounts', () => update(), { deep: true });
         $wire.$watch('data.package_id', () => update());
     "
-    class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
+    class="fi-order-package-summary rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900"
 >
     <div class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Package</div>
 
-    <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         <div class="rounded-lg border border-gray-200 p-3 dark:border-gray-700">
             <div class="text-xs text-gray-500 dark:text-gray-400">Number of packages</div>
             <div class="mt-1 text-lg font-semibold text-gray-900 dark:text-white" x-text="packageCount"></div>

@@ -17,10 +17,13 @@ class CustomsContactMailer
         $templateText = trim((string) ($contact->mailTemplate?->text ?? ''));
 
         if ($templateText === '') {
-            return self::defaultBody($cargo, $contact);
+            return self::withSignature(self::defaultBody($cargo, $contact), $contact);
         }
 
-        return self::applyPlaceholders($templateText, $cargo, $contact);
+        return self::withSignature(
+            self::applyPlaceholders($templateText, $cargo, $contact),
+            $contact,
+        );
     }
 
     public static function preview(?int $customsContactId, Cargo $cargo): string
@@ -132,6 +135,7 @@ class CustomsContactMailer
                 '{estimated_arrival}',
                 '{supplier}',
                 '{company_name}',
+                '{signature}',
             ],
             [
                 (string) $cargo->id,
@@ -139,9 +143,26 @@ class CustomsContactMailer
                 $cargo->estimated_arrival?->format('Y-m-d') ?? '',
                 (string) ($cargo->supplier?->name ?? ''),
                 (string) ($contact->company_name ?? ''),
+                trim((string) ($contact->email_signature ?? '')),
             ],
             $text,
         );
+    }
+
+    private static function withSignature(string $body, CustomsContact $contact): string
+    {
+        $signature = trim((string) ($contact->email_signature ?? ''));
+
+        if ($signature === '') {
+            return $body;
+        }
+
+        // Template already placed the signature via {signature}.
+        if (str_contains($body, $signature)) {
+            return $body;
+        }
+
+        return rtrim($body)."\n\n".$signature;
     }
 
     /**

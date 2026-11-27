@@ -19,7 +19,9 @@ use App\Services\CargoReceiver;
 use App\Services\SharepointCustomsInvoiceUploader;
 use App\Services\WarehouseOrderMailer;
 use App\Support\Money;
+use App\Support\SingleOptionField;
 use App\Support\UploadLimits;
+use Filament\Forms\Components\Select;
 use BackedEnum;
 use Filament\Actions\Action;
 use Filament\Actions\BulkActionGroup;
@@ -73,28 +75,47 @@ class CargoResource extends Resource
 
     public static function form(Schema $schema): Schema
     {
-        return $schema
-            ->components([
-                Forms\Components\Select::make('supplier_id')
-                    ->label('Supplier')
-                    ->relationship('supplier', 'name')
-                    ->searchable()
-                    ->preload()
-                    ->native(false)
-                    ->required()
-                    ->default(fn (): ?int => self::defaultSupplierId())
-                    ->live()
-                    ->afterStateUpdated(function ($state, $old, Get $get, Set $set): void {
-                        if (blank($state) || blank($old) || (int) $state === (int) $old) {
-                            return;
-                        }
+        $supplierOptions = Supplier::query()
+            ->orderBy('name')
+            ->pluck('name', 'id')
+            ->all();
 
-                        self::clearAmountsForOtherSuppliers(
-                            (int) $state,
-                            is_array($get('cargo_amounts')) ? $get('cargo_amounts') : [],
-                            $set,
-                        );
-                    }),
+        $importTaxOptions = ImportTax::query()
+            ->orderBy('id')
+            ->get()
+            ->mapWithKeys(fn (ImportTax $tax): array => [
+                (int) $tax->id => $tax->name.' ('.number_format((float) $tax->rate, 2).'%)',
+            ])
+            ->all();
+
+        $customsOptions = CustomsContact::options();
+
+        return $schema
+            ->columns(3)
+            ->components([
+                SingleOptionField::make(
+                    'supplier_id',
+                    $supplierOptions,
+                    fn (Select $select): Select => $select
+                        ->label('Supplier')
+                        ->searchable()
+                        ->preload()
+                        ->native(false)
+                        ->required()
+                        ->default(fn (): ?int => self::defaultSupplierId())
+                        ->live()
+                        ->afterStateUpdated(function ($state, $old, Get $get, Set $set): void {
+                            if (blank($state) || blank($old) || (int) $state === (int) $old) {
+                                return;
+                            }
+
+                            self::clearAmountsForOtherSuppliers(
+                                (int) $state,
+                                is_array($get('cargo_amounts')) ? $get('cargo_amounts') : [],
+                                $set,
+                            );
+                        }),
+                ),
 
                 Forms\Components\Placeholder::make('supplier_items_hint')
                     ->label('')
@@ -141,23 +162,20 @@ class CargoResource extends Resource
 
                 Section::make('Costs')
                     ->columnSpanFull()
+                    ->compact()
                     ->schema([
                         Grid::make(2)->schema([
-                            Forms\Components\Select::make('import_tax_id')
-                                ->label('Import tax')
-                                ->relationship(
-                                    'importTax',
-                                    'name',
-                                    fn (Builder $query) => $query->orderBy('id'),
-                                )
-                                ->getOptionLabelFromRecordUsing(
-                                    fn ($record): string => $record->name.' ('.number_format((float) $record->rate, 2).'%)',
-                                )
-                                ->default(fn (): ?int => self::defaultImportTaxId())
-                                ->searchable()
-                                ->preload()
-                                ->native(false)
-                                ->live(),
+                            SingleOptionField::make(
+                                'import_tax_id',
+                                $importTaxOptions,
+                                fn (Select $select): Select => $select
+                                    ->label('Import tax')
+                                    ->default(fn (): ?int => self::defaultImportTaxId())
+                                    ->searchable()
+                                    ->preload()
+                                    ->native(false)
+                                    ->live(),
+                            ),
 
                             Forms\Components\TextInput::make('shipping_cost')
                                 ->label('Shipping cost')
@@ -281,25 +299,26 @@ class CargoResource extends Resource
                             ->visible(fn (?Cargo $record): bool => filled($record) && $record->status !== CargoStatus::Received)
                             ->disabled(fn (?Cargo $record): bool => $record?->status === CargoStatus::Received),
 
-                        Forms\Components\Select::make('customs_contact_id')
-                            ->label('Customs contact')
-                            ->options(fn (): array => CustomsContact::options())
-                            ->default(fn (?Cargo $record): ?int => $record?->customs_contact_id ?? CustomsContact::defaultId())
-                            ->searchable()
-                            ->preload()
-                            ->native(false)
-                            ->required(fn (): bool => CustomsContact::countContacts() > 1)
-                            ->disabled(fn (): bool => CustomsContact::countContacts() === 1)
-                            ->dehydrated()
-                            ->visible(fn (): bool => CustomsContact::countContacts() > 0)
-                            ->helperText(fn (): ?string => CustomsContact::countContacts() > 1
-                                ? 'Select which customs company to email.'
-                                : null),
-
-                        Forms\Components\Placeholder::make('customs_contact_missing')
-                            ->label('Customs contact')
-                            ->content('No customs contacts configured. Add one under Financial options → Customs contacts.')
-                            ->visible(fn (): bool => CustomsContact::countContacts() === 0),
+                        ...($customsOptions !== []
+                            ? [
+                                SingleOptionField::make(
+                                    'customs_contact_id',
+                                    $customsOptions,
+                                    fn (Select $select): Select => $select
+                                        ->label('Customs contact')
+                                        ->default(fn (?Cargo $record): ?int => $record?->customs_contact_id ?? CustomsContact::defaultId())
+                                        ->searchable()
+                                        ->preload()
+                                        ->native(false)
+                                        ->required()
+                                        ->helperText('Select which customs company to email.'),
+                                ),
+                            ]
+                            : [
+                                Forms\Components\Placeholder::make('customs_contact_missing')
+                                    ->label('Customs contact')
+                                    ->content('No customs contacts configured. Add one under Financial options → Customs contacts.'),
+                            ]),
 
                         Forms\Components\Placeholder::make('customs_email_sent_at_display')
                             ->label('Last customs email')
@@ -387,6 +406,9 @@ class CargoResource extends Resource
                 ])
                 ->schema([
                     View::make('filament.admin.components.cargo-order-table-chrome')
+                        ->viewData([
+                            'headings' => ['', 'Color / product', 'Code', 'Stock', 'Amount / cost', 'Notes'],
+                        ])
                         ->columnSpanFull(),
                     ...$groups,
                 ]),
@@ -523,11 +545,11 @@ class CargoResource extends Resource
             Group::make([
                 Forms\Components\TextInput::make('cargo_amounts.'.$product->id)
                     ->hiddenLabel()
-                        ->numeric()
-                        ->integer()
-                        ->minValue(0)
-                        ->default(0)
-                        ->step(1)
+                    ->numeric()
+                    ->integer()
+                    ->minValue(0)
+                    ->default(0)
+                    ->step(1)
                     ->afterStateHydrated(function (Forms\Components\TextInput $component, $state): void {
                         if ($state === null || $state === '') {
                             $component->state(0);
@@ -566,8 +588,17 @@ class CargoResource extends Resource
                     ->extraAttributes(['class' => 'fi-cargo-order-cost']),
             ])
                 ->extraAttributes(['class' => 'fi-cargo-order-order-line']),
+            Forms\Components\TextInput::make('cargo_notes.'.$product->id)
+                ->hiddenLabel()
+                ->maxLength(2000)
+                ->default('')
+                ->placeholder('Notes')
+                ->extraInputAttributes([
+                    'data-cargo-product-note' => (string) $product->id,
+                ])
+                ->extraFieldWrapperAttributes(['class' => 'fi-cargo-order-notes']),
         ])
-            ->columns(['default' => 5])
+            ->columns(['default' => 6])
             ->extraAttributes([
                 'class' => $rowClass,
                 'data-search' => e($search),
@@ -696,6 +727,7 @@ class CargoResource extends Resource
         unset(
             $data['cargo_amounts'],
             $data['cargo_costs'],
+            $data['cargo_notes'],
             $data['cargo_line_filters'],
             $data['cargo_recommended'],
             $data['customs_document_uploads'],
@@ -869,8 +901,9 @@ class CargoResource extends Resource
     /**
      * @param  array<string|int, mixed>  $amounts
      * @param  array<string|int, mixed>  $costs
+     * @param  array<string|int, mixed>  $notes
      */
-    public static function syncCargoItemsFromAmounts(Cargo $cargo, array $amounts, array $costs = []): void
+    public static function syncCargoItemsFromAmounts(Cargo $cargo, array $amounts, array $costs = [], array $notes = []): void
     {
         $amounts = self::filterAmountsForSupplier($cargo->supplier_id, $amounts);
         $allowedProductIds = self::productIdsForSupplier($cargo->supplier_id);
@@ -898,10 +931,12 @@ class CargoResource extends Resource
             $selfCost = isset($costs[$productId]) || isset($costs[(string) $productId])
                 ? (float) ($costs[$productId] ?? $costs[(string) $productId])
                 : ($defaultCosts[$productId] ?? 0.0);
+            $note = trim((string) ($notes[$productId] ?? $notes[(string) $productId] ?? ''));
 
             $cargo->cargoItems()->create([
                 'product_id' => $productId,
                 'amount' => $amount,
+                'notes' => $note !== '' ? $note : null,
                 'self_cost' => $selfCost,
             ]);
         }
